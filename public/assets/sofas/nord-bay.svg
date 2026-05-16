@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Nord Bay corner sofa">
+  <rect width="640" height="360" rx="32" fill="#edf8ff"/>
+  <ellipse cx="328" cy="294" rx="244" ry="30" fill="#d3ebf8"/>
+  <rect x="102" y="144" width="332" height="108" rx="30" fill="#5aa7e8"/>
+  <rect x="328" y="168" width="188" height="84" rx="28" fill="#7bbbea"/>
+  <rect x="126" y="104" width="150" height="88" rx="28" fill="#dceef8"/>
+  <rect x="292" y="102" width="118" height="90" rx="28" fill="#cce8f8"/>
+  <rect x="84" y="152" width="74" height="116" rx="26" fill="#468fcf"/>
+  <rect x="492" y="172" width="58" height="94" rx="24" fill="#246aaf"/>
+  <rect x="146" y="246" width="38" height="46" rx="12" fill="#234e73"/>
+  <rect x="448" y="246" width="38" height="46" rx="12" fill="#234e73"/>
+  <path d="M134 232h360" stroke="#2f7ec0" stroke-width="8" stroke-linecap="round"/>
+</svg>

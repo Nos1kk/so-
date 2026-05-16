@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Soна - маркетплейс диванов с корзиной, профилем и избранным.">
+    <title>Soна - маркетплейс диванов</title>
+    <link rel="stylesheet" href="css/custom.css">
+    <link rel="stylesheet" href="css/cart.css">
+    <link rel="stylesheet" href="orders/Orders.css">
+    <link rel="stylesheet" href="reviews/Reviews.css">
+    <link rel="stylesheet" href="support/Support.css">
+    <link rel="stylesheet" href="admin/Admin.css">
+    <link rel="stylesheet" href="profile/Profile.css">
+  </head>
+  <body>
+    <canvas class="particle-field" id="particleField" aria-hidden="true"></canvas>
+
+    <div class="top-promo">
+      <span>Промокод SONA15: скидка до 50 000 ₽ на диваны и бесплатная доставка от 120 000 ₽</span>
+      <span>Новая коллекция мягких модулей уже в каталоге</span>
+    </div>
+
+    <header class="site-header">
+      <div class="app-shell header-grid">
+        <a class="brand" href="/" aria-label="Soна">
+          <span class="brand-mark">S</span>
+          <span class="brand-name">Soна</span>
+        </a>
+
+        <button class="catalog-button" id="filterButton" type="button" aria-label="Открыть фильтры каталога">
+          <span class="burger-lines" aria-hidden="true"></span>
+          <span>Каталог</span>
+        </button>
+
+        <label class="search" for="searchInput">
+          <span class="search-scope">Диваны</span>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="Искать на Soна">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+        </label>
+
+        <nav class="top-actions" aria-label="Навигация">
+          <button class="nav-action" id="profileButton" type="button" aria-label="Профиль">
+            <span class="action-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M12 12.2a4.2 4.2 0 1 0 0-8.4 4.2 4.2 0 0 0 0 8.4Z"/>
+                <path d="M4.8 20.2c.9-3.5 3.5-5.3 7.2-5.3s6.3 1.8 7.2 5.3"/>
+              </svg>
+            </span>
+            <strong id="profileButtonLabel">Войти</strong>
+          </button>
+          <button class="nav-action" id="favoritesButton" type="button" aria-label="Избранное">
+            <span class="action-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M12 20.1s-7.4-4.4-8.9-9.2C2 7.4 4.1 4.2 7.6 4.2c2 0 3.4 1 4.4 2.4 1-1.4 2.4-2.4 4.4-2.4 3.5 0 5.6 3.2 4.5 6.7-1.5 4.8-8.9 9.2-8.9 9.2Z"/>
+              </svg>
+            </span>
+            <strong>Избранное</strong>
+          </button>
+          <button class="nav-action cart-trigger" id="cartButton" type="button" aria-label="Корзина">
+            <span class="action-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M3.4 5.1h2.1l1.8 9.4a2.2 2.2 0 0 0 2.2 1.8h7.3a2.2 2.2 0 0 0 2.1-1.6l1.2-5.3H7"/>
+                <path d="M9.3 20.1h.1M17 20.1h.1"/>
+              </svg>
+            </span>
+            <strong>Корзина</strong>
+            <span class="cart-badge" id="cartBadge">0</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="app-shell quick-nav" aria-label="Разделы маркетплейса">
+        <a class="quick-link" href="#catalog" data-quick-filter data-section="Мебель">
+          <span class="quick-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M4 10.5h16M6 10.5v7M18 10.5v7M7.5 17.5h9"/>
+              <path d="M7 10.5V8.2A3.2 3.2 0 0 1 10.2 5h3.6A3.2 3.2 0 0 1 17 8.2v2.3"/>
+            </svg>
+          </span>
+          <span>Мебель</span>
+        </a>
+        <a class="quick-link" href="#catalog" data-quick-filter data-section="Кухни">
+          <span class="quick-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M5 5h14v14H5zM9 5v14M15 5v14"/>
+              <path d="M7.5 12h3M13.5 12h3"/>
+            </svg>
+          </span>
+          <span>Кухни</span>
+        </a>
+        <a class="quick-link" href="#catalog" data-quick-filter data-group="sofas" data-section="Мебель">
+          <span class="quick-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M5 18h14M7 18v-5a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v5"/>
+              <path d="M8 10V7.8A2.8 2.8 0 0 1 10.8 5h2.4A2.8 2.8 0 0 1 16 7.8V10"/>
+            </svg>
+          </span>
+          <span>Диваны</span>
+        </a>
+        <a class="quick-link" href="#catalog" data-quick-filter data-section="Мебель" data-category="кресло">
+          <span class="quick-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M7 19V8.5A3.5 3.5 0 0 1 10.5 5h3A3.5 3.5 0 0 1 17 8.5V19"/>
+              <path d="M5 19h14M8.5 12h7"/>
+            </svg>
+          </span>
+          <span>Кресла</span>
+        </a>
+        <a class="quick-link" href="#catalog" data-quick-filter data-section="Услуги">
+          <span class="quick-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M6 8h12M6 12h12M6 16h8"/>
+              <path d="M17 16l2 2 3-4"/>
+            </svg>
+          </span>
+          <span>Услуги</span>
+        </a>
+        <a class="quick-link is-sale" href="#catalog" data-quick-filter data-sale="true">
+          <span class="quick-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M20 12l-8 8-8-8 8-8 8 8z"/>
+              <path d="M9 15l6-6M9.5 9.5h.1M14.5 14.5h.1"/>
+            </svg>
+          </span>
+          <span>Распродажа</span>
+        </a>
+        <a class="quick-phone" href="tel:88002004090">8 800 200-40-90</a>
+      </div>
+    </header>
+
+    <main class="app-shell marketplace">
+      <section class="hero-banner hero-carousel" id="heroCarousel" aria-label="Рекламные предложения Soна">
+        <div class="hero-track" id="heroTrack"></div>
+        <button class="hero-arrow hero-arrow-prev" id="heroPrev" type="button" aria-label="Предыдущая реклама">‹</button>
+        <button class="hero-arrow hero-arrow-next" id="heroNext" type="button" aria-label="Следующая реклама">›</button>
+        <div class="hero-carousel-footer">
+          <div class="hero-dots" id="heroDots" aria-label="Слайды рекламы"></div>
+          <label class="hero-upload is-admin-only" hidden>
+            <input id="heroAdUpload" type="file" accept="image/png,image/jpeg,image/webp">
+            <span>Загрузить рекламу</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="category-rail" aria-label="Популярные категории">
+        <button type="button" data-category-shortcut="все">
+          <span>▦</span>
+          <strong>Все товары</strong>
+        </button>
+        <button type="button" data-category-shortcut="прямой">
+          <span>▭</span>
+          <strong>Прямые</strong>
+        </button>
+        <button type="button" data-category-shortcut="угловой">
+          <span>◰</span>
+          <strong>Угловые</strong>
+        </button>
+        <button type="button" data-category-shortcut="модульный">
+          <span>▣</span>
+          <strong>Модульные</strong>
+        </button>
+        <button type="button" data-category-shortcut="диван-кровать">
+          <span>▱</span>
+          <strong>Диван-кровати</strong>
+        </button>
+      </section>
+
+      <section class="deal-strip">
+        <strong>Летняя выгода</strong>
+        <span>Рассрочка 0%, бесплатный подъем и ткани в оттенках голубого, графита и молока</span>
+      </section>
+
+      <section class="catalog-section" id="catalog" aria-label="Каталог">
+        <div class="catalog-toolbar">
+          <div>
+            <p class="eyebrow">витрина</p>
+            <h2 id="catalogTitle">Популярные товары Soна</h2>
+          </div>
+        </div>
+
+        <div class="listing-filter-bar" aria-label="Фильтры товаров">
+          <label class="sale-switch">
+            <span>Распродажа</span>
+            <input id="saleOnly" type="checkbox">
+            <i aria-hidden="true"></i>
+          </label>
+
+          <div class="sort-control filter-pill" id="sortControl">
+            <span>Сортировка</span>
+            <button class="sort-trigger" id="sortDropdownButton" type="button" aria-haspopup="listbox" aria-expanded="false">
+              <span id="sortLabel">по популярности</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M7 10l5 5 5-5"/>
+              </svg>
+            </button>
+            <div class="sort-menu" role="listbox" aria-label="Сортировка товаров">
+              <button type="button" role="option" data-sort-option="popular" aria-selected="true">по популярности</button>
+              <button type="button" role="option" data-sort-option="priceAsc">сначала дешевле</button>
+              <button type="button" role="option" data-sort-option="priceDesc">сначала дороже</button>
+              <button type="button" role="option" data-sort-option="rating">по рейтингу</button>
+            </div>
+            <select id="sortSelect" aria-hidden="true" tabindex="-1">
+              <option value="popular">по популярности</option>
+              <option value="priceAsc">сначала дешевле</option>
+              <option value="priceDesc">сначала дороже</option>
+              <option value="rating">по рейтингу</option>
+            </select>
+          </div>
+
+          <div class="filter-pill filter-chip-group">
+            <span>Категория</span>
+            <div class="chip-list" id="categoryFilters"></div>
+          </div>
+
+          <div class="filter-pill filter-chip-group">
+            <span>Размер</span>
+            <div class="segmented" id="sizeFilters"></div>
+          </div>
+
+          <label class="filter-pill price-pill">
+            <span>Цена до</span>
+            <input id="priceRange" class="range" type="range" min="45000" max="260000" step="5000" value="260000">
+            <strong id="priceValue">260 000 ₽</strong>
+          </label>
+
+          <label class="filter-pill delivery-pill">
+            <input id="fastDeliveryOnly" type="checkbox">
+            <span>Срок доставки</span>
+          </label>
+
+          <button class="filter-pill reset-pill" id="resetFilters" type="button">Сбросить</button>
+        </div>
+
+        <div class="product-grid" id="productGrid"></div>
+        <p class="empty-state" id="emptyState" hidden>Ничего не найдено. Попробуйте изменить фильтры.</p>
+      </section>
+    </main>
+
+    <aside class="filter-drawer" id="filterDrawer" aria-label="Каталог Soна" aria-hidden="true">
+      <div class="drawer-backdrop" data-close-filters></div>
+      <div class="filter-panel">
+        <div class="drawer-head">
+          <div>
+            <p class="eyebrow">каталог</p>
+            <h2>Каталог Soна</h2>
+          </div>
+          <button class="icon-button" type="button" aria-label="Закрыть фильтры" data-close-filters>×</button>
+        </div>
+
+        <div class="catalog-menu">
+          <nav class="catalog-sidebar" aria-label="Разделы каталога">
+            <button class="catalog-tab is-active" type="button" data-catalog-tab="furniture">
+              <span class="catalog-tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M5 10.5h14v7H5z"/>
+                  <path d="M7 10.5V7.8c0-1.4 1-2.5 2.4-2.5h5.2c1.4 0 2.4 1.1 2.4 2.5v2.7M7.2 17.5v2M16.8 17.5v2"/>
+                </svg>
+              </span>
+              <span>Мебель</span>
+              <b>›</b>
+            </button>
+            <button class="catalog-tab" type="button" data-catalog-tab="kitchens">
+              <span class="catalog-tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M4.5 5.5h15v13h-15z"/>
+                  <path d="M4.5 10h15M10 5.5v13M7 7.7h.1M13 7.7h3.6M13 12.6h3.6"/>
+                </svg>
+              </span>
+              <span>Кухни</span>
+              <b>›</b>
+            </button>
+            <button class="catalog-tab" type="button" data-catalog-tab="services">
+              <span class="catalog-tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M12 3.8 14.1 9l5.2 2.1-5.2 2.1L12 18.4l-2.1-5.2-5.2-2.1L9.9 9z"/>
+                  <path d="m18 16 1 2.2 2.2 1-2.2 1-1 2.2-1-2.2-2.2-1 2.2-1z"/>
+                </svg>
+              </span>
+              <span>Услуги</span>
+              <b>›</b>
+            </button>
+            <button class="catalog-tab" type="button" data-catalog-tab="sale">
+              <span class="catalog-tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="m6 18 12-12"/>
+                  <path d="M7.2 8.7a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6ZM16.8 18.9a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6Z"/>
+                </svg>
+              </span>
+              <span>Распродажа</span>
+              <b>›</b>
+            </button>
+          </nav>
+
+          <section class="catalog-content">
+            <div class="catalog-view is-active" data-catalog-view="furniture">
+              <div class="catalog-title-row">
+                <h3>Мебель</h3>
+                <span>Категории для дома, офиса и отдыха</span>
+              </div>
+              <div class="catalog-columns">
+                <div>
+                  <h4>По помещениям</h4>
+                  <a href="#catalog">Спальня</a>
+                  <a href="#catalog">Гостиная</a>
+                  <a href="#catalog">Кухня</a>
+                  <a href="#catalog">Прихожая</a>
+                  <a href="#catalog">Детская</a>
+                  <a href="#catalog">Садовая мебель</a>
+                  <a href="#catalog">Офисная мебель</a>
+                </div>
+                <div>
+                  <h4>Диваны и кресла</h4>
+                  <button type="button" data-category-shortcut="все">Все диваны</button>
+                  <button type="button" data-category-shortcut="прямой">Прямые</button>
+                  <button type="button" data-category-shortcut="угловой">Угловые</button>
+                  <button type="button" data-category-shortcut="модульный">Модульные</button>
+                  <button type="button" data-category-shortcut="диван-кровать">Диван-кровати</button>
+                  <a href="#catalog">Кресла</a>
+                  <a href="#catalog">Пуфы</a>
+                </div>
+                <div>
+                  <h4>Хранение и столы</h4>
+                  <a href="#catalog">Шкафы и стеллажи</a>
+                  <a href="#catalog">Комоды и тумбы</a>
+                  <a href="#catalog">Столы и стулья</a>
+                  <a href="#catalog">Гардеробные</a>
+                  <a href="#catalog">Компьютерная мебель</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="catalog-view" data-catalog-view="kitchens">
+              <div class="catalog-title-row">
+                <h3>Кухни</h3>
+                <span>Гарнитуры, острова, хранение и проектирование</span>
+              </div>
+              <div class="catalog-columns">
+                <div>
+                  <h4>Готовые решения</h4>
+                  <a href="#catalog">Кухонные гарнитуры</a>
+                  <a href="#catalog">Модульные кухни</a>
+                  <a href="#catalog">Угловые кухни</a>
+                  <a href="#catalog">Кухни для студий</a>
+                </div>
+                <div>
+                  <h4>Элементы</h4>
+                  <a href="#catalog">Фасады</a>
+                  <a href="#catalog">Столешницы</a>
+                  <a href="#catalog">Фурнитура</a>
+                  <a href="#catalog">Барные стойки</a>
+                </div>
+                <div>
+                  <h4>Проектирование</h4>
+                  <a href="#catalog">Замер помещения</a>
+                  <a href="#catalog">3D-проект кухни</a>
+                  <a href="#catalog">Сборка и монтаж</a>
+                  <a href="#catalog">Подбор техники</a>
+                </div>
+              </div>
+            </div>
+
+            <div class="catalog-view" data-catalog-view="services">
+              <div class="catalog-title-row">
+                <h3>Услуги</h3>
+                <span>Цифровая разработка, визуал и продакшн</span>
+              </div>
+              <div class="service-grid">
+                <a class="service-card" href="#catalog">
+                  <strong>Разработка</strong>
+                  <span>Сайты, веб-приложения, магазины, боты, интеграции и любая продуктовая разработка.</span>
+                </a>
+                <a class="service-card" href="#catalog">
+                  <strong>Дизайн</strong>
+                  <span>UI/UX, брендинг, карточки товаров, презентации, баннеры и дизайн-системы.</span>
+                </a>
+                <a class="service-card" href="#catalog">
+                  <strong>Видеомоушен</strong>
+                  <span>Рекламные ролики, motion-графика, анимации интерфейсов и промо-видео.</span>
+                </a>
+                <a class="service-card" href="#catalog">
+                  <strong>3D и продюсирование</strong>
+                  <span>3D-модели, визуализации, сцены, креативное сопровождение и продюсирование проектов.</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="catalog-view" data-catalog-view="sale">
+              <div class="catalog-title-row">
+                <h3>Распродажа</h3>
+                <span>Скидки на мебель, кухни и услуги Soна</span>
+              </div>
+              <div class="catalog-columns">
+                <div>
+                  <h4>Мебель</h4>
+                  <button type="button" data-category-shortcut="все">Все скидки</button>
+                  <button type="button" data-category-shortcut="прямой">Прямые диваны</button>
+                  <button type="button" data-category-shortcut="угловой">Угловые диваны</button>
+                </div>
+                <div>
+                  <h4>Кухни</h4>
+                  <a href="#catalog">Витринные образцы</a>
+                  <a href="#catalog">Гарнитуры со скидкой</a>
+                  <a href="#catalog">Бесплатный замер</a>
+                </div>
+                <div>
+                  <h4>Услуги</h4>
+                  <a href="#catalog">Стартовый сайт</a>
+                  <a href="#catalog">Пакет дизайна</a>
+                  <a href="#catalog">3D-визуализация</a>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </aside>
+
+    <section class="cart-page app-shell" id="cartPage" aria-label="Корзина" hidden>
+      <div class="cart-page-head">
+        <div>
+          <p class="eyebrow">заказ</p>
+          <h2>Корзина Soна</h2>
+          <span>Здесь можно проверить товары, изменить количество, удалить лишнее и перейти к оформлению заказа.</span>
+        </div>
+        <button class="soft-button" type="button" data-close-cart>Продолжить покупки</button>
+      </div>
+      <div class="cart-page-layout">
+        <div class="cart-items" id="cartItems"></div>
+        <aside class="cart-summary">
+          <div class="summary-line">
+            <span id="cartCountLabel">Товары: 0</span>
+            <strong id="cartSubtotal">0 ₽</strong>
+          </div>
+          <div class="summary-line">
+            <span>Доставка</span>
+            <strong id="deliveryPrice">0 ₽</strong>
+          </div>
+          <div class="summary-total">
+            <span>Итого</span>
+            <strong id="cartTotal">0 ₽</strong>
+          </div>
+          <button class="primary-button" id="checkoutButton" type="button">Оформить заказ</button>
+          <p class="secure-note">Оформление демонстрационное: платежные данные не запрашиваются.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="account-page app-shell" id="profilePage" aria-label="Профиль Soна" hidden>
+      <div id="profilePageContent"></div>
+    </section>
+
+    <section class="account-page app-shell" id="favoritesPage" aria-label="Избранные товары" hidden>
+      <div id="favoritesPageContent"></div>
+    </section>
+
+    <section class="admin-page app-shell" id="adminPage" aria-label="Админ-панель Soна" hidden>
+      <div id="adminPageContent"></div>
+    </section>
+
+    <aside class="product-modal" id="productModal" aria-label="Карточка товара" aria-hidden="true">
+      <div class="product-modal-backdrop" data-close-product></div>
+      <section class="product-detail" id="productDetail"></section>
+    </aside>
+
+    <dialog class="profile-modal" id="profileModal">
+      <form class="profile-card" id="profileForm" method="dialog" autocomplete="off">
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">личный кабинет</p>
+            <h2>Профиль Soна</h2>
+          </div>
+          <button class="icon-button" id="profileCloseButton" type="button" value="cancel" aria-label="Закрыть профиль" autofocus>×</button>
+        </div>
+
+        <div class="profile-hero-card">
+          <div class="profile-avatar" aria-hidden="true">S</div>
+          <div class="profile-identity">
+            <span class="profile-state">Профиль открыт</span>
+            <strong id="profileDisplayName">Гость Soна</strong>
+            <p>Можно пользоваться корзиной и избранным без регистрации и ввода личных данных.</p>
+          </div>
+        </div>
+
+        <div class="profile-grid">
+          <label>
+            <span>Имя</span>
+            <input id="profileNameInput" name="name" type="text" maxlength="40" placeholder="Гость Soна">
+          </label>
+          <label>
+            <span>Email</span>
+            <input id="profileEmailInput" name="email" type="email" maxlength="80" placeholder="guest@sona.market">
+          </label>
+          <label>
+            <span>Телефон</span>
+            <input id="profilePhoneInput" name="phone" type="tel" maxlength="24" placeholder="+7 900 000-00-00">
+          </label>
+          <label class="wide-field">
+            <span>Адрес доставки</span>
+            <input id="profileAddressInput" name="address" type="text" maxlength="120" placeholder="Город, улица, дом">
+          </label>
+        </div>
+
+        <div class="profile-stats" aria-label="Сводка профиля">
+          <div>
+            <span>В корзине</span>
+            <strong id="profileCartCount">0</strong>
+          </div>
+          <div>
+            <span>Избранное</span>
+            <strong id="profileFavoriteCount">0</strong>
+          </div>
+          <div>
+            <span>Заказы</span>
+            <strong id="profileOrderCount">0</strong>
+          </div>
+        </div>
+
+        <div class="profile-panels">
+          <section>
+            <h3>Избранное</h3>
+            <div id="favoriteList" class="mini-list"></div>
+          </section>
+          <section>
+            <h3>Последние заказы</h3>
+            <div id="orderList" class="mini-list"></div>
+          </section>
+        </div>
+
+        <div class="modal-actions">
+          <button class="soft-button" value="cancel" type="button" id="clearProfile">Выйти из профиля</button>
+          <button class="primary-button" value="default" type="submit" id="profileDoneButton">Сохранить</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="support-chat-root" id="supportChatRoot"></div>
+
+    <script src="js/security.js" defer></script>
+    <script src="js/store.js" defer></script>
+    <script src="orders/Orders.js" defer></script>
+    <script src="reviews/Reviews.js" defer></script>
+    <script src="support/Support.js" defer></script>
+    <script src="admin/Admin.js" defer></script>
+    <script src="profile/Profile.js" defer></script>
+    <script src="js/app.js" defer></script>
+  </body>
+</html>

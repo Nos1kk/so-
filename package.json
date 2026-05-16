@@ -1,0 +1,13 @@
+{
+  "name": "sona-sofa-marketplace",
+  "version": "1.0.0",
+  "description": "SONA sofa marketplace with cart, profile, and a secure static Node server.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true
+}

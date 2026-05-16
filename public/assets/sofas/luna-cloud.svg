@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Luna Cloud sofa">
+  <rect width="640" height="360" rx="32" fill="#eef9ff"/>
+  <ellipse cx="320" cy="294" rx="230" ry="28" fill="#d8edf8"/>
+  <rect x="122" y="150" width="396" height="104" rx="34" fill="#b9dcf3"/>
+  <rect x="138" y="114" width="364" height="82" rx="30" fill="#d7eefb"/>
+  <rect x="156" y="96" width="88" height="106" rx="28" fill="#edf8ff"/>
+  <rect x="276" y="92" width="92" height="110" rx="28" fill="#e7f5ff"/>
+  <rect x="398" y="98" width="86" height="104" rx="28" fill="#f6fbff"/>
+  <rect x="94" y="156" width="80" height="112" rx="28" fill="#a7d1ed"/>
+  <rect x="466" y="156" width="80" height="112" rx="28" fill="#9cc9e4"/>
+  <rect x="156" y="244" width="38" height="46" rx="12" fill="#86abc4"/>
+  <rect x="446" y="244" width="38" height="46" rx="12" fill="#86abc4"/>
+  <path d="M154 234h332" stroke="#8fc2e3" stroke-width="8" stroke-linecap="round"/>
+</svg>

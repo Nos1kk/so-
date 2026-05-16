@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Sona Island modular sofa">
+  <rect width="640" height="360" rx="32" fill="#f5fcff"/>
+  <ellipse cx="320" cy="296" rx="258" ry="30" fill="#d9eff8"/>
+  <rect x="90" y="158" width="190" height="96" rx="28" fill="#cfeaff"/>
+  <rect x="278" y="142" width="168" height="112" rx="30" fill="#eaf8f3"/>
+  <rect x="438" y="166" width="106" height="88" rx="26" fill="#f0a9a7"/>
+  <rect x="112" y="112" width="126" height="84" rx="28" fill="#e5f5ff"/>
+  <rect x="300" y="96" width="116" height="100" rx="28" fill="#d8f1e9"/>
+  <rect x="466" y="122" width="54" height="78" rx="20" fill="#ffd5d3"/>
+  <rect x="130" y="246" width="36" height="44" rx="12" fill="#7baed0"/>
+  <rect x="476" y="246" width="36" height="44" rx="12" fill="#d78785"/>
+  <path d="M118 232h400" stroke="#acd7ed" stroke-width="8" stroke-linecap="round"/>
+</svg>

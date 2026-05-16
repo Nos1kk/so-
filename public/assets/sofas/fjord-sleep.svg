@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Fjord Sleep sofa bed">
+  <rect width="640" height="360" rx="32" fill="#f1faff"/>
+  <ellipse cx="320" cy="296" rx="226" ry="29" fill="#d6edf8"/>
+  <rect x="126" y="156" width="388" height="96" rx="30" fill="#78bce8"/>
+  <rect x="148" y="110" width="344" height="86" rx="28" fill="#eef9ff"/>
+  <rect x="164" y="92" width="98" height="110" rx="28" fill="#ffffff"/>
+  <rect x="282" y="96" width="96" height="106" rx="28" fill="#d7effb"/>
+  <rect x="398" y="94" width="74" height="108" rx="26" fill="#bddff2"/>
+  <rect x="98" y="164" width="80" height="104" rx="28" fill="#62a9d8"/>
+  <rect x="462" y="164" width="80" height="104" rx="28" fill="#516f86"/>
+  <rect x="164" y="244" width="38" height="46" rx="12" fill="#516f86"/>
+  <rect x="438" y="244" width="38" height="46" rx="12" fill="#516f86"/>
+</svg>

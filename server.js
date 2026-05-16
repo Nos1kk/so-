@@ -1,0 +1,266 @@
+const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
+
+const PORT = Number(process.env.PORT) || 3000;
+const PUBLIC_DIR = path.join(__dirname, "public");
+const smsCodes = new Map();
+
+const MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon"
+};
+
+function setSecurityHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self'",
+      "img-src 'self' data:",
+      "font-src 'self'",
+      "connect-src 'self'",
+      "form-action 'self'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'"
+    ].join("; ")
+  );
+}
+
+function sendJson(res, statusCode, payload) {
+  setSecurityHeaders(res);
+  res.writeHead(statusCode, { "Content-Type": MIME_TYPES[".json"] });
+  res.end(JSON.stringify(payload));
+}
+
+function readJsonBody(req, callback) {
+  let raw = "";
+
+  req.on("data", (chunk) => {
+    raw += chunk;
+    if (raw.length > 10000) {
+      req.destroy();
+    }
+  });
+
+  req.on("end", () => {
+    try {
+      callback(null, raw ? JSON.parse(raw) : {});
+    } catch (error) {
+      callback(error);
+    }
+  });
+}
+
+function normalizePhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("8")) return `7${digits.slice(1)}`;
+  return digits;
+}
+
+function createSmsCode() {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+function sendSms(phone, code, callback) {
+  const apiId = process.env.SMSRU_API_ID;
+
+  if (!apiId) {
+    console.log(`[SONA demo SMS] +${phone}: ${code}`);
+    callback(null, { demo: true });
+    return;
+  }
+
+  const message = encodeURIComponent(`Код входа Soна: ${code}`);
+  const url = `https://sms.ru/sms/send?api_id=${encodeURIComponent(apiId)}&to=${encodeURIComponent(phone)}&msg=${message}&json=1`;
+
+  https.get(url, (smsRes) => {
+    let raw = "";
+    smsRes.on("data", (chunk) => {
+      raw += chunk;
+    });
+    smsRes.on("end", () => {
+      if (smsRes.statusCode >= 200 && smsRes.statusCode < 300) {
+        callback(null, { demo: false, provider: "sms.ru" });
+      } else {
+        callback(new Error(raw || "SMS provider error"));
+      }
+    });
+  }).on("error", callback);
+}
+
+function handleAuthRequest(req, res) {
+  readJsonBody(req, (error, body) => {
+    if (error) {
+      sendJson(res, 400, { ok: false, error: "Invalid JSON" });
+      return;
+    }
+
+    const phone = normalizePhone(body.phone);
+    if (phone.length < 10 || phone.length > 15) {
+      sendJson(res, 400, { ok: false, error: "Invalid phone" });
+      return;
+    }
+
+    const code = createSmsCode();
+    smsCodes.set(phone, {
+      code,
+      expiresAt: Date.now() + 5 * 60 * 1000
+    });
+
+    sendSms(phone, code, (smsError, result) => {
+      if (smsError) {
+        sendJson(res, 502, { ok: false, error: "SMS provider failed" });
+        return;
+      }
+
+      sendJson(res, 200, {
+        ok: true,
+        demo: Boolean(result.demo),
+        devCode: result.demo ? code : undefined
+      });
+    });
+  });
+}
+
+function handleAuthVerify(req, res) {
+  readJsonBody(req, (error, body) => {
+    if (error) {
+      sendJson(res, 400, { ok: false, error: "Invalid JSON" });
+      return;
+    }
+
+    const phone = normalizePhone(body.phone);
+    const code = String(body.code || "").trim();
+    const record = smsCodes.get(phone);
+
+    if (!record || record.expiresAt < Date.now()) {
+      smsCodes.delete(phone);
+      sendJson(res, 400, { ok: false, error: "Code expired" });
+      return;
+    }
+
+    if (record.code !== code) {
+      sendJson(res, 400, { ok: false, error: "Wrong code" });
+      return;
+    }
+
+    smsCodes.delete(phone);
+    sendJson(res, 200, { ok: true, phone });
+  });
+}
+
+function resolveSafePath(urlPath) {
+  let decodedPath;
+
+  try {
+    decodedPath = decodeURIComponent(urlPath.split("?")[0]);
+  } catch (error) {
+    return null;
+  }
+
+  const cleanPath = decodedPath === "/" ? "/index.html" : decodedPath;
+  const requestedPath = path.normalize(path.join(PUBLIC_DIR, cleanPath));
+  const relativePath = path.relative(PUBLIC_DIR, requestedPath);
+
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    return null;
+  }
+
+  return requestedPath;
+}
+
+function createServer() {
+  return http.createServer((req, res) => {
+  if (req.method === "POST" && req.url === "/api/auth/request-sms") {
+    handleAuthRequest(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/verify-sms") {
+    handleAuthVerify(req, res);
+    return;
+  }
+
+  if (!["GET", "HEAD"].includes(req.method)) {
+    sendJson(res, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  if (req.url === "/health") {
+    sendJson(res, 200, { status: "ok", service: "sona-marketplace" });
+    return;
+  }
+
+  const filePath = resolveSafePath(req.url || "/");
+
+  if (!filePath) {
+    sendJson(res, 403, { error: "Forbidden" });
+    return;
+  }
+
+  fs.stat(filePath, (statError, stats) => {
+    if (statError || !stats.isFile()) {
+      const fallbackPath = path.join(PUBLIC_DIR, "index.html");
+
+      fs.readFile(fallbackPath, (fallbackError, fallbackContent) => {
+        if (fallbackError) {
+          sendJson(res, 404, { error: "Not found" });
+          return;
+        }
+
+        setSecurityHeaders(res);
+        res.writeHead(200, {
+          "Content-Type": MIME_TYPES[".html"],
+          "Cache-Control": "no-store"
+        });
+        res.end(req.method === "HEAD" ? undefined : fallbackContent);
+      });
+      return;
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = MIME_TYPES[ext] || "application/octet-stream";
+    const cacheControl = "no-store";
+
+    fs.readFile(filePath, (readError, content) => {
+      if (readError) {
+        sendJson(res, 500, { error: "Server error" });
+        return;
+      }
+
+      setSecurityHeaders(res);
+      res.writeHead(200, {
+        "Content-Type": contentType,
+        "Cache-Control": cacheControl
+      });
+      res.end(req.method === "HEAD" ? undefined : content);
+    });
+  });
+  });
+}
+
+if (require.main === module) {
+  const server = createServer();
+  server.listen(PORT, () => {
+    console.log(`SONA marketplace is running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = {
+  createServer
+};
