@@ -3,7 +3,8 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT || process.env.AMVERA_PORT || process.env.APP_PORT) || 8000;
+const HOST = process.env.HOST || "0.0.0.0";
 const PUBLIC_DIR = path.join(__dirname, "public");
 const smsCodes = new Map();
 
@@ -256,9 +257,19 @@ function createServer() {
 
 if (require.main === module) {
   const server = createServer();
-  server.listen(PORT, () => {
-    console.log(`SONA marketplace is running on http://localhost:${PORT}`);
+  server.listen(PORT, HOST, () => {
+    console.log(`SONA marketplace is running on http://${HOST}:${PORT}`);
   });
+
+  function shutdown(signal) {
+    console.log(`Received ${signal}. Closing SONA server...`);
+    server.close(() => {
+      process.exit(0);
+    });
+  }
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 module.exports = {

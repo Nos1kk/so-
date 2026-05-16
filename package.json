@@ -4,10 +4,11 @@
   "description": "SONA sofa marketplace with cart, profile, and a secure static Node server.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/js/app.js && node --check public/js/store.js && node --check public/js/security.js && node --check public/profile/Profile.js && node --check public/orders/Orders.js && node --check public/reviews/Reviews.js && node --check public/support/Support.js && node --check public/admin/Admin.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "private": true
 }
