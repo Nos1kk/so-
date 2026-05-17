@@ -15,10 +15,11 @@
     <link rel="stylesheet" href="admin/Admin.css">
     <link rel="stylesheet" href="admin/products/ProductsPage.css">
     <link rel="stylesheet" href="profile/Profile.css">
+    <link rel="stylesheet" href="mobile/mobile.css" media="(max-width: 760px)">
   </head>
   <body>
     <div class="top-promo">
-      <span>Промокод SONA15: скидка до 50 000 ₽ на товары для дома</span>
+      <span>SONA15 — скидка до 50 000 ₽ на товары для дома</span>
       <span>Мебель, кухни, свет, декор и услуги в одном каталоге</span>
     </div>
 
@@ -41,6 +42,19 @@
         </label>
 
         <nav class="top-actions" aria-label="Навигация">
+          <div class="mobile-consult">
+            <button class="nav-action mobile-consult-button" id="mobileConsultButton" type="button" aria-label="Связаться с консультантом" aria-expanded="false">
+              <span class="action-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M6.6 4.8 8.9 4a1.5 1.5 0 0 1 1.8.8l1 2.4a1.5 1.5 0 0 1-.4 1.7l-1.1 1a10.2 10.2 0 0 0 4 4l1-1.1a1.5 1.5 0 0 1 1.7-.4l2.4 1a1.5 1.5 0 0 1 .8 1.8l-.8 2.3a2.4 2.4 0 0 1-2.6 1.6C9.6 18 5.9 14.3 4.9 7.4a2.4 2.4 0 0 1 1.7-2.6Z"/>
+                </svg>
+              </span>
+            </button>
+            <div class="mobile-consult-menu" id="mobileConsultMenu" hidden>
+              <a href="tel:88002004090">Проконсультироваться</a>
+              <button type="button" id="mobileSupportOpen">Написать в чат</button>
+            </div>
+          </div>
           <button class="nav-action" id="profileButton" type="button" aria-label="Профиль">
             <span class="action-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" focusable="false">
@@ -148,6 +162,15 @@
 
     <main class="app-shell marketplace">
       <section class="hero-banner hero-carousel" id="heroCarousel" aria-label="Рекламные предложения Soна">
+        <div class="mobile-hero-copy">
+          <span>SONA HOME</span>
+          <h1>Интерьеры для спокойной жизни</h1>
+          <p>Мебель, кухни и сервис SONA в одном каталоге</p>
+          <div>
+            <a class="mobile-hero-primary" href="#catalog">Открыть каталог</a>
+            <a class="mobile-hero-secondary" href="#catalog" data-quick-filter data-section="Кухни">Кухни</a>
+          </div>
+        </div>
         <div class="hero-track" id="heroTrack"></div>
         <button class="hero-arrow hero-arrow-prev" id="heroPrev" type="button" aria-label="Предыдущая реклама">‹</button>
         <button class="hero-arrow hero-arrow-next" id="heroNext" type="button" aria-label="Следующая реклама">›</button>
@@ -157,6 +180,40 @@
             <input id="heroAdUpload" type="file" accept="image/png,image/jpeg,image/webp">
             <span>Загрузить рекламу</span>
           </label>
+        </div>
+      </section>
+
+      <section class="mobile-service-sale home-section" aria-label="Сервис и выгода SONA">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">сервис и выгода</p>
+            <h2>Покупать проще</h2>
+          </div>
+        </div>
+        <div class="mobile-service-sale-grid">
+          <a class="mobile-feature-card is-service" href="#catalog" data-quick-filter data-section="Услуги">
+            <span class="mobile-feature-visual" aria-hidden="true">
+              <img src="assets/catalog/services.png" alt="" loading="lazy">
+            </span>
+            <span class="mobile-feature-label">Сервис</span>
+            <strong>Услуги SONA</strong>
+            <small>Замер, дизайн, доставка и сборка в одной системе</small>
+            <span class="mobile-feature-tags">
+              <i>Замер</i>
+              <i>Дизайн</i>
+              <i>Доставка</i>
+              <i>Сборка</i>
+            </span>
+          </a>
+          <a class="mobile-feature-card is-sale" href="#catalog" data-quick-filter data-sale="true">
+            <span class="mobile-feature-visual" aria-hidden="true">
+              <img src="assets/catalog/all.png" alt="" loading="lazy">
+            </span>
+            <span class="mobile-feature-label">До −45%</span>
+            <strong>Распродажа</strong>
+            <small>Акции на мебель, кухни и товары для дома</small>
+            <b>Смотреть выгоду</b>
+          </a>
         </div>
       </section>
 
@@ -284,9 +341,22 @@
             <p class="eyebrow">витрина</p>
             <h2 id="catalogTitle">Популярные товары Soна</h2>
           </div>
+          <div class="mobile-catalog-actions">
+            <button class="mobile-filter-open" type="button" data-open-mobile-filters>
+              <span aria-hidden="true">☰</span>
+              Фильтры
+            </button>
+          </div>
         </div>
 
         <div class="listing-filter-bar" aria-label="Фильтры товаров">
+          <div class="mobile-filter-sheet-head">
+            <div>
+              <span>Фильтры</span>
+              <strong>Настройте витрину</strong>
+            </div>
+            <button type="button" aria-label="Закрыть фильтры" data-close-mobile-filters>×</button>
+          </div>
           <label class="sale-switch">
             <span>Распродажа</span>
             <input id="saleOnly" type="checkbox">
@@ -337,6 +407,7 @@
           </label>
 
           <button class="filter-pill reset-pill" id="resetFilters" type="button">Сбросить</button>
+          <button class="mobile-filter-apply" type="button" data-close-mobile-filters>Показать товары</button>
         </div>
 
         <div class="product-grid" id="productGrid"></div>
@@ -624,6 +695,10 @@
         <strong>Корзина</strong>
         <em id="mobileCartBadge">0</em>
       </button>
+      <button type="button" data-mobile-action="profile">
+        <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 12.2a4.1 4.1 0 1 0 0-8.2 4.1 4.1 0 0 0 0 8.2Z"/><path d="M4.8 20c.9-3.4 3.5-5.1 7.2-5.1s6.3 1.7 7.2 5.1"/></svg></span>
+        <strong>Войти</strong>
+      </button>
     </nav>
 
     <aside class="product-modal" id="productModal" aria-label="Карточка товара" aria-hidden="true">
@@ -703,6 +778,7 @@
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="mobile-filter-backdrop" data-close-mobile-filters></div>
     <div class="support-chat-root" id="supportChatRoot"></div>
 
     <script src="js/security.js" defer></script>
@@ -720,5 +796,6 @@
     <script src="admin/Admin.js" defer></script>
     <script src="profile/Profile.js" defer></script>
     <script src="js/app.js" defer></script>
+    <script src="mobile/mobile.js" defer></script>
   </body>
 </html>

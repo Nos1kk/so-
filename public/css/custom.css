@@ -68,6 +68,15 @@ img {
   max-width: 100%;
 }
 
+.mobile-hero-copy,
+.mobile-catalog-actions,
+.mobile-filter-sheet-head,
+.mobile-filter-apply,
+.mobile-filter-backdrop,
+.mobile-service-sale {
+  display: none;
+}
+
 .particle-field {
   position: fixed;
   inset: 0;
@@ -247,6 +256,10 @@ img {
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+.mobile-consult {
+  display: none;
 }
 
 .nav-action {
@@ -927,13 +940,13 @@ img {
   object-fit: cover;
 }
 
-.product-placeholder[data-kind="РљСѓС…РЅРё"] {
+.product-placeholder[data-kind="Кухни"] {
   background:
     radial-gradient(circle at 80% 24%, rgba(169, 192, 214, 0.22), transparent 30%),
     linear-gradient(145deg, #f8fdff, #dff8f5);
 }
 
-.product-placeholder[data-kind="РЈСЃР»СѓРіРё"] {
+.product-placeholder[data-kind="Услуги"] {
   background:
     radial-gradient(circle at 80% 24%, rgba(34, 58, 94, 0.22), transparent 30%),
     linear-gradient(145deg, #f7fbff, #e8f3ff);
