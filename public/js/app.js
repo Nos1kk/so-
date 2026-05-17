@@ -32,25 +32,34 @@
   };
   const DEFAULT_ADS = [
     {
-      eyebrow: "маркетплейс мебели и услуг",
-      title: "Обновите дом с SONA",
-      badge: "до −45%",
-      cta: "Смотреть каталог",
-      visual: "assets/sofas/sona-island.svg"
+      eyebrow: "",
+      title: "",
+      badge: "",
+      cta: "",
+      visual: "assets/ads/sona-living-01.png",
+      fullBleed: true,
+      focal: "center center",
+      mobileFocal: "58% center"
     },
     {
-      eyebrow: "кухни и дизайн",
-      title: "Кухни под размер и стиль",
-      badge: "проект 0 ₽",
-      cta: "Перейти к кухням",
-      visual: ""
+      eyebrow: "",
+      title: "",
+      badge: "",
+      cta: "",
+      visual: "assets/ads/sona-living-02.png",
+      fullBleed: true,
+      focal: "center center",
+      mobileFocal: "63% center"
     },
     {
-      eyebrow: "сервис SONA",
-      title: "Замер, сборка и дизайн-проект",
-      badge: "под ключ",
-      cta: "Открыть услуги",
-      visual: ""
+      eyebrow: "",
+      title: "",
+      badge: "",
+      cta: "",
+      visual: "assets/ads/sona-bedroom-03.png",
+      fullBleed: true,
+      focal: "center center",
+      mobileFocal: "67% center"
     }
   ];
   let revealObserver;
@@ -101,6 +110,7 @@
     supportChatRoot: document.getElementById("supportChatRoot"),
     cartPage: document.getElementById("cartPage"),
     cartBadge: document.getElementById("cartBadge"),
+    mobileCartBadge: document.getElementById("mobileCartBadge"),
     cartCountLabel: document.getElementById("cartCountLabel"),
     cartItems: document.getElementById("cartItems"),
     cartSubtotal: document.getElementById("cartSubtotal"),
@@ -412,11 +422,21 @@
 
   function getAds() {
     const data = store.read();
-    return [...DEFAULT_ADS, ...(data.customAds || [])].filter((ad) => ad.active !== false);
+    const customAds = (data.customAds || []).filter((ad) => {
+      const title = String(ad.title || "").toLowerCase();
+      const eyebrow = String(ad.eyebrow || "").toLowerCase();
+      const visual = String(ad.visual || "");
+      return ad.active !== false
+        && !ad.uploaded
+        && !visual.startsWith("data:")
+        && !title.includes("новый баннер")
+        && !eyebrow.includes("ваша реклама");
+    });
+    return [...DEFAULT_ADS, ...customAds].filter((ad) => ad.active !== false);
   }
 
   function createAdSlide(ad, index) {
-    const isUploadedAd = ad.uploaded && !ad.title;
+    const isFullBleedAd = Boolean(ad.fullBleed || (ad.uploaded && !ad.title));
     const slide = createElement("article", "hero-slide");
     const copy = createElement("div", "hero-copy");
     const visual = createElement("div", "hero-sofa");
@@ -426,7 +446,14 @@
     const button = createElement("button", "light-button", ad.cta || "РЎРјРѕС‚СЂРµС‚СЊ");
 
     slide.dataset.adIndex = String(index);
-    slide.classList.toggle("is-uploaded-ad", isUploadedAd);
+    slide.classList.toggle("is-uploaded-ad", isFullBleedAd);
+    slide.classList.toggle("is-brand-ad", Boolean(ad.fullBleed));
+    if (ad.focal) {
+      slide.style.setProperty("--ad-focal", ad.focal);
+    }
+    if (ad.mobileFocal) {
+      slide.style.setProperty("--ad-mobile-focal", ad.mobileFocal);
+    }
     button.type = "button";
     button.addEventListener("click", () => {
       const target = ad.link || "#catalog";
@@ -446,12 +473,18 @@
       visual.append(createElement("div", "hero-ad-placeholder", "Soна"));
     }
 
-    if (isUploadedAd) {
-      copy.append(eyebrow);
+    if (isFullBleedAd) {
+      if (ad.eyebrow) {
+        copy.append(eyebrow);
+      }
     } else {
       copy.append(eyebrow, title, badge, button);
     }
-    slide.append(copy, visual);
+
+    if (copy.childNodes.length) {
+      slide.append(copy);
+    }
+    slide.append(visual);
     return slide;
   }
 
@@ -755,7 +788,6 @@
     bindCardTilt();
     bindHeroPointer();
     bindParallax();
-    initParticles();
     observeAnimatedElements();
   }
 
@@ -861,8 +893,6 @@
       hero.style.setProperty("--hero-my", "0px");
       hero.style.setProperty("--hero-bg-x", "84%");
       hero.style.setProperty("--hero-bg-y", "28%");
-      hero.style.setProperty("--hero-decor-x", "0px");
-      hero.style.setProperty("--hero-decor-y", "0px");
     };
 
     hero.addEventListener("mousemove", (event) => {
@@ -874,8 +904,6 @@
       hero.style.setProperty("--hero-my", `${y * 8}px`);
       hero.style.setProperty("--hero-bg-x", `${84 + x * 2}%`);
       hero.style.setProperty("--hero-bg-y", `${28 + y * 3}%`);
-      hero.style.setProperty("--hero-decor-x", `${x * -16}px`);
-      hero.style.setProperty("--hero-decor-y", `${y * -10}px`);
     }, { passive: true });
 
     hero.addEventListener("mouseleave", reset);
@@ -1363,7 +1391,7 @@
 
     if (reduceMotion) return;
 
-    [els.cartButton, els.cartBadge].forEach((element) => {
+    [els.cartButton, els.cartBadge, els.mobileCartBadge].forEach((element) => {
       if (!element) return;
       element.classList.remove("is-bouncing");
       void element.offsetWidth;
@@ -1418,6 +1446,10 @@
     const delivery = subtotal > 120000 || subtotal === 0 ? 0 : 2500;
     const total = subtotal + delivery;
     els.cartBadge.textContent = String(count);
+    if (els.mobileCartBadge) {
+      els.mobileCartBadge.textContent = String(count);
+      els.mobileCartBadge.hidden = count === 0;
+    }
     if (els.cartCountLabel) {
       els.cartCountLabel.textContent = `Товары: ${count}`;
     }
@@ -2129,6 +2161,15 @@
 
     els.cartButton.addEventListener("click", openCart);
     els.favoritesButton?.addEventListener("click", showFavorites);
+    document.querySelectorAll("[data-mobile-action]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const action = button.dataset.mobileAction;
+        if (action === "home") navigateTo("home");
+        if (action === "catalog") goToCatalog();
+        if (action === "favorites") showFavorites();
+        if (action === "cart") openCart();
+      });
+    });
     document.querySelectorAll("[data-close-cart]").forEach((button) => button.addEventListener("click", closeCart));
     document.querySelectorAll("[data-close-product]").forEach((button) => button.addEventListener("click", closeProduct));
     els.checkoutButton.addEventListener("click", checkout);
