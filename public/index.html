@@ -16,6 +16,151 @@
     <link rel="stylesheet" href="admin/products/ProductsPage.css">
     <link rel="stylesheet" href="profile/Profile.css">
     <link rel="stylesheet" href="mobile/mobile.css" media="(max-width: 760px)">
+    <style>
+      @media (max-width: 760px) {
+        body .support-chat-root {
+          right: 0 !important;
+          top: auto !important;
+          bottom: calc(126px + env(safe-area-inset-bottom)) !important;
+          transform: none !important;
+          z-index: 98 !important;
+        }
+
+        body .sona-support-launcher {
+          min-width: 34px !important;
+          width: 34px !important;
+          height: 70px !important;
+          flex-direction: column !important;
+          gap: 4px !important;
+          border-radius: 13px 0 0 13px !important;
+        }
+
+        body .sona-support-launcher strong {
+          display: block !important;
+          font-size: 8.5px !important;
+          line-height: 1 !important;
+          writing-mode: vertical-rl !important;
+          transform: rotate(180deg) !important;
+        }
+
+        body .sona-support-launcher span {
+          width: 20px !important;
+          height: 20px !important;
+        }
+
+        body .sona-support-launcher svg {
+          width: 14px !important;
+          height: 14px !important;
+        }
+
+        body .sona-support-panel {
+          position: fixed !important;
+          left: 12px !important;
+          right: 12px !important;
+          top: calc(14px + env(safe-area-inset-top)) !important;
+          bottom: calc(14px + env(safe-area-inset-bottom)) !important;
+          width: auto !important;
+          height: auto !important;
+          max-width: none !important;
+          max-height: none !important;
+          grid-template-rows: auto minmax(220px, 1fr) auto !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+          transform: none !important;
+          z-index: 10020 !important;
+        }
+
+        body .sona-support-widget.is-open .sona-support-panel {
+          display: grid !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
+          animation: supportPanelMobileIn 0.22s ease both !important;
+        }
+
+        body.support-chat-open {
+          overflow: hidden !important;
+        }
+
+        body.support-chat-open .sona-support-launcher {
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+
+        body .site-footer.app-shell {
+          width: min(304px, calc(100vw - 72px)) !important;
+          max-width: calc(100vw - 72px) !important;
+          margin-right: auto !important;
+          margin-left: auto !important;
+          padding: 14px 10px calc(82px + env(safe-area-inset-bottom)) !important;
+          gap: 8px !important;
+        }
+
+        body .footer-contact-panel {
+          width: 100% !important;
+          max-width: 100% !important;
+          gap: 7px !important;
+          overflow: hidden !important;
+        }
+
+        body .footer-contact-card,
+        body .footer-payment {
+          width: 100% !important;
+          max-width: 100% !important;
+          padding: 10px 11px !important;
+          border-radius: 14px !important;
+        }
+
+        body .footer-contact-card strong {
+          font-size: 13px !important;
+          overflow-wrap: anywhere !important;
+        }
+
+        body .footer-payment {
+          grid-template-columns: 50px repeat(3, minmax(0, 1fr)) !important;
+          gap: 5px !important;
+        }
+
+        body .footer-payment i {
+          min-width: 0 !important;
+          padding: 6px 3px !important;
+          font-size: 9px !important;
+        }
+
+        body .mobile-bottom-nav {
+          left: 50% !important;
+          right: auto !important;
+          width: min(330px, calc(100vw - 44px)) !important;
+          transform: translateX(-50%) !important;
+        }
+
+        @keyframes supportPanelMobileIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px) scale(0.985);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      }
+
+      @media (max-width: 374px) {
+        body .site-footer.app-shell {
+          width: min(292px, calc(100vw - 60px)) !important;
+          max-width: calc(100vw - 60px) !important;
+        }
+
+        body .sona-support-panel {
+          left: 8px !important;
+          right: 8px !important;
+        }
+
+        body .sona-support-form {
+          grid-template-columns: 1fr !important;
+        }
+      }
+    </style>
   </head>
   <body>
     <div class="top-promo">
@@ -186,8 +331,8 @@
       <section class="mobile-service-sale home-section" aria-label="Сервис и выгода SONA">
         <div class="section-head">
           <div>
-            <p class="eyebrow">сервис и выгода</p>
-            <h2>Покупать проще</h2>
+            <p class="eyebrow">сервис SONA</p>
+            <h2>Поможем выбрать и оформить</h2>
           </div>
         </div>
         <div class="mobile-service-sale-grid">
@@ -196,8 +341,8 @@
               <img src="assets/catalog/services.png" alt="" loading="lazy">
             </span>
             <span class="mobile-feature-label">Сервис</span>
-            <strong>Услуги SONA</strong>
-            <small>Замер, дизайн, доставка и сборка в одной системе</small>
+            <strong>Поддержка покупки</strong>
+            <small>Консультация, замер, дизайн-проект, доставка и сборка.</small>
             <span class="mobile-feature-tags">
               <i>Замер</i>
               <i>Дизайн</i>
@@ -210,8 +355,8 @@
               <img src="assets/catalog/all.png" alt="" loading="lazy">
             </span>
             <span class="mobile-feature-label">До −45%</span>
-            <strong>Распродажа</strong>
-            <small>Акции на мебель, кухни и товары для дома</small>
+            <strong>Выгодные предложения</strong>
+            <small>Скидки на мебель, кухни и товары для дома.</small>
             <b>Смотреть выгоду</b>
           </a>
         </div>
@@ -220,9 +365,9 @@
       <section class="home-section catalog-hub" aria-label="Категории и услуги SONA">
         <div class="section-head catalog-hub-head">
           <div>
-            <p class="eyebrow">каталог</p>
+            <p class="eyebrow">каталог SONA</p>
             <h2>Всё для дома в одном каталоге</h2>
-            <span>Основные направления SONA собраны в одну навигационную витрину: мебель, кухни, сервисы и распродажа.</span>
+            <span>Мебель, кухни, сервисы и выгодные предложения собраны в одной витрине.</span>
           </div>
           <a class="soft-button" href="#catalog">Открыть каталог</a>
         </div>
@@ -232,8 +377,8 @@
               <img src="assets/catalog/kitchen.png" alt="" loading="lazy">
             </span>
             <span class="catalog-hub-card__label">направление недели</span>
-            <strong>Кухни и проекты под размер помещения</strong>
-            <small>Фасады, столешницы, замер, сборка, подсветка и 3D-проект в одной системе.</small>
+            <strong>Кухни под размер</strong>
+            <small>Замер, проект, фасады и сборка в одной системе.</small>
             <b>Перейти к кухням</b>
           </a>
           <a class="catalog-hub-card" href="#catalog" data-quick-filter>
@@ -307,13 +452,13 @@
         <div class="promo-lookbook" id="saleProductGrid" aria-label="Акционные предложения"></div>
       </section>
 
-      <section class="home-section" aria-label="Популярные товары">
-        <div class="section-head">
+      <section class="home-section hits-showcase" aria-label="Хиты SONA">
+        <div class="section-head hits-showcase-head">
           <div>
-            <p class="eyebrow">популярное</p>
+            <p class="eyebrow">хиты продаж</p>
             <h2>Хиты SONA</h2>
+            <span>Товары, которые чаще всего выбирают и сохраняют покупатели.</span>
           </div>
-          <a class="soft-button" href="#catalog">Смотреть все</a>
         </div>
         <div class="product-grid home-product-grid" id="popularProductGrid"></div>
       </section>
@@ -335,11 +480,12 @@
         <article><strong>Сервис рядом</strong><span>Поддержка, заказы и ответы хранятся на сервере</span></article>
       </section>
 
-      <section class="catalog-section" id="catalog" aria-label="Каталог">
-        <div class="catalog-toolbar">
+      <section class="catalog-section all-products-section" id="catalog" aria-label="Все товары">
+        <div class="catalog-toolbar all-products-head">
           <div>
-            <p class="eyebrow">витрина</p>
-            <h2 id="catalogTitle">Популярные товары Soна</h2>
+            <p class="eyebrow">каталог SONA</p>
+            <h2 id="catalogTitle">Все товары</h2>
+            <span>Полный каталог мебели, кухонь, услуг и выгодных предложений.</span>
           </div>
           <div class="mobile-catalog-actions">
             <button class="mobile-filter-open" type="button" data-open-mobile-filters>

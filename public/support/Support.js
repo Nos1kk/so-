@@ -18,6 +18,12 @@
     });
   }
 
+  function supportIcon() {
+    const wrap = el("span");
+    wrap.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5.5 6.5h13v8.2h-7.1l-3.8 3.1v-3.1H5.5z"/><path d="M8.3 10.5h.1M12 10.5h.1M15.7 10.5h.1"/></svg>';
+    return wrap;
+  }
+
   function authorName(profile) {
     const name = String(profile?.name || "").trim();
     if (name) return name;
@@ -102,6 +108,7 @@
     const container = options.container;
     if (!container) return;
 
+    const wasOpen = Boolean(container.querySelector(".sona-support-widget.is-open"));
     const data = window.SonaStore.read();
     const root = el("div", "sona-support-widget");
     const launcher = el("button", "sona-support-launcher");
@@ -112,22 +119,37 @@
     const input = el("textarea");
     const send = el("button", "", "Отправить");
 
+    function setOpen(open) {
+      root.classList.toggle("is-open", open);
+      document.body.classList.toggle("support-chat-open", open);
+      panel.hidden = !open;
+      panel.setAttribute("aria-hidden", String(!open));
+      panel.style.display = open ? "grid" : "";
+      launcher.setAttribute("aria-expanded", String(open));
+      if (open) {
+        window.requestAnimationFrame(() => input.focus({ preventScroll: true }));
+      }
+    }
+
     launcher.type = "button";
     launcher.setAttribute("aria-label", "Открыть чат поддержки");
     launcher.setAttribute("aria-expanded", "false");
-    launcher.append(el("span", "", "?"), el("strong", "", "Поддержка"));
+    launcher.append(supportIcon(), el("strong", "", "Помощь"));
     launcher.addEventListener("click", () => {
-      root.classList.toggle("is-open");
-      launcher.setAttribute("aria-expanded", String(root.classList.contains("is-open")));
+      setOpen(!root.classList.contains("is-open"));
     });
 
     close.type = "button";
     close.setAttribute("aria-label", "Свернуть чат поддержки");
     close.addEventListener("click", (event) => {
       event.stopPropagation();
-      root.classList.remove("is-open");
-      launcher.setAttribute("aria-expanded", "false");
+      setOpen(false);
     });
+
+    panel.hidden = true;
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-modal", "true");
+    panel.setAttribute("aria-hidden", "true");
 
     head.append(el("div", "", ""), close);
     head.firstChild.append(
@@ -150,7 +172,14 @@
       window.requestAnimationFrame(() => {
         const widget = container.querySelector(".sona-support-widget");
         const button = container.querySelector(".sona-support-launcher");
+        const nextPanel = container.querySelector(".sona-support-panel");
         widget?.classList.add("is-open");
+        document.body.classList.add("support-chat-open");
+        if (nextPanel) {
+          nextPanel.hidden = false;
+          nextPanel.style.display = "grid";
+          nextPanel.setAttribute("aria-hidden", "false");
+        }
         button?.setAttribute("aria-expanded", "true");
       });
     });
@@ -158,6 +187,7 @@
     panel.append(head, renderMessages(data.supportMessages), form);
     root.append(launcher, panel);
     container.replaceChildren(root);
+    setOpen(wasOpen);
   }
 
   window.SonaSupport = {

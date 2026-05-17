@@ -5312,6 +5312,285 @@ img {
   }
 }
 
+.hits-showcase,
+.all-products-section {
+  position: relative;
+  overflow: hidden;
+}
+
+.hits-showcase {
+  margin-top: 12px;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid rgba(216, 227, 239, 0.86);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 249, 253, 0.94) 58%, rgba(232, 241, 248, 0.92) 100%);
+  box-shadow: 0 24px 62px rgba(20, 45, 78, 0.12);
+}
+
+.hits-showcase::before {
+  content: "HITS";
+  position: absolute;
+  right: clamp(18px, 4vw, 58px);
+  top: clamp(12px, 2vw, 26px);
+  color: rgba(34, 58, 94, 0.045);
+  font-size: clamp(4.4rem, 11vw, 9rem);
+  font-weight: 1000;
+  line-height: 0.8;
+  pointer-events: none;
+}
+
+.hits-showcase::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--blue-deep), var(--cyan), var(--yellow));
+}
+
+.hits-showcase-head,
+.all-products-head {
+  position: relative;
+  z-index: 1;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.hits-showcase-head div,
+.all-products-head div {
+  display: grid;
+  gap: 8px;
+}
+
+.hits-showcase-head .eyebrow,
+.all-products-head .eyebrow {
+  width: fit-content;
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(34, 58, 94, 0.08);
+  color: var(--blue-deep);
+  font-size: 0.78rem;
+  font-weight: 1000;
+  letter-spacing: 0;
+}
+
+.hits-showcase-head h2,
+.all-products-head h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(2rem, 3vw, 3.2rem);
+  line-height: 0.96;
+}
+
+.hits-showcase-head span,
+.all-products-head span {
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.hits-showcase .home-product-grid {
+  position: relative;
+  z-index: 1;
+  gap: 18px;
+}
+
+.hits-showcase .product-card {
+  border-color: rgba(201, 218, 234, 0.9);
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(145deg, rgba(34, 58, 94, 0.3), rgba(169, 192, 214, 0.34)) border-box;
+  box-shadow: 0 18px 42px rgba(20, 45, 78, 0.1);
+}
+
+.hits-showcase .product-card::after {
+  content: "Хит";
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  z-index: 4;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--blue-deep), var(--blue));
+  color: #fff;
+  font-size: 0.74rem;
+  font-weight: 1000;
+}
+
+.hits-showcase .product-card:hover {
+  box-shadow: 0 24px 54px rgba(20, 45, 78, 0.16);
+}
+
+.all-products-section {
+  margin-top: clamp(26px, 4vw, 52px);
+  padding: clamp(22px, 3vw, 32px);
+  border: 1px solid rgba(216, 227, 239, 0.9);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 250, 253, 0.92));
+  box-shadow: 0 18px 46px rgba(20, 45, 78, 0.08);
+}
+
+.all-products-section::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(34, 58, 94, 0.28), transparent);
+}
+
+.all-products-head {
+  margin-bottom: 18px;
+}
+
+.favorite-button {
+  overflow: visible;
+}
+
+.favorite-button::before,
+.favorite-button::after {
+  content: "";
+  position: absolute;
+  inset: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(34, 58, 94, 0.18);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.2);
+  pointer-events: none;
+}
+
+.favorite-button::after {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(34, 58, 94, 0.24);
+  background: transparent;
+}
+
+.favorite-button:active {
+  transform: scale(0.9);
+}
+
+.favorite-button.is-active {
+  color: #fff;
+  background: linear-gradient(135deg, #172945, #345477);
+  box-shadow: 0 14px 28px rgba(20, 45, 78, 0.22);
+  animation: favoritePop 0.42s cubic-bezier(0.22, 1.6, 0.36, 1);
+}
+
+.favorite-button.is-active::before {
+  animation: favoriteBurst 0.52s ease-out;
+}
+
+.favorite-button.is-active::after {
+  animation: favoriteRing 0.52s ease-out;
+}
+
+.favorite-button.is-active .favorite-icon {
+  fill: currentColor;
+  animation: favoriteHeartBeat 0.5s ease-out;
+}
+
+@keyframes favoritePop {
+  0% { transform: scale(0.82); }
+  58% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+@keyframes favoriteHeartBeat {
+  0% { transform: scale(0.72); }
+  48% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes favoriteBurst {
+  0% { opacity: 0.45; transform: translate(-50%, -50%) scale(0.2); box-shadow: 0 0 0 0 rgba(34, 58, 94, 0.26); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(6); box-shadow: 0 0 0 12px rgba(34, 58, 94, 0); }
+}
+
+@keyframes favoriteRing {
+  0% { opacity: 0.6; transform: translate(-50%, -50%) scale(0.64); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.75); }
+}
+
+@media (max-width: 760px) {
+  .hits-showcase,
+  .all-products-section {
+    width: 100%;
+    padding: 18px 14px;
+    border-radius: 24px;
+  }
+
+  .hits-showcase {
+    margin-top: 8px;
+  }
+
+  .hits-showcase::before {
+    right: 8px;
+    top: 10px;
+    font-size: 4.8rem;
+  }
+
+  .hits-showcase-head,
+  .all-products-head {
+    align-items: stretch;
+    flex-direction: column;
+    margin-bottom: 14px;
+    text-align: left;
+  }
+
+  .hits-showcase-head .eyebrow,
+  .all-products-head .eyebrow {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+
+  .hits-showcase-head h2,
+  .all-products-head h2 {
+    max-width: 100%;
+    font-size: clamp(26px, 8vw, 34px);
+    line-height: 1.02;
+  }
+
+  .hits-showcase-head span,
+  .all-products-head span {
+    max-width: 100%;
+    font-size: 14px;
+    line-height: 1.42;
+  }
+
+  .hits-showcase .home-product-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .hits-showcase .product-card::after {
+    left: 10px;
+    top: 10px;
+    min-height: 25px;
+    padding: 0 8px;
+    font-size: 0.68rem;
+  }
+
+  .all-products-section {
+    margin-top: 28px;
+  }
+
+  .all-products-head .mobile-catalog-actions {
+    align-self: start;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

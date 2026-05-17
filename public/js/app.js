@@ -7,6 +7,7 @@
 
   const state = {
     route: "home",
+    mobileAction: "home",
     products: [],
     baseProducts: [],
     filters: {
@@ -400,6 +401,7 @@
     const nextRoute = ["home", "profile", "cart", "favorites", "admin"].includes(route) ? route : "home";
 
     state.route = nextRoute;
+    state.mobileAction = nextRoute === "admin" ? "profile" : nextRoute;
     closeFilters();
     closeProduct();
     closeSortMenu();
@@ -418,6 +420,8 @@
   function goToCatalog() {
     state.filters.favoritesOnly = false;
     navigateTo("home");
+    state.mobileAction = "catalog";
+    updateNavState();
     window.requestAnimationFrame(() => {
       document.getElementById("catalog")?.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
     });
@@ -762,22 +766,22 @@
   }
 
   function updateCatalogTitle() {
-    let title = "Популярные товары Soна";
+    let title = "Все товары";
 
     if (state.filters.favoritesOnly) {
-      title = "Избранное Soна";
+      title = "Избранное SONA";
     } else if (state.filters.saleOnly) {
-      title = "Распродажа Soна";
+      title = "Распродажа SONA";
     } else if (state.filters.group === "sofas") {
-      title = "Диваны Soна";
+      title = "Диваны SONA";
     } else if (state.filters.category === "кресло") {
-      title = "Кресла Soна";
+      title = "Кресла SONA";
     } else if (state.filters.section === "Мебель") {
-      title = "Мебель Soна";
+      title = "Мебель SONA";
     } else if (state.filters.section === "Кухни") {
-      title = "Кухни Soна";
+      title = "Кухни SONA";
     } else if (state.filters.section === "Услуги") {
-      title = "Услуги и дизайн Soна";
+      title = "Услуги и дизайн SONA";
     }
 
     els.catalogTitle.textContent = displayText(title);
@@ -1580,7 +1584,17 @@
       }
     });
     window.requestAnimationFrame(() => {
-      els.supportChatRoot.querySelector(".sona-support-widget")?.classList.add("is-open");
+      const widget = els.supportChatRoot.querySelector(".sona-support-widget");
+      const panel = els.supportChatRoot.querySelector(".sona-support-panel");
+      const button = els.supportChatRoot.querySelector(".sona-support-launcher");
+      widget?.classList.add("is-open");
+      document.body.classList.add("support-chat-open");
+      if (panel) {
+        panel.hidden = false;
+        panel.style.display = "grid";
+        panel.setAttribute("aria-hidden", "false");
+      }
+      button?.setAttribute("aria-expanded", "true");
     });
   }
 
@@ -1796,6 +1810,16 @@
     els.profileButton?.classList.toggle("is-active", state.route === "profile");
     els.favoritesButton?.classList.toggle("is-active", state.route === "favorites");
     els.cartButton?.classList.toggle("is-active", state.route === "cart");
+    document.querySelectorAll("[data-mobile-action]").forEach((button) => {
+      const action = button.dataset.mobileAction;
+      const isActive = action === state.mobileAction || (state.route === "admin" && action === "profile");
+      button.classList.toggle("is-active", isActive);
+      if (isActive) {
+        button.setAttribute("aria-current", "page");
+      } else {
+        button.removeAttribute("aria-current");
+      }
+    });
 
     [
       [els.profileButton, "profile"],
