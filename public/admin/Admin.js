@@ -287,6 +287,10 @@ let reviewStatusFilter = "all";
   }
 
   function productsView(context) {
+    if (window.SonaProductsPage) {
+      return window.SonaProductsPage.render(context);
+    }
+
     const panel = el("section", "sona-admin-panel sona-admin-wide");
     const form = productForm(context);
     const rows = context.products
@@ -320,35 +324,72 @@ let reviewStatusFilter = "all";
   function productForm(context) {
     const product = context.products.find((item) => item.id === editingProductId) || {};
     const form = el("form", "sona-admin-editor");
-    const fields = [
-      ["name", "Название", product.name || ""],
-      ["price", "Цена", product.price || ""],
-      ["oldPrice", "Старая цена", product.oldPrice || ""],
-      ["category", "Категория", product.category || ""],
-      ["marketSection", "Раздел", product.marketSection || ""],
-      ["brand", "Бренд", product.brand || "Soна"],
-      ["size", "Размер", product.size || "M"],
-      ["stock", "Остаток", product.stock ?? 10],
-      ["tags", "Теги через запятую", (product.tags || []).join(", ")]
-    ];
-    fields.forEach(([name, label, value]) => {
+    const productTypes = ["Диван", "Кровать", "Кресло", "Стул", "Стол", "Шкаф", "Комод", "Люстра", "Кухня", "Декор", "Услуга", "Другое"];
+    const sections = ["Мебель", "Кухни", "Свет", "Декор", "Текстиль", "Услуги"];
+    const roomTypes = ["Гостиная", "Спальня", "Кухня", "Прихожая", "Детская", "Ванная", "Офис", "Сад"];
+    const addField = (name, label, value, type = "text") => {
+      const wrap = el("label", "sona-admin-field");
       const input = el("input");
+      input.name = name;
+      input.type = type;
+      input.placeholder = label;
+      input.value = value;
+      wrap.append(el("span", "", label), input);
+      form.append(wrap);
+      return input;
+    };
+    const addSelect = (name, label, value, rows) => {
+      const wrap = el("label", "sona-admin-field");
+      const field = select(rows.map((item) => [item, item]), value, () => {});
+      field.name = name;
+      wrap.append(el("span", "", label), field);
+      form.append(wrap);
+      return field;
+    };
+    const addTextarea = (name, label, value) => {
+      const wrap = el("label", "sona-admin-field sona-admin-field-wide");
+      const input = el("textarea");
       input.name = name;
       input.placeholder = label;
       input.value = value;
-      form.append(input);
-    });
+      wrap.append(el("span", "", label), input);
+      form.append(wrap);
+      return input;
+    };
+
+    addField("name", "Название", product.name || "");
+    addSelect("category", "Тип товара", product.category || "Диван", productTypes);
+    addSelect("marketSection", "Раздел каталога", product.marketSection || "Мебель", sections);
+    addSelect("room", "Комната", product.room || "Гостиная", roomTypes);
+    addField("price", "Цена", product.price || "", "number");
+    addField("oldPrice", "Старая цена", product.oldPrice || "", "number");
+    addField("brand", "Бренд", product.brand || "Soна");
+    addField("size", "Размер / формат", product.size || "M");
+    addField("dimensions", "Габариты", product.dimensions || "");
+    addField("stock", "Остаток", product.stock ?? 10, "number");
+    addField("deliveryDays", "Срок доставки, дней", product.deliveryDays ?? 3, "number");
+    addField("warranty", "Гарантия", product.warranty || "");
+    addField("supplier", "Поставщик / исполнитель", product.supplier || "");
+    addField("colors", "Цвета через запятую", (product.colors || []).join(", "));
+    addField("materials", "Материалы через запятую", (product.materials || []).join(", "));
+    addField("specs", "Характеристики через запятую", (product.specs || []).join(", "));
+    addField("tags", "Теги через запятую", (product.tags || []).join(", "));
+    addTextarea("description", "Описание товара или услуги", product.description || "");
     const file = el("input");
     file.type = "file";
     file.accept = "image/png,image/jpeg,image/webp";
     file.name = "imageFile";
-    form.append(file);
+    const fileWrap = el("label", "sona-admin-field sona-admin-field-wide");
+    fileWrap.append(el("span", "", "Фото товара с компьютера"), file);
+    form.append(fileWrap);
     const save = el("button", "", editingProductId ? "Сохранить товар" : "Добавить товар");
     const reset = el("button", "sona-admin-soft", "Новый товар");
     save.type = "submit";
     reset.type = "button";
     reset.addEventListener("click", () => { editingProductId = ""; context.render(); });
-    form.append(save, reset);
+    const actions = el("div", "sona-admin-editor-actions");
+    actions.append(save, reset);
+    form.append(actions);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const body = Object.fromEntries(new FormData(form).entries());
@@ -476,12 +517,16 @@ let reviewStatusFilter = "all";
     active.append(checkbox, el("span", "", "Активен"));
     const save = el("button", "", editingAdId ? "Сохранить баннер" : "Добавить баннер");
     save.type = "submit";
-    form.append(file, active, save);
+    const fileWrap = el("label", "sona-admin-field sona-admin-field-wide");
+    fileWrap.append(el("span", "", "Фото рекламы с компьютера"), file);
+    const actions = el("div", "sona-admin-editor-actions");
+    actions.append(active, save);
+    form.append(fileWrap, actions);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const body = Object.fromEntries(new FormData(form).entries());
       const persist = (visual) => {
-        context.actions.saveAd({ ...ad, ...body, id: ad.id, active: checkbox.checked, visual: visual || ad.visual || "" });
+        context.actions.saveAd({ ...ad, ...body, id: ad.id, active: checkbox.checked, uploaded: Boolean(visual || ad.uploaded), visual: visual || ad.visual || "" });
         editingAdId = "";
       };
       const upload = file.files?.[0];
@@ -524,6 +569,9 @@ let reviewStatusFilter = "all";
     });
     const history = el("div", "sona-admin-chat-history");
     const messages = dialogs.find((dialog) => dialog.id === active)?.messages || [];
+    if (!dialogs.length) {
+      list.append(el("p", "sona-admin-muted", "Новых обращений нет."));
+    }
     messages.forEach((message) => {
       const item = el("article", `sona-support-message is-${message.role === "admin" ? "admin" : "user"}`);
       item.append(el("strong", "", message.author || ""), el("p", "", message.text || ""), el("span", "", window.SonaSupport?.nowLabel(message.createdAt) || ""));
@@ -726,7 +774,9 @@ let reviewStatusFilter = "all";
           return;
         }
         activeSection = id;
+        const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
         render(options);
+        window.requestAnimationFrame(() => window.scrollTo({ top: scrollTop, behavior: "auto" }));
       });
       nav.append(item);
     });
@@ -740,7 +790,12 @@ let reviewStatusFilter = "all";
       onChange();
     });
 
-    sidebar.append(el("strong", "sona-admin-logo", "Soна Admin"), nav);
+    const adminLogo = el("strong", "sona-admin-logo");
+    const logoImg = document.createElement("img");
+    logoImg.src = "assets/sona-logo.png";
+    logoImg.alt = "";
+    adminLogo.append(logoImg, el("span", "", "Soна Admin"));
+    sidebar.append(adminLogo, nav);
     head.append(el("div", "", ""), logout);
     head.firstChild.append(el("p", "eyebrow", "Админ-панель"), el("h1", "", "Управление магазином"), el("span", "", "Заказы, товары, пользователи, отзывы, реклама и поддержка."));
     main.append(head, renderContent(context));

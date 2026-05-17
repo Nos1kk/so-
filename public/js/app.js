@@ -32,24 +32,24 @@
   };
   const DEFAULT_ADS = [
     {
-      eyebrow: "РјР°СЂРєРµС‚РїР»РµР№СЃ РјРµР±РµР»Рё",
-      title: "Р“РµСЂРѕРё СЂР°СЃРїСЂРѕРґР°Р¶Рё РґРёРІР°РЅРѕРІ",
-      badge: "РґРѕ в€’45%",
-      cta: "РЎРјРѕС‚СЂРµС‚СЊ РїРѕРґР±РѕСЂРєСѓ",
+      eyebrow: "маркетплейс мебели и услуг",
+      title: "Обновите дом с SONA",
+      badge: "до −45%",
+      cta: "Смотреть каталог",
       visual: "assets/sofas/sona-island.svg"
     },
     {
-      eyebrow: "РєСѓС…РЅРё Рё РґРёР·Р°Р№РЅ",
-      title: "РџСЂРѕРµРєС‚ РєСѓС…РЅРё РїРѕРґ РІР°С€ РґРѕРј",
-      badge: "Р·Р°РјРµСЂ 0 в‚Ѕ",
-      cta: "Р’С‹Р±СЂР°С‚СЊ РєСѓС…РЅСЋ",
+      eyebrow: "кухни и дизайн",
+      title: "Кухни под размер и стиль",
+      badge: "проект 0 ₽",
+      cta: "Перейти к кухням",
       visual: ""
     },
     {
-      eyebrow: "СѓСЃР»СѓРіРё SONA",
-      title: "Р Р°Р·СЂР°Р±РѕС‚РєР°, РґРёР·Р°Р№РЅ Рё 3D",
-      badge: "РѕС‚ 45 000 в‚Ѕ",
-      cta: "РћС‚РєСЂС‹С‚СЊ СѓСЃР»СѓРіРё",
+      eyebrow: "сервис SONA",
+      title: "Замер, сборка и дизайн-проект",
+      badge: "под ключ",
+      cta: "Открыть услуги",
       visual: ""
     }
   ];
@@ -61,6 +61,9 @@
   const els = {
     marketplace: document.querySelector(".marketplace"),
     productGrid: document.getElementById("productGrid"),
+    popularProductGrid: document.getElementById("popularProductGrid"),
+    newProductGrid: document.getElementById("newProductGrid"),
+    saleProductGrid: document.getElementById("saleProductGrid"),
     heroCarousel: document.getElementById("heroCarousel"),
     heroTrack: document.getElementById("heroTrack"),
     heroDots: document.getElementById("heroDots"),
@@ -163,9 +166,11 @@
   }
 
   function saveAdminProduct(product) {
+    const productInput = { ...product };
+    delete productInput.imageFile;
     const cleanId = security.safeProductId(product.id || product.name || `product-${Date.now()}`) || `product-${Date.now()}`;
     const normalized = {
-      ...product,
+      ...productInput,
       id: cleanId,
       name: security.sanitizeText(product.name || "Новый товар", 80),
       brand: security.sanitizeText(product.brand || "Soна", 50),
@@ -175,8 +180,26 @@
       price: Math.max(0, Number(product.price) || 0),
       oldPrice: Math.max(0, Number(product.oldPrice) || 0),
       stock: Math.max(0, Number(product.stock) || 0),
+      deliveryDays: Math.max(1, Number(product.deliveryDays) || 3),
       status: product.status || "active",
       hidden: Boolean(product.hidden),
+      room: security.sanitizeText(product.room || "", 40),
+      dimensions: security.sanitizeText(product.dimensions || "", 80),
+      warranty: security.sanitizeText(product.warranty || "", 60),
+      supplier: security.sanitizeText(product.supplier || "", 70),
+      description: security.sanitizeText(product.description || "", 600),
+      colors: String(product.colors || "")
+        .split(",")
+        .map((color) => security.sanitizeText(color.trim(), 24))
+        .filter(Boolean),
+      materials: String(product.materials || "")
+        .split(",")
+        .map((item) => security.sanitizeText(item, 40))
+        .filter(Boolean),
+      specs: String(product.specs || "")
+        .split(",")
+        .map((item) => security.sanitizeText(item, 60))
+        .filter(Boolean),
       tags: String(product.tags || "")
         .split(",")
         .map((tag) => security.sanitizeText(tag, 24))
@@ -255,8 +278,10 @@
     store.update((data) => {
       const id = ad.id || `AD-${Date.now()}`;
       const rows = (data.customAds || []).filter((item) => item.id !== id);
+      const adInput = { ...ad };
+      delete adInput.visualFile;
       rows.push({
-        ...ad,
+        ...adInput,
         id,
         title: security.sanitizeText(ad.title, 90),
         eyebrow: security.sanitizeText(ad.eyebrow || "Реклама Soна", 50),
@@ -264,7 +289,7 @@
         cta: security.sanitizeText(ad.cta || "Смотреть", 40),
         link: security.sanitizeText(ad.link || "#catalog", 120),
         active: ad.active !== false,
-        uploaded: false
+        uploaded: Boolean(ad.uploaded || (ad.visual && !ad.title))
       });
       data.customAds = rows;
     });
@@ -538,7 +563,9 @@
     }));
 
     document.querySelectorAll("[data-category-shortcut]").forEach((button) => {
-      button.classList.toggle("is-active", button.dataset.categoryShortcut === state.filters.category && !state.filters.group);
+      const shortcut = button.dataset.categoryShortcut || ALL_VALUE;
+      const category = shortcut === "все" || shortcut === "РІСЃРµ" ? ALL_VALUE : shortcut;
+      button.classList.toggle("is-active", category === state.filters.category && !state.filters.group);
     });
     updateQuickNav();
   }
@@ -623,6 +650,81 @@
     observeAnimatedElements();
   }
 
+  function renderHomeSections() {
+    const data = store.read();
+    const visible = state.products.filter((product) => !product.hidden);
+    const sale = visible
+      .filter((product) => product.oldPrice)
+      .sort((a, b) => ((b.oldPrice || 0) - (b.price || 0)) - ((a.oldPrice || 0) - (a.price || 0)))
+      .slice(0, 4);
+    const popular = visible
+      .slice()
+      .sort((a, b) => (Number(b.reviews || b.reviewsCount) || 0) - (Number(a.reviews || a.reviewsCount) || 0))
+      .slice(0, 4);
+    const newItems = visible
+      .filter((product) => (product.tags || []).includes("новинка") || ["Кухни", "Услуги"].includes(product.marketSection))
+      .slice(0, 4);
+
+    if (els.saleProductGrid) {
+      els.saleProductGrid.replaceChildren(...sale.map((product, index) => createLookbookDealCard(product, data, index)));
+    }
+    if (els.popularProductGrid) {
+      els.popularProductGrid.replaceChildren(...popular.map((product) => createProductCard(product, data)));
+    }
+    if (els.newProductGrid) {
+      els.newProductGrid.replaceChildren(...(newItems.length ? newItems : visible.slice(4, 8)).map((product) => createProductCard(product, data)));
+    }
+  }
+
+  function createLookbookDealCard(product, data, index) {
+    const isFavorite = data.favorites.includes(product.id);
+    const discount = product.oldPrice ? Math.max(0, Math.round((1 - product.price / product.oldPrice) * 100)) : 0;
+    const card = createElement("article", `lookbook-card ${index === 0 ? "is-featured" : ""}`);
+    const media = createElement("button", "lookbook-media");
+    const copy = createElement("div", "lookbook-copy");
+    const top = createElement("div", "lookbook-topline");
+    const number = createElement("span", "lookbook-number", String(index + 1).padStart(2, "0"));
+    const collection = createElement("span", "", product.marketSection || product.category || "SONA");
+    const favorite = createElement("button", "lookbook-favorite");
+    const title = createElement("h3", "", product.name);
+    const price = createElement("div", "lookbook-price");
+    const meta = createElement("div", "lookbook-meta");
+    const actions = createElement("div", "lookbook-actions");
+    const details = createElement("button", "lookbook-link", "Смотреть");
+    const cart = createElement("button", "lookbook-cart", product.category === "услуга" ? "Заказать" : "В корзину");
+
+    card.style.setProperty("--stagger", `${index * 90}ms`);
+    media.type = "button";
+    media.setAttribute("aria-label", `Открыть ${product.name}`);
+    media.append(createProductPlaceholder(product, index === 0 ? "предложение недели" : "акция"));
+    media.addEventListener("click", () => openProduct(product.id));
+
+    favorite.type = "button";
+    favorite.setAttribute("aria-label", isFavorite ? "Удалить из избранного" : "Добавить в избранное");
+    favorite.classList.toggle("is-active", isFavorite);
+    favorite.append(createSvgIcon("heart", "favorite-icon"));
+    favorite.addEventListener("click", () => toggleFavorite(product.id));
+
+    top.append(number, collection);
+    price.append(createElement("strong", "", product.priceMode === "from" ? `от ${money(product.price)}` : money(product.price)));
+    if (product.oldPrice) {
+      price.append(createElement("del", "", money(product.oldPrice)), createElement("span", "lookbook-discount", `−${discount}%`));
+    }
+    (product.specs || product.materials || []).slice(0, index === 0 ? 3 : 2).forEach((item) => {
+      meta.append(createElement("span", "", item));
+    });
+    meta.append(createElement("span", "", product.deliveryDays <= 3 ? "быстрая доставка" : `доставка ${product.deliveryDays} дн.`));
+
+    details.type = "button";
+    cart.type = "button";
+    details.addEventListener("click", () => openProduct(product.id));
+    cart.addEventListener("click", () => addToCart(product.id, cart));
+    actions.append(details, cart);
+    copy.append(top, title, price, meta, actions);
+    card.append(media, favorite, copy);
+    return card;
+  }
+
   function updateCatalogTitle() {
     let title = "Популярные товары Soна";
 
@@ -697,7 +799,7 @@
     if (reduceMotion) return;
 
     const targets = document.querySelectorAll(
-      ".hero-banner, .category-rail, .deal-strip, .catalog-toolbar, .listing-filter-bar, .product-card, .service-card"
+      ".hero-banner, .catalog-hub, .catalog-hub-card, .category-rail, .deal-strip, .home-section, .home-category-card, .catalog-toolbar, .listing-filter-bar, .product-card, .service-card"
     );
 
     targets.forEach((target, index) => {
@@ -786,7 +888,7 @@
     let scheduled = false;
     const update = () => {
       scheduled = false;
-      document.querySelectorAll(".hero-banner, .deal-strip").forEach((element) => {
+      document.querySelectorAll(".hero-banner, .catalog-hub, .deal-strip").forEach((element) => {
         const rect = element.getBoundingClientRect();
         const center = rect.top + rect.height / 2;
         const viewportCenter = window.innerHeight / 2;
@@ -2010,9 +2112,10 @@
     document.querySelectorAll("[data-close-filters]").forEach((button) => button.addEventListener("click", closeFilters));
     document.querySelectorAll("[data-category-shortcut]").forEach((button) => {
       button.addEventListener("click", () => {
+        const shortcut = button.dataset.categoryShortcut || ALL_VALUE;
         state.route = "home";
         state.filters.section = "РњРµР±РµР»СЊ";
-        state.filters.category = button.dataset.categoryShortcut || ALL_VALUE;
+        state.filters.category = shortcut === "все" || shortcut === "РІСЃРµ" ? ALL_VALUE : shortcut;
         state.filters.group = "";
         state.filters.saleOnly = false;
         state.filters.favoritesOnly = false;
@@ -2060,16 +2163,17 @@
     updateSortControl();
     updateCatalogTitle();
     renderFilterButtons();
+    renderHomeSections();
     renderProducts();
     renderRoute();
     window.SonaText?.repairDom(document.body);
   }
 
   async function init() {
-    bindEvents();
-    initExperience();
-
     try {
+      await store.init?.();
+      bindEvents();
+      initExperience();
       const response = await fetch("data/products.json", { headers: { Accept: "application/json" } });
       if (!response.ok) {
         throw new Error("Products loading failed");

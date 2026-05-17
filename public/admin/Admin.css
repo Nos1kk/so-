@@ -29,11 +29,23 @@
 }
 
 .sona-admin-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px;
   border-radius: 14px;
   background: linear-gradient(135deg, var(--blue), var(--blue-deep));
   color: #fff;
   font-size: 1.1rem;
+}
+
+.sona-admin-logo img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
 }
 
 .sona-admin-menu {
@@ -55,10 +67,16 @@
   text-align: left;
 }
 
-.sona-admin-menu button.is-active,
-.sona-admin-menu button:hover {
+.sona-admin-menu button.is-active {
   background: #e7f1fb;
   color: var(--blue-deep);
+}
+
+@media (hover: hover) {
+  .sona-admin-menu button:hover {
+    background: #e7f1fb;
+    color: var(--blue-deep);
+  }
 }
 
 .sona-admin-menu svg {
@@ -123,8 +141,38 @@
   gap: 10px;
 }
 
+.sona-admin-reply {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  background: #fbfdff;
+}
+
+.sona-admin-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.sona-admin-field-wide,
+.sona-admin-editor-actions {
+  grid-column: 1 / -1;
+}
+
+.sona-admin-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
 .sona-admin-login input,
 .sona-admin-reply textarea,
+.sona-admin-editor textarea,
 .sona-admin-panel input,
 .sona-admin-panel select,
 .sona-admin-search,
@@ -140,6 +188,16 @@
 
 .sona-admin-reply textarea {
   min-height: 84px;
+  padding: 12px;
+  resize: vertical;
+}
+
+.sona-admin-reply button {
+  min-width: 132px;
+}
+
+.sona-admin-editor textarea {
+  min-height: 120px;
   padding: 12px;
   resize: vertical;
 }
@@ -332,7 +390,7 @@
 .sona-admin-chat {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
-  min-height: 480px;
+  min-height: 520px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -357,14 +415,19 @@
   text-align: left;
 }
 
-.sona-admin-dialogs button.is-active,
-.sona-admin-dialogs button:hover {
+.sona-admin-dialogs button.is-active {
   background: #fff;
+}
+
+@media (hover: hover) {
+  .sona-admin-dialogs button:hover {
+    background: #fff;
+  }
 }
 
 .sona-admin-chat-main {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto auto;
   min-width: 0;
 }
 
@@ -389,6 +452,18 @@
     grid-auto-flow: column;
     grid-auto-columns: max-content;
     overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .sona-admin-menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sona-admin-menu button {
+    width: max-content;
+    min-width: max-content;
+    padding: 0 14px 0 12px;
   }
 
   .sona-admin-stats,
@@ -410,5 +485,27 @@
 
   .sona-admin-head {
     flex-direction: column;
+  }
+
+  .admin-page {
+    padding-top: 10px;
+  }
+
+  .sona-admin-sidebar,
+  .sona-admin-head,
+  .sona-admin-panel {
+    border-radius: 12px;
+  }
+
+  .sona-admin-chat {
+    min-height: 0;
+  }
+
+  .sona-admin-dialogs {
+    max-height: 220px;
+  }
+
+  .sona-admin-chat-history {
+    min-height: 260px;
   }
 }

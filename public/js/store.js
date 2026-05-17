@@ -2,6 +2,7 @@
   "use strict";
 
   const STORAGE_KEY = "sona.marketplace.v1";
+  const API_URL = "/api/store";
   const fallbackState = {
     cart: {},
     favorites: [],
@@ -39,43 +40,83 @@
     return JSON.parse(JSON.stringify(value));
   }
 
-  function read() {
+  let cache = null;
+  let syncTimer = 0;
+
+  function normalize(parsed) {
+    return {
+      cart: parsed.cart && typeof parsed.cart === "object" ? parsed.cart : {},
+      favorites: Array.isArray(parsed.favorites) ? parsed.favorites : [],
+      profile: parsed.profile && typeof parsed.profile === "object"
+        ? { ...clone(fallbackState.profile), ...parsed.profile }
+        : clone(fallbackState.profile),
+      orders: Array.isArray(parsed.orders) ? parsed.orders : [],
+      reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
+      users: Array.isArray(parsed.users) ? parsed.users : [],
+      productOverrides: parsed.productOverrides && typeof parsed.productOverrides === "object" ? parsed.productOverrides : {},
+      customProducts: Array.isArray(parsed.customProducts) ? parsed.customProducts : [],
+      deletedProducts: Array.isArray(parsed.deletedProducts) ? parsed.deletedProducts : [],
+      supportMessages: Array.isArray(parsed.supportMessages) ? parsed.supportMessages : [],
+      admin: parsed.admin && typeof parsed.admin === "object"
+        ? { ...clone(fallbackState.admin), ...parsed.admin }
+        : clone(fallbackState.admin),
+      shopSettings: parsed.shopSettings && typeof parsed.shopSettings === "object"
+        ? { ...clone(fallbackState.shopSettings), ...parsed.shopSettings }
+        : clone(fallbackState.shopSettings),
+      customAds: Array.isArray(parsed.customAds) ? parsed.customAds : []
+    };
+  }
+
+  function readLocalFallback() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
         return clone(fallbackState);
       }
 
-      const parsed = JSON.parse(raw);
-      return {
-        cart: parsed.cart && typeof parsed.cart === "object" ? parsed.cart : {},
-        favorites: Array.isArray(parsed.favorites) ? parsed.favorites : [],
-        profile: parsed.profile && typeof parsed.profile === "object"
-          ? { ...clone(fallbackState.profile), ...parsed.profile }
-          : clone(fallbackState.profile),
-        orders: Array.isArray(parsed.orders) ? parsed.orders : [],
-        reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
-        users: Array.isArray(parsed.users) ? parsed.users : [],
-        productOverrides: parsed.productOverrides && typeof parsed.productOverrides === "object" ? parsed.productOverrides : {},
-        customProducts: Array.isArray(parsed.customProducts) ? parsed.customProducts : [],
-        deletedProducts: Array.isArray(parsed.deletedProducts) ? parsed.deletedProducts : [],
-        supportMessages: Array.isArray(parsed.supportMessages) ? parsed.supportMessages : [],
-        admin: parsed.admin && typeof parsed.admin === "object"
-          ? { ...clone(fallbackState.admin), ...parsed.admin }
-          : clone(fallbackState.admin),
-        shopSettings: parsed.shopSettings && typeof parsed.shopSettings === "object"
-          ? { ...clone(fallbackState.shopSettings), ...parsed.shopSettings }
-          : clone(fallbackState.shopSettings),
-        customAds: Array.isArray(parsed.customAds) ? parsed.customAds : []
-      };
+      return normalize(JSON.parse(raw));
     } catch (error) {
       localStorage.removeItem(STORAGE_KEY);
       return clone(fallbackState);
     }
   }
 
+  function read() {
+    if (!cache) {
+      cache = readLocalFallback();
+    }
+    return clone(cache);
+  }
+
+  async function syncNow() {
+    if (!cache) return cache;
+    const response = await fetch(API_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ state: cache })
+    });
+    if (!response.ok) {
+      throw new Error("Store sync failed");
+    }
+    return cache;
+  }
+
+  function scheduleSync() {
+    window.clearTimeout(syncTimer);
+    syncTimer = window.setTimeout(() => {
+      syncNow().catch(() => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
+        } catch (error) {
+          // Local fallback can fail in private mode; the in-memory cache still keeps the session alive.
+        }
+      });
+    }, 120);
+  }
+
   function write(state) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    cache = normalize(state || {});
+    scheduleSync();
   }
 
   function update(recipe) {
@@ -92,9 +133,30 @@
     });
   }
 
+  async function init() {
+    cache = readLocalFallback();
+    try {
+      const response = await fetch(API_URL, { headers: { Accept: "application/json" } });
+      if (response.ok) {
+        const payload = await response.json();
+        if (payload && payload.state) {
+          cache = normalize(payload.state);
+          return cache;
+        }
+      }
+
+      await syncNow();
+    } catch (error) {
+      cache = readLocalFallback();
+    }
+    return cache;
+  }
+
   window.SonaStore = {
+    init,
     read,
     write,
+    syncNow,
     update,
     clearProfile
   };

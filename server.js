@@ -6,6 +6,8 @@ const path = require("path");
 const PORT = Number(process.env.PORT || process.env.AMVERA_PORT || process.env.APP_PORT) || 8000;
 const HOST = process.env.HOST || "0.0.0.0";
 const PUBLIC_DIR = path.join(__dirname, "public");
+const DATA_DIR = process.env.SONA_DATA_DIR || path.join(__dirname, "data");
+const STORE_FILE = path.join(DATA_DIR, "store.json");
 const smsCodes = new Map();
 
 const MIME_TYPES = {
@@ -48,12 +50,13 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
-function readJsonBody(req, callback) {
+function readJsonBody(req, callback, options = {}) {
   let raw = "";
+  const maxBytes = options.maxBytes || 10000;
 
   req.on("data", (chunk) => {
     raw += chunk;
-    if (raw.length > 10000) {
+    if (Buffer.byteLength(raw) > maxBytes) {
       req.destroy();
     }
   });
@@ -65,6 +68,65 @@ function readJsonBody(req, callback) {
       callback(error);
     }
   });
+}
+
+function readStore(callback) {
+  fs.readFile(STORE_FILE, "utf8", (error, content) => {
+    if (error) {
+      if (error.code === "ENOENT") {
+        callback(null, null);
+        return;
+      }
+      callback(error);
+      return;
+    }
+
+    try {
+      callback(null, JSON.parse(content));
+    } catch (parseError) {
+      callback(parseError);
+    }
+  });
+}
+
+function writeStore(state, callback) {
+  fs.mkdir(DATA_DIR, { recursive: true }, (mkdirError) => {
+    if (mkdirError) {
+      callback(mkdirError);
+      return;
+    }
+
+    fs.writeFile(STORE_FILE, JSON.stringify(state, null, 2), "utf8", callback);
+  });
+}
+
+function handleStoreGet(req, res) {
+  readStore((error, state) => {
+    if (error) {
+      sendJson(res, 500, { ok: false, error: "Store unavailable" });
+      return;
+    }
+
+    sendJson(res, 200, { ok: true, state });
+  });
+}
+
+function handleStorePut(req, res) {
+  readJsonBody(req, (error, body) => {
+    if (error || !body || typeof body.state !== "object") {
+      sendJson(res, 400, { ok: false, error: "Invalid store payload" });
+      return;
+    }
+
+    writeStore(body.state, (writeError) => {
+      if (writeError) {
+        sendJson(res, 500, { ok: false, error: "Store write failed" });
+        return;
+      }
+
+      sendJson(res, 200, { ok: true, state: body.state });
+    });
+  }, { maxBytes: 12 * 1024 * 1024 });
 }
 
 function normalizePhone(value) {
@@ -194,6 +256,16 @@ function createServer() {
 
   if (req.method === "POST" && req.url === "/api/auth/verify-sms") {
     handleAuthVerify(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/api/store") {
+    handleStoreGet(req, res);
+    return;
+  }
+
+  if (req.method === "PUT" && req.url === "/api/store") {
+    handleStorePut(req, res);
     return;
   }
 

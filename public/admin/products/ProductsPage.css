@@ -1,0 +1,449 @@
+.sona-products-page,
+.sona-product-editor,
+.sona-product-category-step {
+  display: grid;
+  gap: 16px;
+}
+
+.sona-products-head {
+  display: grid;
+  gap: 6px;
+}
+
+.sona-products-head h2 {
+  margin: 0;
+  font-size: 1.7rem;
+}
+
+.sona-products-head span {
+  color: var(--muted);
+}
+
+.sona-products-toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) repeat(5, minmax(130px, 0.6fr));
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.sona-products-toolbar button,
+.sona-products-toolbar input,
+.sona-products-toolbar select,
+.sona-editor-actions button,
+.sona-category-card,
+.sona-photo-actions button,
+.sona-variants button,
+.sona-product-preview-card button,
+.sona-products-actions button {
+  min-height: 40px;
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.sona-products-toolbar button,
+.sona-editor-actions button:first-child {
+  border: 0;
+  background: var(--blue);
+  color: #fff;
+}
+
+.sona-products-toolbar input,
+.sona-products-toolbar select,
+.sona-editor-field input,
+.sona-editor-field select,
+.sona-editor-field textarea,
+.sona-variant-row input,
+.sona-photo-card input,
+.sona-products-table input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.sona-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.sona-category-card {
+  min-height: 150px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(135deg, #fff, #f7fbff);
+  color: var(--ink);
+  text-align: left;
+}
+
+.sona-category-card:hover {
+  border-color: var(--blue);
+  box-shadow: 0 14px 30px rgba(26, 55, 92, 0.12);
+}
+
+.sona-category-card__group,
+.sona-summary-type,
+.sona-preview-category {
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #e7f1fb;
+  color: var(--blue-deep);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.sona-editor-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.sona-editor-main,
+.sona-editor-summary,
+.sona-products-table,
+.sona-preview-detail,
+.sona-product-preview-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(26, 55, 92, 0.08);
+}
+
+.sona-editor-main {
+  overflow: hidden;
+}
+
+.sona-editor-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  background: #f8fbff;
+}
+
+.sona-editor-tabs button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.sona-editor-tabs button.is-active {
+  border-color: rgba(34, 58, 94, 0.18);
+  background: #fff;
+  color: var(--blue-deep);
+}
+
+.sona-editor-content {
+  padding: 16px;
+}
+
+.sona-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sona-editor-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.sona-editor-field textarea {
+  min-height: 110px;
+  padding: 12px;
+  resize: vertical;
+}
+
+.sona-editor-field.is-checkbox {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.sona-editor-field.has-error input,
+.sona-editor-field.has-error textarea {
+  border-color: #d92d20;
+}
+
+.sona-field-error,
+.sona-editor-error {
+  margin: 0;
+  color: #b42318;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.sona-editor-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+  background: #fbfdff;
+}
+
+.sona-editor-actions button {
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--blue-deep);
+}
+
+.sona-editor-summary {
+  position: sticky;
+  top: calc(var(--header-height) + 18px);
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.sona-editor-summary img {
+  width: 100%;
+  aspect-ratio: 1.2;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #f3f7fb;
+}
+
+.sona-photo-manager,
+.sona-variants,
+.sona-preview-pane {
+  display: grid;
+  gap: 14px;
+}
+
+.sona-photo-drop {
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  padding: 18px;
+  border: 2px dashed #b8cde4;
+  border-radius: 14px;
+  background: #f7fbff;
+  color: var(--blue-deep);
+  text-align: center;
+  cursor: pointer;
+}
+
+.sona-photo-drop.is-dragging {
+  border-color: var(--blue);
+  background: #eef7ff;
+}
+
+.sona-photo-drop input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.sona-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.sona-photo-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.sona-photo-card img {
+  width: 100%;
+  aspect-ratio: 1.2;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.sona-photo-actions,
+.sona-products-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sona-photo-actions button,
+.sona-products-actions button,
+.sona-variants button {
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--blue-deep);
+}
+
+.sona-photo-actions button.is-active {
+  border: 0;
+  background: var(--blue);
+  color: #fff;
+}
+
+.sona-photo-actions button.is-danger,
+.sona-products-actions button.is-danger,
+.sona-variants button.is-danger {
+  border-color: #ffd0d0;
+  background: #fff7f7;
+  color: #b42318;
+}
+
+.sona-variant-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.sona-preview-pane {
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+}
+
+.sona-product-preview-card {
+  overflow: hidden;
+}
+
+.sona-product-preview-card__media {
+  min-height: 230px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #eef7ff, #fff);
+}
+
+.sona-product-preview-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sona-product-preview-card__body,
+.sona-preview-detail {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.sona-preview-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--blue-deep);
+  font-size: 1.35rem;
+  font-weight: 1000;
+}
+
+.sona-preview-price del {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.sona-preview-rating {
+  color: #9a6500;
+  font-weight: 900;
+}
+
+.sona-product-preview-card__actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.sona-product-preview-card__actions button {
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--blue-deep);
+}
+
+.sona-product-preview-card__actions button:first-child {
+  border: 0;
+  background: var(--blue);
+  color: #fff;
+}
+
+.sona-products-table {
+  overflow-x: auto;
+}
+
+.sona-products-table table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: collapse;
+}
+
+.sona-products-table th,
+.sona-products-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  white-space: pre-line;
+}
+
+.sona-products-table th {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.sona-products-table img {
+  width: 58px;
+  height: 58px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #eef7ff;
+}
+
+.sona-products-table input {
+  max-width: 120px;
+}
+
+@media (max-width: 1120px) {
+  .sona-products-toolbar,
+  .sona-editor-shell,
+  .sona-preview-pane {
+    grid-template-columns: 1fr;
+  }
+
+  .sona-editor-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .sona-editor-grid,
+  .sona-variant-row {
+    grid-template-columns: 1fr;
+  }
+}

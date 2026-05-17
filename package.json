@@ -1,11 +1,11 @@
 {
   "name": "sona-sofa-marketplace",
   "version": "1.0.0",
-  "description": "SONA sofa marketplace with cart, profile, and a secure static Node server.",
+  "description": "SONA home catalog with cart, profile, admin CMS, and a secure static Node server.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/js/app.js && node --check public/js/store.js && node --check public/js/security.js && node --check public/profile/Profile.js && node --check public/orders/Orders.js && node --check public/reviews/Reviews.js && node --check public/support/Support.js && node --check public/admin/Admin.js"
+    "check": "node --check server.js && node --check public/js/app.js && node --check public/js/store.js && node --check public/js/security.js && node --check public/profile/Profile.js && node --check public/orders/Orders.js && node --check public/reviews/Reviews.js && node --check public/support/Support.js && node --check public/admin/Admin.js && node --check public/admin/products/productSchemas.js && node --check public/admin/products/ProductCategorySelect.js && node --check public/admin/products/ProductPhotos.js && node --check public/admin/products/ProductVariants.js && node --check public/admin/products/ProductPreview.js && node --check public/admin/products/ProductEditor.js && node --check public/admin/products/ProductsPage.js"
   },
   "engines": {
     "node": ">=20"
