@@ -21,8 +21,8 @@
   function render({ variants, setVariants, category }) {
     const wrap = el("div", "sona-variants");
     const add = el("button", "sona-admin-soft", "Добавить вариант");
-    const hint = category === "kitchen"
-      ? "Например: планировка, материал фасада, длина, комплектация."
+    const hint = category === "sofaCollection"
+      ? "Например: коллекция, материал обивки, длина, комплектация."
       : category === "bed"
         ? "Например: размер спального места, цвет, подъёмный механизм."
         : "Например: цвет ткани, размер, сторона угла, комплектация.";

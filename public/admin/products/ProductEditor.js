@@ -28,9 +28,9 @@
       productType: product.productType || type,
       categoryLabel: product.categoryLabel || categoryLabel,
       category: product.category || categoryLabel,
-      marketSection: product.marketSection || (type === "service" ? "Услуги" : type === "kitchen" ? "Кухни" : "Мебель"),
+      marketSection: product.marketSection || (type === "service" ? "Услуги" : "Мебель"),
       status: product.status || (product.hidden ? "hidden" : "draft"),
-      priceMode: product.priceMode || (type === "kitchen" ? "from" : "fixed"),
+      priceMode: product.priceMode || (type === "sofaCollection" ? "from" : "fixed"),
       availability: product.availability || "in_stock",
       stock: product.stock ?? 1,
       deliveryDays: product.deliveryDays ?? 3,
@@ -92,7 +92,7 @@
     const price = Number(product.price) || 0;
     const oldPrice = Number(product.oldPrice) || 0;
     const sku = String(product.sku || "").trim().toLowerCase();
-    const customPriceAllowed = product.productType === "service" || product.productType === "kitchen" || product.priceMode === "custom";
+    const customPriceAllowed = product.productType === "service" || product.productType === "sofaCollection" || product.priceMode === "custom";
 
     if (!String(product.name || "").trim()) errors.name = "Название обязательно.";
     if (!String(product.categoryLabel || product.category || "").trim()) errors.categoryLabel = "Категория обязательна.";

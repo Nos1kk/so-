@@ -34,9 +34,45 @@
     return "Гость Soна";
   }
 
-  function addMessage(text, source = "chat") {
+  function isProfileActive(data) {
+    return Boolean(data?.profile?.isActive);
+  }
+
+  function cleanFileName(name) {
+    return (window.SonaSecurity?.sanitizeText(name, 120) || String(name || "file").trim().slice(0, 120)) || "file";
+  }
+
+  function formatFileSize(size) {
+    const value = Number(size) || 0;
+    if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} МБ`;
+    if (value >= 1024) return `${Math.ceil(value / 1024)} КБ`;
+    return `${value} Б`;
+  }
+
+  function readAttachment(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({
+        name: cleanFileName(file.name),
+        type: file.type || "application/octet-stream",
+        size: file.size || 0,
+        dataUrl: String(reader.result || "")
+      });
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function prepareAttachments(files) {
+    const selected = Array.from(files || []).slice(0, 3);
+    const allowed = selected.filter((file) => file.size <= 6 * 1024 * 1024);
+    return Promise.all(allowed.map(readAttachment));
+  }
+
+  function addMessage(text, source = "chat", attachments = []) {
     const clean = window.SonaSecurity?.sanitizeText(text, 700) || String(text || "").trim().slice(0, 700);
-    if (!clean) return false;
+    const cleanAttachments = Array.isArray(attachments) ? attachments.filter((item) => item?.dataUrl).slice(0, 3) : [];
+    if (!clean && !cleanAttachments.length) return false;
 
     window.SonaStore.update((data) => {
       data.supportMessages = [
@@ -48,6 +84,7 @@
           phone: data.profile?.phone || "",
           email: data.profile?.email || "",
           text: clean,
+          attachments: cleanAttachments,
           source,
           createdAt: Date.now(),
           status: "new"
@@ -93,11 +130,30 @@
 
     rows.slice(-30).forEach((message) => {
       const bubble = el("article", `sona-support-message is-${message.role === "admin" ? "admin" : "user"}`);
+      const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+      const attachmentList = el("div", "sona-support-attachments");
+
+      attachments.forEach((attachment) => {
+        const link = el("a", attachment.type?.startsWith("image/") ? "sona-support-file is-image" : "sona-support-file");
+        link.href = attachment.dataUrl || "#";
+        link.download = attachment.name || "file";
+        link.target = "_blank";
+        link.rel = "noopener";
+        if (attachment.type?.startsWith("image/")) {
+          const image = document.createElement("img");
+          image.src = attachment.dataUrl;
+          image.alt = attachment.name || "";
+          link.append(image);
+        }
+        link.append(el("span", "", `${attachment.name || "file"} · ${formatFileSize(attachment.size)}`));
+        attachmentList.append(link);
+      });
       bubble.append(
         el("strong", "", message.author || (message.role === "admin" ? "Поддержка Soна" : "Покупатель")),
-        el("p", "", message.text || ""),
-        el("span", "", nowLabel(message.createdAt))
+        el("p", "", message.text || "")
       );
+      if (attachments.length) bubble.append(attachmentList);
+      bubble.append(el("span", "", nowLabel(message.createdAt)));
       list.append(bubble);
     });
 
@@ -110,6 +166,7 @@
 
     const wasOpen = Boolean(container.querySelector(".sona-support-widget.is-open"));
     const data = window.SonaStore.read();
+    const canAttach = isProfileActive(data);
     const root = el("div", "sona-support-widget");
     const launcher = el("button", "sona-support-launcher");
     const panel = el("section", "sona-support-panel");
@@ -117,6 +174,9 @@
     const close = el("button", "sona-support-close", "×");
     const form = el("form", "sona-support-form");
     const input = el("textarea");
+    const fileInput = document.createElement("input");
+    const attach = el("button", `sona-support-attach${canAttach ? "" : " is-login-required"}`, canAttach ? "Файл" : "Войдите в аккаунт");
+    const notice = el("p", "sona-support-form-note", canAttach ? "Можно прикрепить до 3 файлов или фото." : "Войдите в аккаунт, чтобы отправлять файлы и фотографии.");
     const send = el("button", "", "Отправить");
 
     function setOpen(open) {
@@ -158,30 +218,46 @@
     );
 
     input.placeholder = "Опишите вопрос по заказу, доставке или товару";
+    fileInput.type = "file";
+    fileInput.accept = "image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,.doc,.docx,.xls,.xlsx";
+    fileInput.multiple = true;
+    fileInput.hidden = true;
+    attach.type = "button";
+    attach.setAttribute("aria-label", canAttach ? "Прикрепить файл или фотографию" : "Войдите в аккаунт, чтобы прикрепить файл");
+    attach.addEventListener("click", () => {
+      if (canAttach) {
+        fileInput.click();
+        return;
+      }
+      document.getElementById("profileButton")?.click();
+    });
+    fileInput.addEventListener("change", () => {
+      const count = fileInput.files?.length || 0;
+      attach.textContent = count ? `Файлы: ${Math.min(count, 3)}` : "Файл";
+    });
     send.type = "submit";
-    form.append(input, send);
-    form.addEventListener("submit", (event) => {
+    form.append(input, fileInput, attach, send, notice);
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (!addMessage(input.value, "widget")) {
+      const attachments = canAttach ? await prepareAttachments(fileInput.files) : [];
+      if (!addMessage(input.value, "widget", attachments)) {
         input.focus();
         return;
       }
       input.value = "";
-      renderWidget(options);
+      fileInput.value = "";
+      attach.textContent = canAttach ? "Файл" : "Войдите в аккаунт";
+      const currentList = panel.querySelector(".sona-support-messages");
+      const nextList = renderMessages(window.SonaStore.read().supportMessages);
+      currentList?.replaceWith(nextList);
+      root.classList.add("is-open");
+      document.body.classList.add("support-chat-open");
+      panel.hidden = false;
+      panel.style.display = "grid";
+      panel.setAttribute("aria-hidden", "false");
+      launcher.setAttribute("aria-expanded", "true");
+      nextList.scrollTop = nextList.scrollHeight;
       options.onChange?.();
-      window.requestAnimationFrame(() => {
-        const widget = container.querySelector(".sona-support-widget");
-        const button = container.querySelector(".sona-support-launcher");
-        const nextPanel = container.querySelector(".sona-support-panel");
-        widget?.classList.add("is-open");
-        document.body.classList.add("support-chat-open");
-        if (nextPanel) {
-          nextPanel.hidden = false;
-          nextPanel.style.display = "grid";
-          nextPanel.setAttribute("aria-hidden", "false");
-        }
-        button?.setAttribute("aria-expanded", "true");
-      });
     });
 
     panel.append(head, renderMessages(data.supportMessages), form);

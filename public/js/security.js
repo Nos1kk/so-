@@ -43,7 +43,7 @@
   function mojibakeScore(value) {
     const text = String(value || "");
     const broken = (text.match(/[РСВв][\u0080-\u04ff]|â|�/g) || []).length;
-    const russianWords = (text.match(/(корзин|избран|профил|товар|заказ|скид|достав|каталог|отзыв|цена|мебел|кухн|диван)/gi) || []).length;
+    const russianWords = (text.match(/(корзин|избран|профил|товар|заказ|скид|достав|каталог|отзыв|цена|мебел|диван)/gi) || []).length;
     const cyrillic = (text.match(/[А-Яа-яЁё]/g) || []).length;
     return russianWords * 8 + cyrillic - broken * 12 - (text.includes("�") ? 80 : 0);
   }

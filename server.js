@@ -2,6 +2,7 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
+const zlib = require("zlib");
 
 const PORT = Number(process.env.PORT || process.env.AMVERA_PORT || process.env.APP_PORT) || 8000;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -48,6 +49,23 @@ function sendJson(res, statusCode, payload) {
   setSecurityHeaders(res);
   res.writeHead(statusCode, { "Content-Type": MIME_TYPES[".json"] });
   res.end(JSON.stringify(payload));
+}
+
+function cacheControlFor(ext) {
+  if (ext === ".html") return "no-store";
+  if ([".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico"].includes(ext)) {
+    return "public, max-age=604800";
+  }
+  if ([".css", ".js"].includes(ext)) {
+    return "public, max-age=3600, must-revalidate";
+  }
+  if (ext === ".json") return "no-cache";
+  return "no-store";
+}
+
+function canGzip(req, contentType) {
+  const acceptsGzip = String(req.headers["accept-encoding"] || "").includes("gzip");
+  return acceptsGzip && /^(text\/|application\/(javascript|json)|image\/svg\+xml)/.test(contentType);
 }
 
 function readJsonBody(req, callback, options = {}) {
@@ -308,7 +326,7 @@ function createServer() {
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || "application/octet-stream";
-    const cacheControl = "no-store";
+    const cacheControl = cacheControlFor(ext);
 
     fs.readFile(filePath, (readError, content) => {
       if (readError) {
@@ -317,11 +335,37 @@ function createServer() {
       }
 
       setSecurityHeaders(res);
-      res.writeHead(200, {
+      const headers = {
         "Content-Type": contentType,
         "Cache-Control": cacheControl
-      });
-      res.end(req.method === "HEAD" ? undefined : content);
+      };
+
+      if (req.method === "HEAD") {
+        res.writeHead(200, headers);
+        res.end();
+        return;
+      }
+
+      if (content.length > 1024 && canGzip(req, contentType)) {
+        zlib.gzip(content, { level: 6 }, (zipError, zipped) => {
+          if (zipError) {
+            res.writeHead(200, headers);
+            res.end(content);
+            return;
+          }
+
+          res.writeHead(200, {
+            ...headers,
+            "Content-Encoding": "gzip",
+            "Vary": "Accept-Encoding"
+          });
+          res.end(zipped);
+        });
+        return;
+      }
+
+      res.writeHead(200, headers);
+      res.end(content);
     });
   });
   });

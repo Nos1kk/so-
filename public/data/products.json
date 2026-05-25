@@ -160,11 +160,11 @@
     "tags": ["скидка"]
   },
   {
-    "id": "kitchen-lagoon",
-    "name": "Кухня Lagoon Line",
-    "brand": "SONA Kitchen",
-    "category": "кухня",
-    "marketSection": "Кухни",
+    "id": "accent-lagoon-sofa",
+    "name": "Акцентный диван Lagoon Line",
+    "brand": "SONA Sofa",
+    "category": "модульный",
+    "marketSection": "Мебель",
     "size": "L",
     "price": 189900,
     "oldPrice": 249900,
@@ -172,22 +172,22 @@
     "reviews": 27,
     "deliveryDays": 10,
     "image": "",
-    "materials": ["МДФ", "эмаль", "доводчики"],
+    "materials": ["шенилл", "бук", "съемные чехлы"],
     "variants": [
-      { "name": "Голубая эмаль", "price": 189900, "color": "#dff8f5" },
-      { "name": "Белый глянец", "price": 194900, "color": "#ffffff" },
-      { "name": "Синий матовый", "price": 205900, "color": "#5aa7e8" }
+      { "name": "Голубой шенилл", "price": 189900, "color": "#dff8f5" },
+      { "name": "Белый букле", "price": 194900, "color": "#ffffff" },
+      { "name": "Синий велюр", "price": 205900, "color": "#5aa7e8" }
     ],
     "colors": ["#dff8f5", "#ffffff", "#5aa7e8"],
-    "specs": ["3.2 м", "замер включен", "3D-проект"],
-    "tags": ["проект"]
+    "specs": ["3.2 м", "акцентная форма", "модульная сборка"],
+    "tags": ["акцент"]
   },
   {
-    "id": "kitchen-nova",
-    "name": "Модульная кухня Nova",
-    "brand": "Kitchen Lab",
-    "category": "кухня",
-    "marketSection": "Кухни",
+    "id": "compact-nova-sofa",
+    "name": "Компактный диван Nova",
+    "brand": "SONA Sofa",
+    "category": "диван-кровать",
+    "marketSection": "Мебель",
     "size": "M",
     "price": 124900,
     "oldPrice": null,
@@ -195,14 +195,14 @@
     "reviews": 19,
     "deliveryDays": 8,
     "image": "",
-    "materials": ["ЛДСП", "пластик"],
+    "materials": ["рогожка", "береза"],
     "variants": [
       { "name": "Ледяной голубой", "price": 124900, "color": "#eef7fb" },
-      { "name": "Аква", "price": 129900, "color": "#9fd4ec" },
-      { "name": "Графит", "price": 134900, "color": "#17324d" }
+      { "name": "Аква, рогожка", "price": 129900, "color": "#9fd4ec" },
+      { "name": "Графит, велюр", "price": 134900, "color": "#17324d" }
     ],
     "colors": ["#eef7fb", "#9fd4ec", "#17324d"],
-    "specs": ["готовые модули", "матовые фасады", "быстрый монтаж"],
+    "specs": ["для студии", "спальное место", "быстрая сборка"],
     "tags": ["новинка"]
   },
   {

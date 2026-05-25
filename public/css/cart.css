@@ -29,8 +29,9 @@
   border: 1px solid var(--line);
   border-radius: 22px;
   background:
-    radial-gradient(circle at 88% 20%, rgba(34, 58, 94, 0.12), transparent 28%),
-    #fff;
+    radial-gradient(circle at 88% 18%, rgba(242, 220, 115, 0.2), transparent 28%),
+    radial-gradient(circle at 10% 100%, rgba(126, 176, 219, 0.22), transparent 30%),
+    linear-gradient(145deg, #ffffff, #f5fbff 70%, #eef7ff);
   box-shadow: 0 14px 34px rgba(26, 55, 92, 0.08);
   animation: cartPanelIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -83,12 +84,27 @@
   display: grid;
   gap: 12px;
   place-items: center;
-  min-height: 220px;
-  padding: 26px;
-  border: 1px dashed #b7ddf6;
-  border-radius: var(--radius);
+  min-height: 310px;
+  padding: 34px;
+  border: 1px dashed rgba(126, 176, 219, 0.75);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(231, 255, 248, 0.7), transparent 24%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(238, 247, 255, 0.72));
   color: var(--muted);
   text-align: center;
+}
+
+.cart-empty .empty-icon {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #e9fff8, #eef7ff);
+  color: var(--blue-deep);
+  font-weight: 950;
+  box-shadow: 0 16px 34px rgba(34, 58, 94, 0.1);
 }
 
 .cart-empty strong {
@@ -110,12 +126,14 @@
 
 .cart-item {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 12px;
-  padding: 10px;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #f8fcff;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 96% 0%, rgba(126, 176, 219, 0.14), transparent 28%),
+    #ffffff;
   animation: cartItemIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
@@ -128,9 +146,9 @@
 
 .cart-item img,
 .cart-placeholder {
-  width: 96px;
-  height: 76px;
-  border-radius: var(--radius);
+  width: 116px;
+  height: 88px;
+  border-radius: 16px;
   background: #fff;
 }
 
@@ -225,10 +243,12 @@
   top: 110px;
   display: grid;
   gap: 12px;
-  padding: 18px;
+  padding: 22px;
   border: 1px solid var(--line);
-  border-radius: 18px;
-  background: #fff;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(242, 220, 115, 0.18), transparent 30%),
+    #fff;
   box-shadow: 0 14px 34px rgba(26, 55, 92, 0.08);
   animation: cartPanelIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) both 80ms;
 }
@@ -291,12 +311,75 @@
 
 .cart-recommendations {
   display: grid;
-  gap: 12px;
-  margin-top: 10px;
+  gap: 16px;
+  margin-top: 4px;
+  padding: 22px;
+  border: 1px solid rgba(216, 227, 239, 0.92);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 92% 4%, rgba(231, 255, 248, 0.66), transparent 25%),
+    rgba(255, 255, 255, 0.68);
+  box-shadow: 0 14px 34px rgba(26, 55, 92, 0.06);
 }
 
 .cart-recommendations .section-head {
   align-items: end;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cart-recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.cart-recommendation-card {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(216, 227, 239, 0.95);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(26, 55, 92, 0.07);
+}
+
+.cart-recommendation-photo {
+  width: 100%;
+  min-height: 138px;
+  height: 138px;
+  border-radius: 16px;
+}
+
+.cart-recommendation-body {
+  display: grid;
+  gap: 8px;
+}
+
+.cart-recommendation-body strong {
+  line-height: 1.18;
+}
+
+.cart-recommendation-body > span:not(.cart-recommendation-category) {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.cart-recommendation-category {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eef7ff;
+  color: var(--blue-deep);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.cart-recommendation-card .soft-button {
+  width: 100%;
+  min-height: 42px;
 }
 
 @media (max-width: 460px) {
@@ -328,6 +411,20 @@
 
   .cart-summary {
     position: static;
+  }
+
+  .cart-recommendations {
+    padding: 16px;
+  }
+
+  .cart-recommendation-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 821px) and (max-width: 1180px) {
+  .cart-recommendation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

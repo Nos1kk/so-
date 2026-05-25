@@ -522,6 +522,18 @@
   white-space: nowrap;
 }
 
+.sona-profile-product__actions {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sona-profile-danger {
+  color: #b42318;
+}
+
 .sona-profile-thumb {
   width: 82px;
   height: 68px;
@@ -804,6 +816,15 @@
   .sona-profile-actions,
   .favorite-actions {
     grid-template-columns: 1fr;
+  }
+
+  .sona-profile-product__actions {
+    justify-content: stretch;
+  }
+
+  .sona-profile-product__actions .sona-profile-soft {
+    flex: 1;
+    min-width: 0;
   }
 
   .sona-profile-thumb {

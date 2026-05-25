@@ -52,6 +52,15 @@ let reviewStatusFilter = "all";
     return Boolean(data?.admin?.isAuthenticated || data?.profile?.role === "admin" || digits(data?.profile?.phone).endsWith(ADMIN_PHONE.slice(1)));
   }
 
+  function logoutAdmin(onChange) {
+    window.SonaStore.update((state) => {
+      state.admin = { ...(state.admin || {}), isAuthenticated: false, phone: "" };
+      state.profile = { ...(state.profile || {}), role: "user", phone: "", isActive: false };
+    });
+    activeSection = "home";
+    onChange?.();
+  }
+
   function money(value) {
     return new Intl.NumberFormat("ru-RU", {
       style: "currency",
@@ -324,9 +333,9 @@ let reviewStatusFilter = "all";
   function productForm(context) {
     const product = context.products.find((item) => item.id === editingProductId) || {};
     const form = el("form", "sona-admin-editor");
-    const productTypes = ["Диван", "Кровать", "Кресло", "Стул", "Стол", "Шкаф", "Комод", "Люстра", "Кухня", "Декор", "Услуга", "Другое"];
-    const sections = ["Мебель", "Кухни", "Свет", "Декор", "Текстиль", "Услуги"];
-    const roomTypes = ["Гостиная", "Спальня", "Кухня", "Прихожая", "Детская", "Ванная", "Офис", "Сад"];
+    const productTypes = ["Диван", "Кровать", "Кресло", "Стул", "Стол", "Шкаф", "Комод", "Люстра", "Декор", "Услуга", "Другое"];
+    const sections = ["Мебель", "Диваны", "Свет", "Декор", "Текстиль", "Услуги"];
+    const roomTypes = ["Гостиная", "Спальня", "Столовая", "Прихожая", "Детская", "Ванная", "Офис", "Сад"];
     const addField = (name, label, value, type = "text") => {
       const wrap = el("label", "sona-admin-field");
       const input = el("input");
@@ -574,7 +583,27 @@ let reviewStatusFilter = "all";
     }
     messages.forEach((message) => {
       const item = el("article", `sona-support-message is-${message.role === "admin" ? "admin" : "user"}`);
-      item.append(el("strong", "", message.author || ""), el("p", "", message.text || ""), el("span", "", window.SonaSupport?.nowLabel(message.createdAt) || ""));
+      item.append(el("strong", "", message.author || ""), el("p", "", message.text || ""));
+      if (Array.isArray(message.attachments) && message.attachments.length) {
+        const files = el("div", "sona-support-attachments");
+        message.attachments.forEach((attachment) => {
+          const link = el("a", attachment.type?.startsWith("image/") ? "sona-support-file is-image" : "sona-support-file");
+          link.href = attachment.dataUrl || "#";
+          link.download = attachment.name || "file";
+          link.target = "_blank";
+          link.rel = "noopener";
+          if (attachment.type?.startsWith("image/")) {
+            const image = document.createElement("img");
+            image.src = attachment.dataUrl;
+            image.alt = attachment.name || "";
+            link.append(image);
+          }
+          link.append(el("span", "", attachment.name || "file"));
+          files.append(link);
+        });
+        item.append(files);
+      }
+      item.append(el("span", "", window.SonaSupport?.nowLabel(message.createdAt) || ""));
       history.append(item);
     });
     const threadActions = el("div", "sona-admin-actions");
@@ -765,12 +794,7 @@ let reviewStatusFilter = "all";
       item.append(icon(path), el("span", "", title));
       item.addEventListener("click", () => {
         if (id === "logout") {
-          window.SonaStore.update((state) => {
-            state.admin = { ...(state.admin || {}), isAuthenticated: false };
-            state.profile = { ...(state.profile || {}), role: "user" };
-          });
-          activeSection = "home";
-          onChange();
+          logoutAdmin(onChange);
           return;
         }
         activeSection = id;
@@ -783,11 +807,7 @@ let reviewStatusFilter = "all";
 
     logout.type = "button";
     logout.addEventListener("click", () => {
-      window.SonaStore.update((state) => {
-        state.admin = { ...(state.admin || {}), isAuthenticated: false };
-        state.profile = { ...(state.profile || {}), role: "user" };
-      });
-      onChange();
+      logoutAdmin(onChange);
     });
 
     const adminLogo = el("strong", "sona-admin-logo");

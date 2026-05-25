@@ -142,17 +142,25 @@
     return thumb;
   }
 
-  function productMiniCard(product, meta, actionText, onAction) {
+  function productMiniCard(product, meta, actionText, onAction, secondaryText, onSecondary) {
     const card = el("article", "sona-profile-product");
     const body = el("div", "sona-profile-product__body");
+    const actions = el("div", "sona-profile-product__actions");
     const title = el("strong", "", product.name);
     const note = el("span", "", meta);
     const button = el("button", "sona-profile-soft", actionText);
 
     button.type = "button";
     button.addEventListener("click", onAction);
+    actions.append(button);
+    if (secondaryText && onSecondary) {
+      const secondary = el("button", "sona-profile-soft sona-profile-danger", secondaryText);
+      secondary.type = "button";
+      secondary.addEventListener("click", onSecondary);
+      actions.append(secondary);
+    }
     body.append(title, note);
-    card.append(productThumb(product), body, button);
+    card.append(productThumb(product), body, actions);
     return card;
   }
 
@@ -424,7 +432,7 @@
     favoritePreview.append(el("h2", "", "Избранное"));
     if (favorites.length) {
       favorites.slice(0, 4).forEach((product) => {
-        favoritePreview.append(productMiniCard(product, money(product.price), "В корзину", () => context.addToCart(product.id)));
+        favoritePreview.append(productMiniCard(product, money(product.price), "В корзину", () => context.addToCart(product.id), "Удалить", () => context.removeFavorite?.(product.id)));
       });
     } else {
       favoritePreview.append(emptyState("В избранном пока пусто", "Сохраняйте товары сердечком в каталоге.", "Перейти к товарам", context.openCatalog));
@@ -441,7 +449,7 @@
     cartPreview.append(el("h2", "", "Корзина"));
     if (cartRows.length) {
       cartRows.slice(0, 3).forEach(({ product, quantity }) => {
-        cartPreview.append(productMiniCard(product, `${quantity} шт. · ${money(product.price * quantity)}`, "Изменить", context.openCart));
+        cartPreview.append(productMiniCard(product, `${quantity} шт. · ${money(product.price * quantity)}`, "Изменить", context.openCart, "Удалить", () => context.removeFromCart?.(product.id)));
       });
       cartPreview.append(el("strong", "sona-profile-total", `Итого: ${money(totals.subtotal)}`), dualActions("Перейти в корзину", context.openCart, "Оформить заказ", context.checkout));
     } else {
@@ -670,12 +678,12 @@
       return listPanel("Покупки", "Завершённые покупки и общая сумма.", orders.map((order) => orderCard(order, context)), "Покупок пока нет.");
     }
     if (activeSection === "favorites") {
-      const panel = listPanel("Избранное", "Все товары, которые вы сохранили.", favorites.map((product) => productMiniCard(product, money(product.price), "В корзину", () => context.addToCart(product.id))), "В избранном пока пусто.");
+      const panel = listPanel("Избранное", "Все товары, которые вы сохранили.", favorites.map((product) => productMiniCard(product, money(product.price), "В корзину", () => context.addToCart(product.id), "Удалить", () => context.removeFavorite?.(product.id))), "В избранном пока пусто.");
       panel.append(actionRow("Открыть полную страницу избранного", context.openFavorites));
       return panel;
     }
     if (activeSection === "cart") {
-      const panel = listPanel("Корзина", `Товаров: ${totals.count}. Итого: ${money(totals.subtotal)}.`, cartRows.map(({ product, quantity }) => productMiniCard(product, `${quantity} шт. · ${money(product.price * quantity)}`, "Перейти", context.openCart)), "Корзина пока пустая.");
+      const panel = listPanel("Корзина", `Товаров: ${totals.count}. Итого: ${money(totals.subtotal)}.`, cartRows.map(({ product, quantity }) => productMiniCard(product, `${quantity} шт. · ${money(product.price * quantity)}`, "Перейти", context.openCart, "Удалить", () => context.removeFromCart?.(product.id))), "Корзина пока пустая.");
       panel.append(dualActions("Перейти к товарам", context.openCatalog, "Открыть корзину", context.openCart));
       return panel;
     }

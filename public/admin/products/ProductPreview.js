@@ -16,7 +16,7 @@
 
   function priceLabel(product) {
     if (product.priceMode === "custom") return "Индивидуальный расчёт";
-    if (product.priceMode === "from" || product.productType === "kitchen") return `от ${money(product.price)}`;
+    if (product.priceMode === "from" || product.productType === "sofaCollection") return `от ${money(product.price)}`;
     return money(product.price);
   }
 

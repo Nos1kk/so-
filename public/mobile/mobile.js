@@ -66,7 +66,9 @@
   }
 
   function syncHeaderGlass() {
-    header?.classList.toggle("is-mobile-scrolled", window.scrollY > 8);
+    const scrolled = header?.classList.contains("is-mobile-scrolled");
+    if (!scrolled && window.scrollY > 18) header?.classList.add("is-mobile-scrolled");
+    if (scrolled && window.scrollY < 4) header?.classList.remove("is-mobile-scrolled");
     body.classList.toggle("mobile-support-ready", window.scrollY > 220);
   }
 

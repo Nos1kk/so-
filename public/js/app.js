@@ -21,7 +21,8 @@
       favoritesOnly: false,
       query: "",
       sort: "popular"
-    }
+    },
+    categoryPage: null
   };
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -30,6 +31,105 @@
     priceAsc: "сначала дешевле",
     priceDesc: "сначала дороже",
     rating: "по рейтингу"
+  };
+  const CATEGORY_PAGE_PRESETS = {
+    all: {
+      key: "all",
+      title: "Все товары SONA",
+      eyebrow: "каталог",
+      text: "Вся витрина товаров и услуг в одном аккуратном списке.",
+      section: ALL_VALUE,
+      category: ALL_VALUE,
+      group: "",
+      saleOnly: false
+    },
+    sofas: {
+      key: "sofas",
+      title: "Диваны SONA",
+      eyebrow: "диваны",
+      text: "Прямые, угловые, модульные и компактные модели для дома.",
+      section: "Мебель",
+      category: ALL_VALUE,
+      group: "sofas",
+      saleOnly: false
+    },
+    beds: {
+      key: "beds",
+      title: "Кровати SONA",
+      eyebrow: "кровати",
+      text: "Модели для спальни, хранения и спокойного сна.",
+      section: "Мебель",
+      category: "кровать",
+      group: "",
+      saleOnly: false
+    },
+    chairs: {
+      key: "chairs",
+      title: "Кресла SONA",
+      eyebrow: "кресла",
+      text: "Лаунж, рабочие и акцентные кресла для разных комнат.",
+      section: "Мебель",
+      category: "кресло",
+      group: "",
+      saleOnly: false
+    },
+    wardrobes: {
+      key: "wardrobes",
+      title: "Шкафы SONA",
+      eyebrow: "шкафы",
+      text: "Системы хранения для спальни, прихожей и гардеробной.",
+      section: "Мебель",
+      category: "шкаф",
+      group: "",
+      saleOnly: false
+    },
+    services: {
+      key: "services",
+      title: "Услуги SONA",
+      eyebrow: "сервис",
+      text: "Поддержка проекта: дизайн, разработка, визуал и запуск.",
+      section: "Услуги",
+      category: ALL_VALUE,
+      group: "",
+      saleOnly: false
+    },
+    sale: {
+      key: "sale",
+      title: "Распродажа SONA",
+      eyebrow: "выгода",
+      text: "Товары и услуги со скидками в одной подборке.",
+      section: ALL_VALUE,
+      category: ALL_VALUE,
+      group: "",
+      saleOnly: true
+    }
+  };
+  const CATEGORY_PAGE_GROUPS = {
+    sofas: [
+      { key: "sofas", label: "Все диваны", title: "Диваны SONA", category: ALL_VALUE, group: "sofas", text: "Все диваны: компактные, просторные, акцентные и детские модели." },
+      { key: "диван-кровать", label: "Компактные", title: "Компактные модели", category: "диван-кровать", group: "", text: "Диваны для студий, спален и небольших гостиных." },
+      { key: "угловой", label: "Просторные", title: "Просторные диваны", category: "угловой", group: "", text: "Больше места для семьи, гостей и спокойных вечеров." },
+      { key: "модульный", label: "Акцентные", title: "Акцентные модели", category: "модульный", group: "", text: "Выразительные диваны, которые становятся центром комнаты." },
+      { key: "прямой", label: "Детская серия", title: "Детская серия", category: "прямой", group: "", text: "Мягкие и практичные модели для сна, игр и роста." }
+    ],
+    beds: [
+      { key: "beds", label: "Все кровати", title: "Кровати SONA", category: "кровать", group: "", text: "Кровати для спальни, хранения и спокойного сна." }
+    ],
+    chairs: [
+      { key: "chairs", label: "Все кресла", title: "Кресла SONA", category: "кресло", group: "", text: "Лаунж, рабочие и акцентные кресла для разных комнат." }
+    ],
+    wardrobes: [
+      { key: "wardrobes", label: "Все шкафы", title: "Шкафы SONA", category: "шкаф", group: "", text: "Системы хранения для спальни, прихожей и гардеробной." }
+    ],
+    services: [
+      { key: "services", label: "Все услуги", title: "Услуги SONA", section: "Услуги", category: ALL_VALUE, group: "", text: "Дизайн, разработка, визуал и запуск проекта." }
+    ],
+    sale: [
+      { key: "sale", label: "Все скидки", title: "Распродажа SONA", section: ALL_VALUE, category: ALL_VALUE, group: "", saleOnly: true, text: "Товары и услуги со скидками в одной подборке." }
+    ],
+    all: [
+      { key: "all", label: "Все товары", title: "Все товары SONA", section: ALL_VALUE, category: ALL_VALUE, group: "", text: "Вся витрина товаров и услуг в одном списке." }
+    ]
   };
   const DEFAULT_ADS = [
     {
@@ -99,6 +199,7 @@
     filterButton: document.getElementById("filterButton"),
     filterDrawer: document.getElementById("filterDrawer"),
     catalogTabs: document.querySelectorAll("[data-catalog-tab]"),
+    catalogSwitches: document.querySelectorAll("[data-catalog-switch]"),
     catalogViews: document.querySelectorAll("[data-catalog-view]"),
     mobileConsultButton: document.getElementById("mobileConsultButton"),
     mobileConsultMenu: document.getElementById("mobileConsultMenu"),
@@ -112,11 +213,14 @@
     adminPage: document.getElementById("adminPage"),
     adminPageContent: document.getElementById("adminPageContent"),
     supportChatRoot: document.getElementById("supportChatRoot"),
+    categoryPage: document.getElementById("categoryPage"),
+    categoryPageContent: document.getElementById("categoryPageContent"),
     cartPage: document.getElementById("cartPage"),
     cartBadge: document.getElementById("cartBadge"),
     mobileCartBadge: document.getElementById("mobileCartBadge"),
     cartCountLabel: document.getElementById("cartCountLabel"),
     cartItems: document.getElementById("cartItems"),
+    cartRecommendations: document.getElementById("cartRecommendations"),
     cartSubtotal: document.getElementById("cartSubtotal"),
     deliveryPrice: document.getElementById("deliveryPrice"),
     cartTotal: document.getElementById("cartTotal"),
@@ -386,6 +490,11 @@
     if (path === "/admin") return "admin";
     if (path === "/profile") return "profile";
     if (path === "/favorites") return "favorites";
+    if (path === "/category") {
+      const key = new URLSearchParams(window.location.search).get("type") || "all";
+      state.categoryPage = { ...categoryPresetByKey(key) };
+      return "category";
+    }
     return "home";
   }
 
@@ -394,14 +503,15 @@
     if (route === "profile") return "/profile";
     if (route === "favorites") return "/favorites";
     if (route === "admin") return "/admin";
+    if (route === "category") return `/category?type=${encodeURIComponent((state.categoryPage || CATEGORY_PAGE_PRESETS.all).key || "all")}`;
     return "/";
   }
 
   function navigateTo(route, syncUrl = true) {
-    const nextRoute = ["home", "profile", "cart", "favorites", "admin"].includes(route) ? route : "home";
+    const nextRoute = ["home", "profile", "cart", "favorites", "admin", "category"].includes(route) ? route : "home";
 
     state.route = nextRoute;
-    state.mobileAction = nextRoute === "admin" ? "profile" : nextRoute;
+    state.mobileAction = nextRoute === "admin" ? "profile" : (nextRoute === "category" ? "catalog" : nextRoute);
     closeFilters();
     closeProduct();
     closeSortMenu();
@@ -409,7 +519,8 @@
 
     if (syncUrl) {
       const nextPath = routePath(nextRoute);
-      if (window.location.pathname !== nextPath || window.location.hash) {
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      if (currentPath !== nextPath || window.location.hash) {
         window.history.pushState({ route: nextRoute }, "", nextPath);
       }
     }
@@ -700,10 +811,10 @@
     const popular = visible
       .slice()
       .sort((a, b) => (Number(b.reviews || b.reviewsCount) || 0) - (Number(a.reviews || a.reviewsCount) || 0))
-      .slice(0, 4);
+      .slice(0, 2);
     const newItems = visible
-      .filter((product) => (product.tags || []).includes("новинка") || ["Кухни", "Услуги"].includes(product.marketSection))
-      .slice(0, 4);
+      .filter((product) => (product.tags || []).includes("новинка") || ["Диваны", "Услуги"].includes(product.marketSection))
+      .slice(0, 2);
 
     if (els.saleProductGrid) {
       els.saleProductGrid.replaceChildren(...sale.map((product, index) => createLookbookDealCard(product, data, index)));
@@ -778,8 +889,8 @@
       title = "Кресла SONA";
     } else if (state.filters.section === "Мебель") {
       title = "Мебель SONA";
-    } else if (state.filters.section === "Кухни") {
-      title = "Кухни SONA";
+    } else if (state.filters.section === "Диваны") {
+      title = "Диваны SONA";
     } else if (state.filters.section === "Услуги") {
       title = "Услуги и дизайн SONA";
     }
@@ -803,11 +914,20 @@
     if (!header) return;
 
     let scheduled = false;
+    let elevated = false;
+    let compact = false;
     const update = () => {
       scheduled = false;
       const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
-      header.classList.toggle("is-elevated", scrollTop > 8);
-      header.classList.toggle("is-compact", scrollTop > 44);
+      const isMobile = window.matchMedia("(max-width: 760px)").matches;
+
+      if (!elevated && scrollTop > 16) elevated = true;
+      if (elevated && scrollTop < 4) elevated = false;
+      if (!compact && scrollTop > 120) compact = true;
+      if (compact && scrollTop < 72) compact = false;
+
+      header.classList.toggle("is-elevated", elevated);
+      header.classList.toggle("is-compact", compact && !isMobile);
     };
 
     const request = () => {
@@ -1383,6 +1503,16 @@
     showToast(added ? "Товар добавлен в избранное" : "Товар удалён из избранного");
   }
 
+  function removeFavorite(productId) {
+    const id = security.safeProductId(productId);
+
+    store.update((data) => {
+      data.favorites = (data.favorites || []).filter((item) => item !== id);
+    });
+    render();
+    showToast("Товар удалён из избранного");
+  }
+
   function playCartMotion(triggerButton) {
     if (triggerButton && !reduceMotion) {
       const originalText = triggerButton.textContent;
@@ -1479,10 +1609,57 @@
       button.addEventListener("click", goToCatalog);
       empty.append(icon, title, text, button);
       els.cartItems.replaceChildren(empty);
+      renderCartRecommendations(rows);
       return;
     }
 
     els.cartItems.replaceChildren(...rows.map(({ product, quantity }) => createCartItem(product, quantity)));
+    renderCartRecommendations(rows);
+  }
+
+  function renderCartRecommendations(rows = []) {
+    if (!els.cartRecommendations) return;
+
+    const inCart = new Set(rows.map((row) => row.product.id));
+    const hits = state.products
+      .filter((product) => !inCart.has(product.id))
+      .filter((product) => product.available !== false)
+      .sort((a, b) => ((Number(b.reviews) || 0) + (Number(b.rating) || 0) * 100) - ((Number(a.reviews) || 0) + (Number(a.rating) || 0) * 100))
+      .slice(0, 4);
+
+    if (!hits.length) {
+      els.cartRecommendations.replaceChildren();
+      return;
+    }
+
+    const head = createElement("div", "section-head cart-recommendations-head");
+    const copy = createElement("div");
+    const eyebrow = createElement("p", "eyebrow", "хиты SONA");
+    const title = createElement("h2", "", "Добавить к заказу");
+    const text = createElement("span", "", "Популярные товары, которые чаще всего смотрят вместе с корзиной.");
+    const grid = createElement("div", "cart-recommendation-grid");
+
+    copy.append(eyebrow, title, text);
+    head.append(copy);
+    hits.forEach((product) => grid.append(createCartRecommendationCard(product)));
+    els.cartRecommendations.replaceChildren(head, grid);
+  }
+
+  function createCartRecommendationCard(product) {
+    const card = createElement("article", "cart-recommendation-card");
+    const thumb = createProductPlaceholder(product, "Хит SONA");
+    const body = createElement("div", "cart-recommendation-body");
+    const category = createElement("span", "cart-recommendation-category", product.category || product.section || "Товар");
+    const title = createElement("strong", "", product.name);
+    const meta = createElement("span", "", `${money(product.price)} · рейтинг ${Number(product.rating || 4.8).toFixed(1)}`);
+    const button = createElement("button", "soft-button", "В корзину");
+
+    thumb.classList.add("cart-recommendation-photo");
+    button.type = "button";
+    button.addEventListener("click", () => addToCart(product.id, button));
+    body.append(category, title, meta, button);
+    card.append(thumb, body);
+    return card;
   }
 
   function createCartItem(product, quantity) {
@@ -1692,6 +1869,8 @@
       products: state.products,
       byId,
       addToCart,
+      removeFavorite,
+      removeFromCart: (productId) => setQuantity(productId, 0),
       checkout,
       openCart: () => navigateTo("cart"),
       openFavorites: () => navigateTo("favorites"),
@@ -1758,16 +1937,9 @@
     head.append(summary);
 
     if (!favorites.length) {
-      const empty = createElement("div", "favorites-empty");
-      const icon = createElement("div", "empty-icon", "Soна");
-      const title = createElement("strong", "", "В избранном пока пусто");
-      const text = createElement("span", "", "Сохраняйте товары сердечком, сравнивайте варианты и быстро добавляйте лучшее в корзину.");
-      const button = createElement("button", "primary-button", "Перейти к товарам");
-
-      button.type = "button";
-      button.addEventListener("click", goToCatalog);
-      empty.append(icon, title, text, button);
-      page.append(head, empty);
+      const empty = createElement("div", "favorites-empty favorites-empty-simple");
+      empty.append(createElement("strong", "", "Избранные пока пустые"));
+      page.append(head, empty, createFavoritesHitsSection(data));
       els.favoritesPageContent.replaceChildren(page);
       return;
     }
@@ -1792,7 +1964,7 @@
       remove.type = "button";
       remove.setAttribute("aria-label", `Удалить ${product.name} из избранного`);
       cart.addEventListener("click", () => addToCart(product.id, cart));
-      remove.addEventListener("click", () => toggleFavorite(product.id));
+      remove.addEventListener("click", () => removeFavorite(product.id));
       top.append(brand, rating);
       meta.append(price, delivery);
       actions.append(cart, remove);
@@ -1802,8 +1974,190 @@
       list.append(card);
     });
 
-    page.append(head, list);
+    page.append(head, list, createFavoritesHitsSection(data));
     els.favoritesPageContent.replaceChildren(page);
+  }
+
+  function createFavoritesHitsSection(data) {
+    const hits = state.products
+      .filter((product) => !product.hidden)
+      .slice()
+      .sort((left, right) => {
+        const leftReviews = (data.reviews || []).filter((review) => review.productId === left.id).length;
+        const rightReviews = (data.reviews || []).filter((review) => review.productId === right.id).length;
+        return (right.rating || 0) - (left.rating || 0) || rightReviews - leftReviews || (right.price || 0) - (left.price || 0);
+      })
+      .slice(0, 4);
+    const section = createElement("section", "favorites-hits");
+    const head = createElement("div", "favorites-hits-head");
+    const grid = createElement("div", "favorites-hits-grid");
+
+    head.append(
+      createElement("span", "eyebrow", "хиты SONA"),
+      createElement("h2", "", "Популярные товары")
+    );
+    hits.forEach((product) => grid.append(createProductCard(product, data)));
+    section.append(head, grid);
+    return section;
+  }
+
+  function categoryPresetByKey(key) {
+    if (CATEGORY_PAGE_PRESETS[key]) return CATEGORY_PAGE_PRESETS[key];
+
+    const sofaPreset = CATEGORY_PAGE_GROUPS.sofas.find((item) => item.key === key);
+    if (sofaPreset) {
+      return {
+        ...CATEGORY_PAGE_PRESETS.sofas,
+        ...sofaPreset,
+        eyebrow: "диваны",
+        section: "Мебель",
+        saleOnly: false
+      };
+    }
+
+    const titles = {
+      "прямой": "Прямые диваны",
+      "угловой": "Угловые диваны",
+      "модульный": "Модульные диваны",
+      "диван-кровать": "Диваны-кровати",
+      "кровать": "Кровати SONA",
+      "кресло": "Кресла SONA",
+      "шкаф": "Шкафы SONA",
+      "услуга": "Услуги SONA"
+    };
+    const sofaCategories = ["прямой", "угловой", "модульный", "диван-кровать"];
+    const category = titles[key] ? key : ALL_VALUE;
+    const isService = key === "услуга";
+
+    return {
+      key: key || "all",
+      title: titles[key] || "Все товары SONA",
+      eyebrow: isService ? "сервис" : "категория",
+      text: "Все товары из выбранной категории в одной странице.",
+      section: isService ? "Услуги" : "Мебель",
+      category,
+      group: sofaCategories.includes(key) ? "" : "",
+      saleOnly: false
+    };
+  }
+
+  function getCategoryPageProducts(preset) {
+    const data = store.read();
+    const favoriteIds = new Set(data.favorites || []);
+    const target = preset || CATEGORY_PAGE_PRESETS.all;
+
+    return state.products
+      .filter((product) => !product.hidden)
+      .filter((product) => {
+        const isSofa = ["прямой", "угловой", "модульный", "диван-кровать"].includes(product.category);
+        return (
+          (target.section === ALL_VALUE || product.marketSection === target.section) &&
+          (!target.group || (target.group === "sofas" && isSofa)) &&
+          (target.category === ALL_VALUE || product.category === target.category) &&
+          (!target.saleOnly || Boolean(product.oldPrice)) &&
+          (!target.favoritesOnly || favoriteIds.has(product.id))
+        );
+      })
+      .sort((a, b) => {
+        const summaryA = reviewSummary(a.id, data);
+        const summaryB = reviewSummary(b.id, data);
+        const reviewDelta = summaryB.count - summaryA.count;
+        if (reviewDelta !== 0) return reviewDelta;
+        return summaryB.average - summaryA.average;
+      });
+  }
+
+  function renderCategoryPage() {
+    if (!els.categoryPageContent || !state.products.length) return;
+
+    const data = store.read();
+    const preset = state.categoryPage || CATEGORY_PAGE_PRESETS.all;
+    const products = getCategoryPageProducts(preset);
+    const page = createElement("div", "category-page-inner");
+    const head = createElement("section", "category-page-head");
+    const copy = createElement("div");
+    const eyebrow = createElement("p", "eyebrow", preset.eyebrow || "каталог");
+    const title = createElement("h2", "", preset.title || "Все товары SONA");
+    const text = createElement("span", "", preset.text || "Выберите товары из каталога SONA.");
+    const switcher = createElement("div", "category-page-switcher");
+    const grid = createElement("div", "category-product-grid");
+
+    copy.append(eyebrow, title, text);
+    head.append(copy);
+
+    categorySwitchItems(preset).forEach((item) => {
+      const nextPreset = {
+        ...preset,
+        ...item,
+        key: item.key,
+        section: item.section || preset.section,
+        saleOnly: Boolean(item.saleOnly)
+      };
+      const button = createElement("button", item.key === preset.key ? "is-active" : "", item.label || item.title.replace(" SONA", ""));
+      button.type = "button";
+      button.addEventListener("click", () => openCategoryPage(nextPreset));
+      switcher.append(button);
+    });
+
+    if (products.length) {
+      products.forEach((product) => grid.append(createProductCard(product, data)));
+    } else {
+      const empty = createElement("div", "category-page-empty");
+      empty.append(
+        createElement("strong", "", "Товаров пока нет"),
+        createElement("span", "", "Фотографии и товары можно будет добавить позже через каталог или админ-панель.")
+      );
+      grid.append(empty);
+    }
+
+    page.append(head, switcher, grid);
+    els.categoryPageContent.replaceChildren(page);
+    observeAnimatedElements();
+  }
+
+  function categorySwitchItems(preset = {}) {
+    if (preset.group === "sofas" || ["sofas", "прямой", "угловой", "модульный", "диван-кровать"].includes(preset.key) || ["прямой", "угловой", "модульный", "диван-кровать"].includes(preset.category)) {
+      return CATEGORY_PAGE_GROUPS.sofas;
+    }
+    if (preset.key === "beds" || preset.category === "кровать") return CATEGORY_PAGE_GROUPS.beds;
+    if (preset.key === "chairs" || preset.category === "кресло") return CATEGORY_PAGE_GROUPS.chairs;
+    if (preset.key === "wardrobes" || preset.category === "шкаф") return CATEGORY_PAGE_GROUPS.wardrobes;
+    if (preset.key === "services" || preset.section === "Услуги" || preset.category === "услуга") return CATEGORY_PAGE_GROUPS.services;
+    if (preset.key === "sale" || preset.saleOnly) return CATEGORY_PAGE_GROUPS.sale;
+    return CATEGORY_PAGE_GROUPS.all;
+  }
+
+  function tabForCategoryPreset(preset = {}) {
+    if (preset.key === "beds" || preset.category === "кровать") return "bedCollections";
+    if (preset.key === "chairs" || preset.category === "кресло") return "chairCollections";
+    if (preset.key === "wardrobes" || preset.category === "шкаф") return "wardrobeCollections";
+    if (preset.key === "services" || preset.category === "услуга" || preset.section === "Услуги") return "serviceCollections";
+    if (preset.saleOnly) return "sale";
+    return "sofaCollections";
+  }
+
+  function openCategoryPage(options = {}) {
+    const preset = {
+      ...categoryPresetByKey(options.key || options.category || "all"),
+      ...options
+    };
+    state.categoryPage = preset;
+    navigateTo("category");
+  }
+
+  function openCategoryPageFromShortcut(button) {
+    const shortcut = button.dataset.categoryShortcut || "all";
+    const title = button.querySelector("strong")?.textContent?.trim() || button.textContent.trim();
+    const isSale = Boolean(button.closest('[data-catalog-view="sale"]'));
+    const preset = {
+      ...categoryPresetByKey(shortcut === "все" ? "sale" : shortcut),
+      key: shortcut === "все" && isSale ? "sale" : shortcut,
+      title: isSale && shortcut !== "все" ? `${title} со скидкой` : title,
+      saleOnly: isSale
+    };
+
+    closeFilters();
+    openCategoryPage(preset);
   }
 
   function updateNavState() {
@@ -1848,16 +2202,19 @@
     const isProfile = state.route === "profile";
     const isFavorites = state.route === "favorites";
     const isAdmin = state.route === "admin";
+    const isCategory = state.route === "category";
 
     els.marketplace.hidden = !isHome;
+    if (els.categoryPage) els.categoryPage.hidden = !isCategory;
     els.cartPage.hidden = !isCart;
     if (els.profilePage) els.profilePage.hidden = !isProfile;
     if (els.favoritesPage) els.favoritesPage.hidden = !isFavorites;
     if (els.adminPage) els.adminPage.hidden = !isAdmin;
     document.body.classList.toggle("cart-view", isCart);
-    document.body.classList.toggle("account-view", isProfile || isFavorites || isAdmin);
+    document.body.classList.toggle("account-view", isProfile || isFavorites || isAdmin || isCategory);
 
     renderCart();
+    renderCategoryPage();
     renderProfilePage();
     renderFavoritesPage();
     renderAdminPage();
@@ -1881,8 +2238,35 @@
       button.classList.toggle("is-active", button.dataset.catalogTab === tabName);
     });
 
+    els.catalogSwitches.forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.catalogSwitch === tabName);
+    });
+
     els.catalogViews.forEach((view) => {
       view.classList.toggle("is-active", view.dataset.catalogView === tabName);
+    });
+  }
+
+  function openCatalogCollection(tabName, options = {}) {
+    if (state.route !== "home") {
+      navigateTo("home");
+    }
+    state.filters.section = options.section || "Мебель";
+    state.filters.category = options.category || ALL_VALUE;
+    state.filters.group = options.group || "";
+    state.filters.saleOnly = Boolean(options.saleOnly);
+    state.filters.favoritesOnly = false;
+    els.saleOnly.checked = state.filters.saleOnly;
+    setCatalogTab(tabName);
+    renderProducts();
+    openFilters();
+  }
+
+  function openSofaCollections() {
+    openCatalogCollection("sofaCollections", {
+      section: "Мебель",
+      category: ALL_VALUE,
+      group: "sofas"
     });
   }
 
@@ -2102,6 +2486,66 @@
     renderProducts();
   }
 
+  function initLiveSearchPlaceholder() {
+    if (!els.searchInput || reduceMotion) return;
+
+    const phrases = [
+      "Искать диван Luna Cloud",
+      "Искать кровать с хранением",
+      "Искать кресло для гостиной",
+      "Искать шкаф в спальню",
+      "Искать услугу дизайна"
+    ];
+    let phraseIndex = 0;
+    let charIndex = 0;
+    let deleting = false;
+    let timer = 0;
+
+    const tick = () => {
+      if (document.activeElement === els.searchInput || els.searchInput.value) {
+        timer = window.setTimeout(tick, 900);
+        return;
+      }
+
+      const phrase = phrases[phraseIndex];
+      els.searchInput.placeholder = phrase.slice(0, charIndex);
+
+      if (!deleting && charIndex < phrase.length) {
+        charIndex += 1;
+        timer = window.setTimeout(tick, 58);
+        return;
+      }
+
+      if (!deleting && charIndex === phrase.length) {
+        deleting = true;
+        timer = window.setTimeout(tick, 1300);
+        return;
+      }
+
+      if (deleting && charIndex > 0) {
+        charIndex -= 1;
+        timer = window.setTimeout(tick, 34);
+        return;
+      }
+
+      deleting = false;
+      phraseIndex = (phraseIndex + 1) % phrases.length;
+      timer = window.setTimeout(tick, 320);
+    };
+
+    els.searchInput.addEventListener("focus", () => {
+      els.searchInput.placeholder = "";
+    });
+    els.searchInput.addEventListener("blur", () => {
+      if (!els.searchInput.value) {
+        window.clearTimeout(timer);
+        timer = window.setTimeout(tick, 240);
+      }
+    });
+
+    tick();
+  }
+
   function bindEvents() {
     els.heroPrev.addEventListener("click", () => {
       setActiveAd(activeAdIndex - 1);
@@ -2146,6 +2590,7 @@
       state.filters.query = security.sanitizeText(els.searchInput.value, 80);
       renderProducts();
     });
+    initLiveSearchPlaceholder();
 
     els.sortSelect.addEventListener("change", () => setSort(els.sortSelect.value));
     els.sortDropdownButton.addEventListener("click", (event) => {
@@ -2170,32 +2615,45 @@
       if (state.route !== "home") {
         navigateTo("home");
       }
+      setCatalogTab("sofaCollections");
       openFilters();
     });
     els.quickLinks.forEach((link) => {
       link.addEventListener("click", (event) => {
         event.preventDefault();
+        if (link.dataset.openCatalogTab) {
+          openCatalogCollection(link.dataset.openCatalogTab, {
+            section: link.dataset.section || "Мебель",
+            category: link.dataset.category || ALL_VALUE,
+            group: link.dataset.group || "",
+            saleOnly: link.dataset.sale === "true"
+          });
+          return;
+        }
+        if (link.dataset.openSofaCollections !== undefined) {
+          openSofaCollections();
+          return;
+        }
         applyQuickFilter(link);
       });
     });
     els.catalogTabs.forEach((button) => {
       button.addEventListener("click", () => setCatalogTab(button.dataset.catalogTab));
     });
+    els.catalogSwitches.forEach((button) => {
+      button.addEventListener("click", () => setCatalogTab(button.dataset.catalogSwitch));
+    });
+    document.querySelectorAll("[data-category-page]").forEach((button) => {
+      button.addEventListener("click", () => {
+        closeFilters();
+        openCategoryPage(CATEGORY_PAGE_PRESETS[button.dataset.categoryPage] || CATEGORY_PAGE_PRESETS.all);
+      });
+    });
     document.querySelectorAll("[data-close-filters]").forEach((button) => button.addEventListener("click", closeFilters));
     document.querySelectorAll("[data-category-shortcut]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const shortcut = button.dataset.categoryShortcut || ALL_VALUE;
-        state.route = "home";
-        state.filters.section = "Мебель";
-        state.filters.category = shortcut === "все" ? ALL_VALUE : shortcut;
-        state.filters.group = "";
-        state.filters.saleOnly = false;
-        state.filters.favoritesOnly = false;
-        els.saleOnly.checked = false;
-        render();
-        closeFilters();
-        window.history.pushState({ route: "home" }, "", "/");
-        document.getElementById("catalog").scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        openCategoryPageFromShortcut(button);
       });
     });
 

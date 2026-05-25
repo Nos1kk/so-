@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Soна - каталог товаров и услуг для дома: мебель, кухни, свет, декор и интерьерные решения.">
+    <meta name="description" content="Soна - каталог товаров и услуг для дома: мебель, диваны, свет, декор и интерьерные решения.">
     <title>Soна - товары и услуги для дома</title>
     <link rel="icon" type="image/png" href="assets/sona-logo.png">
     <link rel="apple-touch-icon" href="assets/sona-logo.png">
@@ -70,6 +70,46 @@
           z-index: 10020 !important;
         }
 
+        body .sona-support-head {
+          padding: 16px !important;
+          border-bottom: 1px solid rgba(216, 226, 238, 0.8) !important;
+        }
+
+        body .sona-support-messages {
+          padding: 16px !important;
+          background: linear-gradient(180deg, rgba(248, 251, 255, 0.72), #fff) !important;
+        }
+
+        body .sona-support-empty {
+          display: grid !important;
+          place-items: center !important;
+          min-height: 100% !important;
+          margin: 0 !important;
+          padding: 22px !important;
+          border: 1px dashed rgba(183, 221, 246, 0.9) !important;
+          border-radius: 20px !important;
+          background: rgba(255, 255, 255, 0.74) !important;
+          text-align: center !important;
+          line-height: 1.45 !important;
+        }
+
+        body .sona-support-form {
+          grid-template-columns: 1fr !important;
+          gap: 10px !important;
+          padding: 14px !important;
+        }
+
+        body .sona-support-form textarea {
+          width: 100% !important;
+          min-height: 82px !important;
+          resize: none !important;
+        }
+
+        body .sona-support-form button {
+          width: 100% !important;
+          min-height: 56px !important;
+        }
+
         body .sona-support-widget.is-open .sona-support-panel {
           display: grid !important;
           opacity: 1 !important;
@@ -81,18 +121,26 @@
           overflow: hidden !important;
         }
 
+        body.support-chat-open .support-chat-root {
+          inset: 0 !important;
+          width: auto !important;
+          height: auto !important;
+          transform: none !important;
+          z-index: 10010 !important;
+        }
+
         body.support-chat-open .sona-support-launcher {
           opacity: 0 !important;
           pointer-events: none !important;
         }
 
         body .site-footer.app-shell {
-          width: min(304px, calc(100vw - 72px)) !important;
-          max-width: calc(100vw - 72px) !important;
+          width: calc(100vw - 24px) !important;
+          max-width: calc(100vw - 24px) !important;
           margin-right: auto !important;
           margin-left: auto !important;
-          padding: 14px 10px calc(82px + env(safe-area-inset-bottom)) !important;
-          gap: 8px !important;
+          padding: 16px 12px calc(82px + env(safe-area-inset-bottom)) !important;
+          gap: 10px !important;
         }
 
         body .footer-contact-panel {
@@ -147,8 +195,8 @@
 
       @media (max-width: 374px) {
         body .site-footer.app-shell {
-          width: min(292px, calc(100vw - 60px)) !important;
-          max-width: calc(100vw - 60px) !important;
+          width: calc(100vw - 16px) !important;
+          max-width: calc(100vw - 16px) !important;
         }
 
         body .sona-support-panel {
@@ -165,7 +213,7 @@
   <body>
     <div class="top-promo">
       <span>SONA15 — скидка до 50 000 ₽ на товары для дома</span>
-      <span>Мебель, кухни, свет, декор и услуги в одном каталоге</span>
+      <span>Мебель, диваны, свет, декор и услуги в одном каталоге</span>
     </div>
 
     <header class="site-header">
@@ -181,8 +229,7 @@
         </button>
 
         <label class="search" for="searchInput">
-          <span class="search-scope">Каталог</span>
-          <input id="searchInput" type="search" autocomplete="off" placeholder="Искать диван, кровать, кухню, услугу">
+          <input id="searchInput" type="search" autocomplete="off" placeholder="Искать диван, кровать, кресло, услугу">
           <span class="search-icon" aria-hidden="true">⌕</span>
         </label>
 
@@ -231,16 +278,7 @@
       </div>
 
       <div class="app-shell quick-nav" aria-label="Разделы маркетплейса">
-        <a class="quick-link" href="#catalog" data-quick-filter data-section="Мебель">
-          <span class="quick-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M4 10.5h16M6 10.5v7M18 10.5v7M7.5 17.5h9"/>
-              <path d="M7 10.5V8.2A3.2 3.2 0 0 1 10.2 5h3.6A3.2 3.2 0 0 1 17 8.2v2.3"/>
-            </svg>
-          </span>
-          <span>Мебель</span>
-        </a>
-        <a class="quick-link" href="#catalog" data-quick-filter data-group="sofas" data-section="Мебель">
+        <a class="quick-link" href="#catalog" data-quick-filter data-open-sofa-collections data-group="sofas" data-section="Мебель">
           <span class="quick-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false">
               <path d="M5 18h14M7 18v-5a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v5"/>
@@ -265,14 +303,14 @@
           </span>
           <span>Шкафы</span>
         </a>
-        <a class="quick-link" href="#catalog" data-quick-filter data-section="Кухни">
+        <a class="quick-link" href="#catalog" data-quick-filter data-open-sofa-collections data-group="sofas" data-section="Мебель">
           <span class="quick-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M5 5h14v14H5zM9 5v14M15 5v14"/>
-              <path d="M7.5 12h3M13.5 12h3"/>
+              <path d="M5 18h14M7 18v-5a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v5"/>
+              <path d="M8 10V7.8A2.8 2.8 0 0 1 10.8 5h2.4A2.8 2.8 0 0 1 16 7.8V10"/>
             </svg>
           </span>
-          <span>Кухни</span>
+          <span>Коллекции</span>
         </a>
         <a class="quick-link" href="#catalog" data-quick-filter data-section="Мебель" data-category="кресло">
           <span class="quick-icon" aria-hidden="true">
@@ -310,10 +348,10 @@
         <div class="mobile-hero-copy">
           <span>SONA HOME</span>
           <h1>Интерьеры для спокойной жизни</h1>
-          <p>Мебель, кухни и сервис SONA в одном каталоге</p>
+          <p>Мебель, диваны и сервис SONA в одном каталоге</p>
           <div>
-            <a class="mobile-hero-primary" href="#catalog">Открыть каталог</a>
-            <a class="mobile-hero-secondary" href="#catalog" data-quick-filter data-section="Кухни">Кухни</a>
+            <a class="mobile-hero-primary" href="#catalog" data-quick-filter data-open-sofa-collections data-group="sofas" data-section="Мебель">Открыть каталог</a>
+            <a class="mobile-hero-secondary" href="#catalog" data-quick-filter data-open-sofa-collections data-group="sofas" data-section="Мебель">Диваны</a>
           </div>
         </div>
         <div class="hero-track" id="heroTrack"></div>
@@ -328,95 +366,55 @@
         </div>
       </section>
 
-      <section class="mobile-service-sale home-section" aria-label="Сервис и выгода SONA">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">сервис SONA</p>
-            <h2>Поможем выбрать и оформить</h2>
-          </div>
-        </div>
-        <div class="mobile-service-sale-grid">
-          <a class="mobile-feature-card is-service" href="#catalog" data-quick-filter data-section="Услуги">
-            <span class="mobile-feature-visual" aria-hidden="true">
-              <img src="assets/catalog/services.png" alt="" loading="lazy">
-            </span>
-            <span class="mobile-feature-label">Сервис</span>
-            <strong>Поддержка покупки</strong>
-            <small>Консультация, замер, дизайн-проект, доставка и сборка.</small>
-            <span class="mobile-feature-tags">
-              <i>Замер</i>
-              <i>Дизайн</i>
-              <i>Доставка</i>
-              <i>Сборка</i>
-            </span>
-          </a>
-          <a class="mobile-feature-card is-sale" href="#catalog" data-quick-filter data-sale="true">
-            <span class="mobile-feature-visual" aria-hidden="true">
-              <img src="assets/catalog/all.png" alt="" loading="lazy">
-            </span>
-            <span class="mobile-feature-label">До −45%</span>
-            <strong>Выгодные предложения</strong>
-            <small>Скидки на мебель, кухни и товары для дома.</small>
-            <b>Смотреть выгоду</b>
-          </a>
-        </div>
-      </section>
-
       <section class="home-section catalog-hub" aria-label="Категории и услуги SONA">
         <div class="section-head catalog-hub-head">
           <div>
             <p class="eyebrow">каталог SONA</p>
             <h2>Всё для дома в одном каталоге</h2>
-            <span>Мебель, кухни, сервисы и выгодные предложения собраны в одной витрине.</span>
+            <span>Мебель, диваны, сервисы и выгодные предложения собраны в одной витрине.</span>
           </div>
-          <a class="soft-button" href="#catalog">Открыть каталог</a>
+          <a class="soft-button" href="#catalog" data-quick-filter data-open-sofa-collections data-group="sofas" data-section="Мебель">Открыть каталог</a>
         </div>
         <div class="catalog-hub-grid">
-          <a class="catalog-hub-card catalog-hub-card--hero" href="#catalog" data-quick-filter data-section="Кухни">
+          <a class="catalog-hub-card catalog-hub-card--hero" href="#catalog" data-quick-filter data-open-sofa-collections data-group="sofas" data-section="Мебель">
             <span class="catalog-hub-photo catalog-hub-photo--hero" aria-hidden="true">
-              <img src="assets/catalog/kitchen.png" alt="" loading="lazy">
+              <img src="assets/catalog/sofa.png" alt="" loading="lazy">
             </span>
             <span class="catalog-hub-card__label">направление недели</span>
-            <strong>Кухни под размер</strong>
-            <small>Замер, проект, фасады и сборка в одной системе.</small>
-            <b>Перейти к кухням</b>
+            <strong>Диваны</strong>
+            <small>Компактные, просторные, акцентные и детские модели в одной подборке.</small>
+            <b>Перейти к диванам</b>
           </a>
-          <a class="catalog-hub-card" href="#catalog" data-quick-filter>
+          <a class="catalog-hub-card catalog-hub-card--sale" href="#catalog" data-quick-filter data-sale="true">
             <span class="catalog-hub-photo" aria-hidden="true">
               <img src="assets/catalog/all.png" alt="" loading="lazy">
             </span>
-            <strong>Все товары</strong>
-            <small>Весь каталог мебели и товаров для дома</small>
+            <span class="catalog-hub-card__label">до −45%</span>
+            <strong>Распродажа</strong>
+            <small>Акции на диваны, кровати, кресла и сервисные пакеты.</small>
           </a>
-          <a class="catalog-hub-card" href="#catalog" data-quick-filter data-group="sofas" data-section="Мебель">
-            <span class="catalog-hub-photo" aria-hidden="true">
-              <img src="assets/catalog/sofa.png" alt="" loading="lazy">
-            </span>
-            <strong>Диваны</strong>
-            <small>Прямые, угловые, модульные, диван-кровати</small>
-          </a>
-          <a class="catalog-hub-card" href="#catalog" data-quick-filter data-section="Мебель" data-category="кровать">
+          <a class="catalog-hub-card" href="#catalog" data-quick-filter data-open-catalog-tab="bedCollections" data-section="Мебель" data-category="кровать">
             <span class="catalog-hub-photo" aria-hidden="true">
               <img src="assets/catalog/bed.png" alt="" loading="lazy">
             </span>
             <strong>Кровати</strong>
             <small>Спальня, хранение, мягкие изголовья</small>
           </a>
-          <a class="catalog-hub-card" href="#catalog" data-quick-filter data-section="Мебель" data-category="шкаф">
+          <a class="catalog-hub-card" href="#catalog" data-quick-filter data-open-catalog-tab="wardrobeCollections" data-section="Мебель" data-category="шкаф">
             <span class="catalog-hub-photo" aria-hidden="true">
               <img src="assets/catalog/wardrobe.png" alt="" loading="lazy">
             </span>
             <strong>Шкафы</strong>
             <small>Купе, распашные, гардеробные</small>
           </a>
-          <a class="catalog-hub-card" href="#catalog" data-quick-filter data-section="Мебель" data-category="кресло">
+          <a class="catalog-hub-card" href="#catalog" data-quick-filter data-open-catalog-tab="chairCollections" data-section="Мебель" data-category="кресло">
             <span class="catalog-hub-photo" aria-hidden="true">
               <img src="assets/catalog/chair.png" alt="" loading="lazy">
             </span>
             <strong>Кресла</strong>
             <small>Лаунж, офис, обеденные группы</small>
           </a>
-          <a class="catalog-hub-card catalog-hub-card--service" href="#catalog" data-quick-filter data-section="Услуги">
+          <a class="catalog-hub-card catalog-hub-card--service" href="#catalog" data-quick-filter data-open-catalog-tab="serviceCollections" data-section="Услуги">
             <span class="catalog-hub-photo catalog-hub-photo--service" aria-hidden="true">
               <img src="assets/catalog/services.png" alt="" loading="lazy">
             </span>
@@ -430,62 +428,55 @@
               <i>Сборка</i>
             </span>
           </a>
-          <a class="catalog-hub-card catalog-hub-card--sale" href="#catalog" data-quick-filter data-sale="true">
-            <span class="catalog-hub-photo" aria-hidden="true">
-              <img src="assets/catalog/all.png" alt="" loading="lazy">
-            </span>
-            <span class="catalog-hub-card__label">до −45%</span>
-            <strong>Распродажа</strong>
-            <small>Акции на мебель, кухни, кресла, кровати и сервисные пакеты.</small>
-            <b>Смотреть выгоду</b>
-          </a>
         </div>
       </section>
+
+      <div class="section-divider" aria-hidden="true"></div>
 
       <section class="home-section promo-showcase" aria-label="Акции SONA">
         <div class="promo-editorial-copy">
           <p class="eyebrow">акции</p>
           <h2>Выгодные предложения недели</h2>
-          <span>Редакционная подборка товаров, кухонь и сервисных пакетов с заметной выгодой. Как мини-разворот каталога SONA: спокойно, наглядно и с акцентом на продукт.</span>
+          <span>Редакционная подборка товаров, диванов и сервисных пакетов с заметной выгодой. Как мини-разворот каталога SONA: спокойно, наглядно и с акцентом на продукт.</span>
           <a class="light-button" href="#catalog" data-quick-filter data-sale="true">Смотреть распродажу</a>
         </div>
         <div class="promo-lookbook" id="saleProductGrid" aria-label="Акционные предложения"></div>
       </section>
 
-      <section class="home-section hits-showcase" aria-label="Хиты SONA">
+      <div class="section-divider section-divider--soft" aria-hidden="true"></div>
+
+      <section class="home-section hits-showcase home-picks-showcase" aria-label="Хиты и рекомендации SONA">
         <div class="section-head hits-showcase-head">
           <div>
-            <p class="eyebrow">хиты продаж</p>
-            <h2>Хиты SONA</h2>
-            <span>Товары, которые чаще всего выбирают и сохраняют покупатели.</span>
+            <p class="eyebrow">подборки</p>
+            <h2>Хиты и готовые решения SONA</h2>
+            <span>Самые заметные товары и свежие решения собраны компактно в одном блоке.</span>
           </div>
         </div>
-        <div class="product-grid home-product-grid" id="popularProductGrid"></div>
-      </section>
-
-      <section class="home-section" aria-label="Новинки и рекомендации">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">рекомендации</p>
-            <h2>Новинки и готовые решения</h2>
-          </div>
+        <div class="home-picks-layout">
+          <section class="home-picks-group" aria-label="Хиты SONA">
+            <div class="home-picks-group-head">
+              <h3>Хиты SONA</h3>
+              <span>Чаще выбирают</span>
+            </div>
+            <div class="product-grid home-product-grid" id="popularProductGrid"></div>
+          </section>
+          <section class="home-picks-group" aria-label="Новинки и готовые решения">
+            <div class="home-picks-group-head">
+              <h3>Новинки</h3>
+              <span>Готовые решения</span>
+            </div>
+            <div class="product-grid home-product-grid" id="newProductGrid"></div>
+          </section>
         </div>
-        <div class="product-grid home-product-grid" id="newProductGrid"></div>
       </section>
 
-      <section class="home-section advantage-strip" aria-label="Преимущества SONA">
-        <article><strong>Единый каталог</strong><span>Мебель, кухни, текстиль, декор и услуги</span></article>
-        <article><strong>Прозрачные цены</strong><span>Скидки, старая цена и срок доставки в карточке</span></article>
-        <article><strong>Проектный подход</strong><span>Поможем собрать интерьер, а не просто товар</span></article>
-        <article><strong>Сервис рядом</strong><span>Поддержка, заказы и ответы хранятся на сервере</span></article>
-      </section>
-
-      <section class="catalog-section all-products-section" id="catalog" aria-label="Все товары">
+      <section class="catalog-section all-products-section" id="catalog" aria-label="Все товары" hidden>
         <div class="catalog-toolbar all-products-head">
           <div>
             <p class="eyebrow">каталог SONA</p>
             <h2 id="catalogTitle">Все товары</h2>
-            <span>Полный каталог мебели, кухонь, услуг и выгодных предложений.</span>
+            <span>Полный каталог мебели, диванов, услуг и выгодных предложений.</span>
           </div>
           <div class="mobile-catalog-actions">
             <button class="mobile-filter-open" type="button" data-open-mobile-filters>
@@ -574,27 +565,47 @@
 
         <div class="catalog-menu">
           <nav class="catalog-sidebar" aria-label="Разделы каталога">
-            <button class="catalog-tab is-active" type="button" data-catalog-tab="furniture">
+            <button class="catalog-tab is-active" type="button" data-catalog-tab="sofaCollections">
               <span class="catalog-tab-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
-                  <path d="M5 10.5h14v7H5z"/>
-                  <path d="M7 10.5V7.8c0-1.4 1-2.5 2.4-2.5h5.2c1.4 0 2.4 1.1 2.4 2.5v2.7M7.2 17.5v2M16.8 17.5v2"/>
+                  <path d="M5 18h14M7 18v-5a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v5"/>
+                  <path d="M8 10V7.8A2.8 2.8 0 0 1 10.8 5h2.4A2.8 2.8 0 0 1 16 7.8V10"/>
                 </svg>
               </span>
-              <span>Мебель</span>
+              <span>Диваны</span>
               <b>›</b>
             </button>
-            <button class="catalog-tab" type="button" data-catalog-tab="kitchens">
+            <button class="catalog-tab" type="button" data-catalog-tab="bedCollections">
               <span class="catalog-tab-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
-                  <path d="M4.5 5.5h15v13h-15z"/>
-                  <path d="M4.5 10h15M10 5.5v13M7 7.7h.1M13 7.7h3.6M13 12.6h3.6"/>
+                  <path d="M4.5 12.5h15v5h-15zM6 12.5V8.8A2.8 2.8 0 0 1 8.8 6h6.4A2.8 2.8 0 0 1 18 8.8v3.7"/>
+                  <path d="M6 17.5v2M18 17.5v2"/>
                 </svg>
               </span>
-              <span>Кухни</span>
+              <span>Кровати</span>
               <b>›</b>
             </button>
-            <button class="catalog-tab" type="button" data-catalog-tab="services">
+            <button class="catalog-tab" type="button" data-catalog-tab="chairCollections">
+              <span class="catalog-tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M7 19V8.5A3.5 3.5 0 0 1 10.5 5h3A3.5 3.5 0 0 1 17 8.5V19"/>
+                  <path d="M5 19h14M8.5 12h7"/>
+                </svg>
+              </span>
+              <span>Кресла</span>
+              <b>›</b>
+            </button>
+            <button class="catalog-tab" type="button" data-catalog-tab="wardrobeCollections">
+              <span class="catalog-tab-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M6 4.8h12v15H6zM12 4.8v15"/>
+                  <path d="M9.2 12h.1M14.7 12h.1"/>
+                </svg>
+              </span>
+              <span>Шкафы</span>
+              <b>›</b>
+            </button>
+            <button class="catalog-tab" type="button" data-catalog-tab="serviceCollections">
               <span class="catalog-tab-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
                   <path d="M12 3.8 14.1 9l5.2 2.1-5.2 2.1L12 18.4l-2.1-5.2-5.2-2.1L9.9 9z"/>
@@ -617,70 +628,144 @@
           </nav>
 
           <section class="catalog-content">
-            <div class="catalog-view is-active" data-catalog-view="furniture">
+            <div class="catalog-switcher" aria-label="Быстрое переключение каталога">
+              <button type="button" data-category-page="all">Все товары</button>
+              <button class="is-active" type="button" data-catalog-switch="sofaCollections">Диваны</button>
+              <button type="button" data-catalog-switch="bedCollections">Кровати</button>
+              <button type="button" data-catalog-switch="chairCollections">Кресла</button>
+              <button type="button" data-catalog-switch="wardrobeCollections">Шкафы</button>
+              <button type="button" data-catalog-switch="serviceCollections">Услуги</button>
+              <button type="button" data-catalog-switch="sale">Распродажа</button>
+            </div>
+            <div class="catalog-view is-active" data-catalog-view="sofaCollections">
               <div class="catalog-title-row">
-                <h3>Мебель</h3>
-                <span>Категории для дома, офиса и отдыха</span>
+                <h3>Диваны по коллекции</h3>
+                <span>Выберите сценарий комнаты: от компактной студии до выразительной гостиной.</span>
               </div>
-              <div class="catalog-columns">
-                <div>
-                  <h4>По помещениям</h4>
-                  <a href="#catalog">Спальня</a>
-                  <a href="#catalog">Гостиная</a>
-                  <a href="#catalog">Кухня</a>
-                  <a href="#catalog">Прихожая</a>
-                  <a href="#catalog">Детская</a>
-                  <a href="#catalog">Садовая мебель</a>
-                  <a href="#catalog">Офисная мебель</a>
-                </div>
-                <div>
-                  <h4>Диваны и кресла</h4>
-                  <button type="button" data-category-shortcut="все">Все диваны</button>
-                  <button type="button" data-category-shortcut="прямой">Прямые</button>
-                  <button type="button" data-category-shortcut="угловой">Угловые</button>
-                  <button type="button" data-category-shortcut="модульный">Модульные</button>
-                  <button type="button" data-category-shortcut="диван-кровать">Диван-кровати</button>
-                  <a href="#catalog">Кресла</a>
-                  <a href="#catalog">Пуфы</a>
-                </div>
-                <div>
-                  <h4>Хранение и столы</h4>
-                  <a href="#catalog">Шкафы и стеллажи</a>
-                  <a href="#catalog">Комоды и тумбы</a>
-                  <a href="#catalog">Столы и стулья</a>
-                  <a href="#catalog">Гардеробные</a>
-                  <a href="#catalog">Компьютерная мебель</a>
-                </div>
+              <div class="sofa-collection-grid">
+                <button class="sofa-collection-card" type="button" data-category-shortcut="диван-кровать">
+                  <span class="sofa-collection-photo" aria-label="Место для фотографии компактного дивана"></span>
+                  <strong>Компактные модели</strong>
+                  <b>Для небольших пространств</b>
+                  <small>Идеальное решение для студий, спален и уютных гостиных без лишней громоздкости.</small>
+                </button>
+                <button class="sofa-collection-card" type="button" data-category-shortcut="угловой">
+                  <span class="sofa-collection-photo" aria-label="Место для фотографии просторного дивана"></span>
+                  <strong>Просторные диваны</strong>
+                  <b>Для семьи и гостей</b>
+                  <small>Больше места для отдыха, общения и комфортных вечеров дома.</small>
+                </button>
+                <button class="sofa-collection-card" type="button" data-category-shortcut="модульный">
+                  <span class="sofa-collection-photo" aria-label="Место для фотографии акцентного дивана"></span>
+                  <strong>Акцентные модели</strong>
+                  <b>Для выразительного интерьера</b>
+                  <small>Диваны, которые становятся главным визуальным элементом комнаты.</small>
+                </button>
+                <button class="sofa-collection-card" type="button" data-category-shortcut="прямой">
+                  <span class="sofa-collection-photo" aria-label="Место для фотографии детского дивана"></span>
+                  <strong>Детская серия</strong>
+                  <b>Для сна, игр и роста</b>
+                  <small>Мягкие, безопасные и практичные модели для детской комнаты.</small>
+                </button>
               </div>
             </div>
 
-            <div class="catalog-view" data-catalog-view="kitchens">
+            <div class="catalog-view" data-catalog-view="bedCollections">
               <div class="catalog-title-row">
-                <h3>Кухни</h3>
-                <span>Гарнитуры, острова, хранение и проектирование</span>
+                <h3>Кровати по задачам</h3>
+                <span>Подборки для сна, хранения, детской комнаты и спокойной спальни.</span>
               </div>
-              <div class="catalog-columns">
-                <div>
-                  <h4>Готовые решения</h4>
-                  <a href="#catalog">Кухонные гарнитуры</a>
-                  <a href="#catalog">Модульные кухни</a>
-                  <a href="#catalog">Угловые кухни</a>
-                  <a href="#catalog">Кухни для студий</a>
-                </div>
-                <div>
-                  <h4>Элементы</h4>
-                  <a href="#catalog">Фасады</a>
-                  <a href="#catalog">Столешницы</a>
-                  <a href="#catalog">Фурнитура</a>
-                  <a href="#catalog">Барные стойки</a>
-                </div>
-                <div>
-                  <h4>Проектирование</h4>
-                  <a href="#catalog">Замер помещения</a>
-                  <a href="#catalog">3D-проект кухни</a>
-                  <a href="#catalog">Сборка и монтаж</a>
-                  <a href="#catalog">Подбор техники</a>
-                </div>
+              <div class="sofa-collection-grid catalog-collection-grid">
+                <button class="sofa-collection-card catalog-collection-card is-bed" type="button" data-category-shortcut="кровать">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии кровати с хранением"></span>
+                  <strong>С хранением</strong>
+                  <b>Для порядка в спальне</b>
+                  <small>Модели с подъемным основанием и вместительными коробами для текстиля.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-bed" type="button" data-category-shortcut="кровать">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии мягкой кровати"></span>
+                  <strong>Мягкие кровати</strong>
+                  <b>Для уютного отдыха</b>
+                  <small>Обивка, высокие изголовья и спокойная посадка для расслабленной спальни.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-bed" type="button" data-category-shortcut="кровать">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии детской кровати"></span>
+                  <strong>Детские модели</strong>
+                  <b>Для роста и безопасности</b>
+                  <small>Практичные решения для сна, игр и хранения вещей в детской комнате.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-bed" type="button" data-category-shortcut="кровать">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии минималистичной кровати"></span>
+                  <strong>Минимализм</strong>
+                  <b>Для чистого интерьера</b>
+                  <small>Лаконичные формы, спокойные ткани и визуальная легкость без лишних деталей.</small>
+                </button>
+              </div>
+            </div>
+
+            <div class="catalog-view" data-catalog-view="chairCollections">
+              <div class="catalog-title-row">
+                <h3>Кресла по настроению</h3>
+                <span>От мягкого лаунжа до рабочих и акцентных моделей для комнаты.</span>
+              </div>
+              <div class="sofa-collection-grid catalog-collection-grid">
+                <button class="sofa-collection-card catalog-collection-card is-chair" type="button" data-category-shortcut="кресло">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии лаунж-кресла"></span>
+                  <strong>Лаунж</strong>
+                  <b>Для чтения и отдыха</b>
+                  <small>Глубокая посадка, мягкая поддержка и спокойные ткани для личного уголка.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-chair" type="button" data-category-shortcut="кресло">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии акцентного кресла"></span>
+                  <strong>Акцентные кресла</strong>
+                  <b>Для выразительной точки</b>
+                  <small>Форма, цвет и фактура, которые делают интерьер собранным и заметным.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-chair" type="button" data-category-shortcut="кресло">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии рабочего кресла"></span>
+                  <strong>Для работы</strong>
+                  <b>Для кабинета и офиса</b>
+                  <small>Удобные модели для длительной посадки, звонков и домашнего рабочего места.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-chair" type="button" data-category-shortcut="кресло">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии компактного кресла"></span>
+                  <strong>Компактные</strong>
+                  <b>Для небольших комнат</b>
+                  <small>Небольшой размер, легкая визуальная форма и удобство без перегруза.</small>
+                </button>
+              </div>
+            </div>
+
+            <div class="catalog-view" data-catalog-view="wardrobeCollections">
+              <div class="catalog-title-row">
+                <h3>Шкафы по хранению</h3>
+                <span>От компактного купе до гардеробных систем и модулей для прихожей.</span>
+              </div>
+              <div class="sofa-collection-grid catalog-collection-grid">
+                <button class="sofa-collection-card catalog-collection-card is-wardrobe" type="button" data-category-shortcut="шкаф">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии шкафа-купе"></span>
+                  <strong>Шкафы-купе</strong>
+                  <b>Для экономии места</b>
+                  <small>Раздвижные двери, зеркала и аккуратное хранение для спальни или прихожей.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-wardrobe" type="button" data-category-shortcut="шкаф">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии распашного шкафа"></span>
+                  <strong>Распашные</strong>
+                  <b>Для классического хранения</b>
+                  <small>Понятная конструкция, удобный доступ и спокойные фасады под интерьер.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-wardrobe" type="button" data-category-shortcut="шкаф">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии гардеробной"></span>
+                  <strong>Гардеробные</strong>
+                  <b>Для большой системы</b>
+                  <small>Полки, штанги, ящики и модули, которые можно собрать под привычки семьи.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-wardrobe" type="button" data-category-shortcut="шкаф">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для фотографии шкафа в прихожую"></span>
+                  <strong>Для прихожей</strong>
+                  <b>Для верхней одежды</b>
+                  <small>Компактные решения для обуви, сезонных вещей и быстрого ежедневного доступа.</small>
+                </button>
               </div>
             </div>
 
@@ -709,10 +794,43 @@
               </div>
             </div>
 
+            <div class="catalog-view" data-catalog-view="serviceCollections">
+              <div class="catalog-title-row">
+                <h3>Услуги по задачам</h3>
+                <span>Соберите поддержку вокруг проекта: от идеи до визуала и запуска.</span>
+              </div>
+              <div class="sofa-collection-grid catalog-collection-grid">
+                <button class="sofa-collection-card catalog-collection-card is-service-task" type="button" data-category-shortcut="услуга">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для изображения услуги разработки"></span>
+                  <strong>Разработка</strong>
+                  <b>Для запуска продаж</b>
+                  <small>Сайты, витрины, личные кабинеты и интеграции, которые работают как система.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-service-task" type="button" data-category-shortcut="услуга">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для изображения услуги дизайна"></span>
+                  <strong>Дизайн</strong>
+                  <b>Для сильной упаковки</b>
+                  <small>Интерфейсы, карточки, баннеры, презентации и визуальный язык бренда.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-service-task" type="button" data-category-shortcut="услуга">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для изображения услуги видеомоушена"></span>
+                  <strong>Видеомоушен</strong>
+                  <b>Для рекламы и контента</b>
+                  <small>Ролики, анимации, промо-видео и движение для цифровых площадок.</small>
+                </button>
+                <button class="sofa-collection-card catalog-collection-card is-service-task" type="button" data-category-shortcut="услуга">
+                  <span class="sofa-collection-photo catalog-collection-photo" aria-label="Место для изображения услуги 3D"></span>
+                  <strong>3D и продакшн</strong>
+                  <b>Для презентации продукта</b>
+                  <small>Визуализации, сцены, модели и сопровождение сложных креативных задач.</small>
+                </button>
+              </div>
+            </div>
+
             <div class="catalog-view" data-catalog-view="sale">
               <div class="catalog-title-row">
                 <h3>Распродажа</h3>
-                <span>Скидки на мебель, кухни и услуги Soна</span>
+                <span>Скидки на мебель, диваны и услуги Soна</span>
               </div>
               <div class="catalog-columns">
                 <div>
@@ -722,16 +840,16 @@
                   <button type="button" data-category-shortcut="угловой">Угловые диваны</button>
                 </div>
                 <div>
-                  <h4>Кухни</h4>
-                  <a href="#catalog">Витринные образцы</a>
-                  <a href="#catalog">Гарнитуры со скидкой</a>
-                  <a href="#catalog">Бесплатный замер</a>
+                  <h4>Диваны</h4>
+                  <a href="#catalog" data-category-shortcut="диван-кровать">Компактные модели</a>
+                  <a href="#catalog" data-category-shortcut="угловой">Просторные модели</a>
+                  <a href="#catalog" data-category-shortcut="модульный">Акцентные модели</a>
                 </div>
                 <div>
                   <h4>Услуги</h4>
-                  <a href="#catalog">Стартовый сайт</a>
-                  <a href="#catalog">Пакет дизайна</a>
-                  <a href="#catalog">3D-визуализация</a>
+                  <a href="#catalog" data-category-shortcut="услуга">Стартовый сайт</a>
+                  <a href="#catalog" data-category-shortcut="услуга">Пакет дизайна</a>
+                  <a href="#catalog" data-category-shortcut="услуга">3D-визуализация</a>
                 </div>
               </div>
             </div>
@@ -739,6 +857,10 @@
         </div>
       </div>
     </aside>
+
+    <section class="category-page app-shell" id="categoryPage" aria-label="Товары категории" hidden>
+      <div id="categoryPageContent"></div>
+    </section>
 
     <section class="cart-page app-shell" id="cartPage" aria-label="Корзина" hidden>
       <div class="cart-page-head">
@@ -768,6 +890,7 @@
           <p class="secure-note">Оформление демонстрационное: платежные данные не запрашиваются.</p>
         </aside>
       </div>
+      <section class="cart-recommendations" id="cartRecommendations" aria-label="Хиты SONA для корзины"></section>
     </section>
 
     <section class="account-page app-shell" id="profilePage" aria-label="Профиль Soна" hidden>
@@ -789,13 +912,13 @@
           <span>Soна</span>
         </a>
         <h2>Интерьеры, в которые хочется возвращаться</h2>
-        <p>SONA собирает мебель, кухни, товары для дома и сервис в спокойную премиальную систему для жизни.</p>
+        <p>SONA собирает мебель, диваны, товары для дома и сервис в спокойную премиальную систему для жизни.</p>
       </section>
       <section class="footer-nav-panel" aria-label="Навигация SONA">
         <div>
           <span>Каталог</span>
           <a href="#catalog">Все товары</a>
-          <a href="#catalog" data-quick-filter data-section="Кухни">Кухни</a>
+          <a href="#catalog" data-quick-filter data-open-sofa-collections data-group="sofas" data-section="Мебель">Диваны</a>
           <a href="#catalog" data-quick-filter data-sale="true">Распродажа</a>
         </div>
         <div>
@@ -941,6 +1064,7 @@
     <script src="admin/products/ProductsPage.js" defer></script>
     <script src="admin/Admin.js" defer></script>
     <script src="profile/Profile.js" defer></script>
+    <script src="js/optimization.js" defer></script>
     <script src="js/app.js" defer></script>
     <script src="mobile/mobile.js" defer></script>
   </body>
