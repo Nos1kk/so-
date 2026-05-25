@@ -166,18 +166,29 @@
 
     const wasOpen = Boolean(container.querySelector(".sona-support-widget.is-open"));
     const data = window.SonaStore.read();
-    const canAttach = isProfileActive(data);
+    const canUseChat = isProfileActive(data);
     const root = el("div", "sona-support-widget");
     const launcher = el("button", "sona-support-launcher");
     const panel = el("section", "sona-support-panel");
-    const head = el("div", "sona-support-head");
+    const head = el("div", "", "");
+    const headWrap = el("div", "sona-support-head");
     const close = el("button", "sona-support-close", "×");
-    const form = el("form", "sona-support-form");
+    const form = el("form", `sona-support-form${canUseChat ? "" : " is-login-required"}`);
     const input = el("textarea");
     const fileInput = document.createElement("input");
-    const attach = el("button", `sona-support-attach${canAttach ? "" : " is-login-required"}`, canAttach ? "Файл" : "Войдите в аккаунт");
-    const notice = el("p", "sona-support-form-note", canAttach ? "Можно прикрепить до 3 файлов или фото." : "Войдите в аккаунт, чтобы отправлять файлы и фотографии.");
-    const send = el("button", "", "Отправить");
+    const attach = el("button", `sona-support-attach${canUseChat ? "" : " is-login-required"}`);
+    const notice = el("p", "sona-support-form-note", canUseChat ? "Можно прикрепить до 3 файлов или фото." : "Войдите в аккаунт, чтобы писать в поддержку.");
+    const send = el("button", "sona-support-send", canUseChat ? "Отправить" : "Войти");
+
+    const openProfile = () => document.getElementById("profileButton")?.click();
+    const renderAttachIcon = (count = 0) => {
+      attach.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.7 12.6l5.8-5.8a3 3 0 114.2 4.2l-7.2 7.2a5 5 0 01-7.1-7.1l7.6-7.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sona-support-attach-count"></span>';
+      const badge = attach.querySelector(".sona-support-attach-count");
+      if (badge) {
+        badge.textContent = String(Math.min(count, 3));
+        badge.hidden = !count;
+      }
+    };
 
     function setOpen(open) {
       root.classList.toggle("is-open", open);
@@ -186,7 +197,7 @@
       panel.setAttribute("aria-hidden", String(!open));
       panel.style.display = open ? "grid" : "";
       launcher.setAttribute("aria-expanded", String(open));
-      if (open) {
+      if (open && canUseChat) {
         window.requestAnimationFrame(() => input.focus({ preventScroll: true }));
       }
     }
@@ -211,42 +222,56 @@
     panel.setAttribute("aria-modal", "true");
     panel.setAttribute("aria-hidden", "true");
 
-    head.append(el("div", "", ""), close);
-    head.firstChild.append(
+    headWrap.append(head, close);
+    head.append(
       el("strong", "", "Чат поддержки"),
-      el("span", "", "Ответ появится в этом окне")
+      el("span", "", canUseChat ? "Ответ появится в этом окне" : "Войдите, чтобы начать диалог")
     );
 
-    input.placeholder = "Опишите вопрос по заказу, доставке или товару";
+    input.placeholder = canUseChat ? "Опишите вопрос по заказу, доставке или товару" : "Войдите в аккаунт, чтобы написать";
+    input.readOnly = !canUseChat;
+    if (!canUseChat) {
+      input.classList.add("is-login-required");
+      input.addEventListener("focus", openProfile);
+      input.addEventListener("click", openProfile);
+    }
+
     fileInput.type = "file";
     fileInput.accept = "image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,.doc,.docx,.xls,.xlsx";
     fileInput.multiple = true;
     fileInput.hidden = true;
     attach.type = "button";
-    attach.setAttribute("aria-label", canAttach ? "Прикрепить файл или фотографию" : "Войдите в аккаунт, чтобы прикрепить файл");
+    attach.setAttribute("aria-label", canUseChat ? "Прикрепить файл или фотографию" : "Войдите в аккаунт");
+    renderAttachIcon();
     attach.addEventListener("click", () => {
-      if (canAttach) {
-        fileInput.click();
+      if (!canUseChat) {
+        openProfile();
         return;
       }
-      document.getElementById("profileButton")?.click();
+      fileInput.click();
     });
     fileInput.addEventListener("change", () => {
-      const count = fileInput.files?.length || 0;
-      attach.textContent = count ? `Файлы: ${Math.min(count, 3)}` : "Файл";
+      renderAttachIcon(fileInput.files?.length || 0);
     });
+
     send.type = "submit";
     form.append(input, fileInput, attach, send, notice);
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const attachments = canAttach ? await prepareAttachments(fileInput.files) : [];
+      if (!canUseChat) {
+        openProfile();
+        return;
+      }
+
+      const attachments = await prepareAttachments(fileInput.files);
       if (!addMessage(input.value, "widget", attachments)) {
         input.focus();
         return;
       }
+
       input.value = "";
       fileInput.value = "";
-      attach.textContent = canAttach ? "Файл" : "Войдите в аккаунт";
+      renderAttachIcon();
       const currentList = panel.querySelector(".sona-support-messages");
       const nextList = renderMessages(window.SonaStore.read().supportMessages);
       currentList?.replaceWith(nextList);
@@ -260,7 +285,7 @@
       options.onChange?.();
     });
 
-    panel.append(head, renderMessages(data.supportMessages), form);
+    panel.append(headWrap, renderMessages(data.supportMessages), form);
     root.append(launcher, panel);
     container.replaceChildren(root);
     setOpen(wasOpen);

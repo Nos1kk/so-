@@ -7232,3 +7232,76 @@
     font-size: 10.5px !important;
   }
 }
+
+@media (max-width: 760px) {
+  .search-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0 !important;
+    line-height: 1 !important;
+  }
+
+  .hero-arrow {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0 !important;
+    line-height: 1 !important;
+  }
+
+  .support-chat-root {
+    right: 10px !important;
+    top: auto !important;
+    bottom: calc(82px + env(safe-area-inset-bottom)) !important;
+    transform: none !important;
+  }
+
+  .sona-support-launcher {
+    min-width: 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+  }
+
+  .sona-support-launcher strong {
+    display: none !important;
+  }
+
+  .sona-support-form {
+    grid-template-columns: minmax(0, 1fr) 46px !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+
+  .sona-support-form textarea {
+    min-height: 54px !important;
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .sona-support-attach {
+    width: 46px !important;
+    min-width: 46px !important;
+    min-height: 54px !important;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    padding: 0 !important;
+  }
+
+  .sona-support-send {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-height: 48px !important;
+    border-radius: 18px !important;
+  }
+
+  .sona-support-form-note {
+    grid-column: 1 / -1 !important;
+    margin: 0 !important;
+    font-size: 12px !important;
+  }
+}
