@@ -4,6 +4,50 @@
   const security = window.SonaSecurity;
   const store = window.SonaStore;
   const ALL_VALUE = "все";
+  const REMOVED_PRODUCT_IDS = new Set(["breeze-mini", "compact-nova-sofa"]);
+  const PERMANENT_SOFA_PRODUCTS = [
+    { id: "sona-numo", name: "Нумо", category: "прямой", dimensions: "2200 × 1000 × 960", price: 0 },
+    { id: "sona-paula", name: "Паула", category: "диван-кровать", dimensions: "2300 × 950 × 1000", sleepingPlace: "1950 × 1400", mechanism: "Книжка", oldPrice: 47500, price: 37900, discountPercent: 20, benefit: 9600 },
+    { id: "sona-montana", name: "Монтана", category: "диван-кровать", dimensions: "2100 × 1100 × 1000", sleepingPlace: "1600 × 2000", mechanism: "Высоковыкатной", oldPrice: 95000, price: 76000, discountPercent: 20, benefit: 19000 },
+    { id: "sona-alaska", name: "Аляска", category: "диван-кровать", dimensions: "2250 × 1100 × 920", sleepingPlace: "2100 × 1600", mechanism: "Высоковыкатной", oldPrice: 90000, price: 72000, discountPercent: 20, benefit: 18000 },
+    { id: "sona-infinity", name: "Инфинити", category: "модульный", dimensions: "4000 × 1210 × 1800", sleepingPlace: "1400 × 3500", mechanism: "Пума / Еврокнижка", price: 167200, priceMode: "from" },
+    { id: "sona-valencia", name: "Валенсия", category: "диван-кровать", dimensions: "2200 × 1100 × 1000", sleepingPlace: "1600 × 2000", mechanism: "Еврокнижка / Тик-так", oldPrice: 80000, price: 59900, discountPercent: 25, benefit: 20000 },
+    { id: "sona-malta-k", name: "Мальта К", category: "диван-кровать", dimensions: "1670 × 1100 × 1000", sleepingPlace: "1630 × 2080", mechanism: "Аккордеон", oldPrice: 95000, price: 66500, discountPercent: 30, benefit: 23500 },
+    { id: "sona-malta-2", name: "Мальта 2", category: "диван-кровать", dimensions: "1740 × 1100 × 1000", sleepingPlace: "1500 × 2080", mechanism: "Аккордеон", oldPrice: 83500, price: 66800, discountPercent: 20, benefit: 16700 },
+    { id: "sona-alaska-md", name: "Аляска Мд", category: "угловой", dimensions: "3630 × 1840 × 1950", sleepingPlace: "1720 × 2050", mechanism: "Высоковыкатной", price: 141900, priceMode: "from" },
+    { id: "sona-seattle-m", name: "Сиэтл М", category: "угловой", dimensions: "2530 × 1590 × 930", sleepingPlace: "2000 × 1450", mechanism: "Дельфин", oldPrice: 95000, price: 79900, discountPercent: 15, benefit: 15000 },
+    { id: "sona-nice", name: "Ницца", category: "угловой", dimensions: "2800 × 1800 × 940", sleepingPlace: "2410 × 1600", mechanism: "Дельфин", oldPrice: 112000, price: 89600, discountPercent: 20, benefit: 22400 },
+    { id: "sona-boston", name: "Бостон", category: "угловой", dimensions: "3050 × 1750 × 950", sleepingPlace: "1500 × 2500", mechanism: "Тик-так", oldPrice: 115000, price: 97750, discountPercent: 15, benefit: 17250 },
+    { id: "sona-mark-large", name: "Марк", category: "угловой", dimensions: "3400 × 1500 × 990", sleepingPlace: "1450 × 3000", oldPrice: 92000, price: 59800, discountPercent: 35, benefit: 32200 },
+    { id: "sona-victoria", name: "Виктория", category: "угловой", dimensions: "2700 × 1700 × 1000", sleepingPlace: "1500 × 2080", oldPrice: 98000, price: 78400, discountPercent: 20, benefit: 19600 },
+    { id: "sona-rhine", name: "Рейн", category: "диван-кровать", dimensions: "2030 × 1000 × 920", sleepingPlace: "2030 × 1350", price: 65344, priceMode: "from" },
+    { id: "sona-thomas", name: "Томас", category: "угловой", dimensions: "2300 × 1600 × 950", sleepingPlace: "1450 × 2000", oldPrice: 62200, price: 49800, discountPercent: 20, benefit: 12600 },
+    { id: "sona-naples-md", name: "Неаполь Мд", category: "диван-кровать", dimensions: "2500 × 1180 × 860", sleepingPlace: "1600 × 2000", price: 78650, priceMode: "from" },
+    { id: "sona-kansas-8-md", name: "Канзас 8 Мд", category: "угловой", dimensions: "3980 × 1700 × 1000", sleepingPlace: "1500 × 2000", price: 138700, priceMode: "from" },
+    { id: "sona-dublin", name: "Дублин", category: "прямой", oldPrice: 112000, price: 89600, discountPercent: 20, benefit: 22400 },
+    { id: "sona-mark-compact", name: "Марк", category: "диван-кровать", dimensions: "2430 × 1050 × 1000", sleepingPlace: "1450 × 2000", oldPrice: 60000, price: 41900, discountPercent: 30, benefit: 18000 },
+    { id: "sona-hudson", name: "Гудзон", category: "угловой", dimensions: "3100 × 2280 × 1000", sleepingPlace: "1600 × 2000", oldPrice: 180000, price: 144000, discountPercent: 20, benefit: 36000 },
+    { id: "sona-charlie", name: "Чарли", category: "прямой", dimensions: "1850 × 790 × 800", price: 45600, priceMode: "from" },
+    { id: "sona-milan", name: "Милан", category: "диван-кровать", dimensions: "2700 × 1350 × 1000", sleepingPlace: "2100 × 1650", price: 127000, priceMode: "from" }
+  ].map((product) => ({
+    brand: "SONA",
+    marketSection: "Мебель",
+    size: product.category === "угловой" || product.category === "модульный" ? "XL" : "M",
+    rating: 0,
+    reviews: 0,
+    deliveryDays: 14,
+    image: "",
+    materials: [],
+    colors: [],
+    variants: [],
+    tags: product.oldPrice ? ["скидка"] : [],
+    specs: [
+      product.dimensions ? `Габаритные размеры: ${product.dimensions}` : "",
+      product.sleepingPlace ? `Спальное место: ${product.sleepingPlace}` : "",
+      product.mechanism ? `Механизм: ${product.mechanism}` : ""
+    ].filter(Boolean),
+    ...product
+  }));
 
   const state = {
     route: "home",
@@ -22,10 +66,14 @@
       query: "",
       sort: "popular"
     },
-    categoryPage: null
+    categoryPage: null,
+    activeQuickKey: "",
+    activeProductId: "",
+    productReturnPath: ""
   };
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const mobileViewport = window.matchMedia("(max-width: 760px)");
   const SORT_LABELS = {
     popular: "по популярности",
     priceAsc: "сначала дешевле",
@@ -73,16 +121,6 @@
       group: "",
       saleOnly: false
     },
-    wardrobes: {
-      key: "wardrobes",
-      title: "Шкафы SONA",
-      eyebrow: "шкафы",
-      text: "Системы хранения для спальни, прихожей и гардеробной.",
-      section: "Мебель",
-      category: "шкаф",
-      group: "",
-      saleOnly: false
-    },
     services: {
       key: "services",
       title: "Услуги SONA",
@@ -118,14 +156,18 @@
     chairs: [
       { key: "chairs", label: "Все кресла", title: "Кресла SONA", category: "кресло", group: "", text: "Лаунж, рабочие и акцентные кресла для разных комнат." }
     ],
-    wardrobes: [
-      { key: "wardrobes", label: "Все шкафы", title: "Шкафы SONA", category: "шкаф", group: "", text: "Системы хранения для спальни, прихожей и гардеробной." }
-    ],
     services: [
-      { key: "services", label: "Все услуги", title: "Услуги SONA", section: "Услуги", category: ALL_VALUE, group: "", text: "Дизайн, разработка, визуал и запуск проекта." }
+      { key: "development", label: "Разработка", title: "Разработка", section: "Услуги", category: ALL_VALUE, group: "", query: "разработка", text: "Сайты, магазины, кабинеты и цифровые продукты." },
+      { key: "design", label: "Дизайн", title: "Дизайн", section: "Услуги", category: ALL_VALUE, group: "", query: "дизайн", text: "Интерфейсы, брендинг и визуальные системы." },
+      { key: "motion", label: "Видеомоушен", title: "Видеомоушен", section: "Услуги", category: ALL_VALUE, group: "", query: "видеомоушен", text: "Анимация, ролики и движение для брендов." },
+      { key: "production", label: "Продакшен", title: "Продакшен", section: "Услуги", category: ALL_VALUE, group: "", query: "продакшен", text: "Комплексное производство и сопровождение контента." }
     ],
     sale: [
-      { key: "sale", label: "Все скидки", title: "Распродажа SONA", section: ALL_VALUE, category: ALL_VALUE, group: "", saleOnly: true, text: "Товары и услуги со скидками в одной подборке." }
+      { key: "sale", label: "Все скидки", title: "Распродажа SONA", section: ALL_VALUE, category: ALL_VALUE, group: "", saleOnly: true, text: "Товары и услуги со скидками в одной подборке." },
+      { key: "sale-sofas", label: "Диваны", title: "Диваны со скидкой", section: "Мебель", category: ALL_VALUE, group: "sofas", saleOnly: true, text: "Все диваны с актуальной сниженной ценой." },
+      { key: "sale-beds", label: "Кровати", title: "Кровати со скидкой", section: "Мебель", category: "кровать", group: "", saleOnly: true, text: "Кровати для спальни по специальной цене." },
+      { key: "sale-chairs", label: "Кресла", title: "Кресла со скидкой", section: "Мебель", category: "кресло", group: "", saleOnly: true, text: "Акцентные и комфортные кресла со скидкой." },
+      { key: "sale-services", label: "Услуги", title: "Услуги со скидкой", section: "Услуги", category: ALL_VALUE, group: "", saleOnly: true, text: "Дизайн, разработка и продакшен по специальной цене." }
     ],
     all: [
       { key: "all", label: "Все товары", title: "Все товары SONA", section: ALL_VALUE, category: ALL_VALUE, group: "", text: "Вся витрина товаров и услуг в одном списке." }
@@ -163,6 +205,13 @@
       mobileFocal: "67% center"
     }
   ];
+  const SOURCE_PRODUCT_IMAGES = {
+    sofa: "assets/source/диван в категории-no-bg-preview (carve.photos).png",
+    chair: "assets/source/кресло в категории-no-bg-preview (carve.photos).png",
+    bed: "assets/source/кровать в категории-no-bg-preview (carve.photos).png",
+    service: "assets/source/услуги в категории -edited-free (carve.photos).png",
+    all: "assets/source/вся категория -no-bg-preview (carve.photos).png"
+  };
   let revealObserver;
   let particlesStarted = false;
   let activeAdIndex = 0;
@@ -188,6 +237,7 @@
     fastDeliveryOnly: document.getElementById("fastDeliveryOnly"),
     saleOnly: document.getElementById("saleOnly"),
     searchInput: document.getElementById("searchInput"),
+    searchResults: document.getElementById("searchResults"),
     sortSelect: document.getElementById("sortSelect"),
     sortControl: document.getElementById("sortControl"),
     sortDropdownButton: document.getElementById("sortDropdownButton"),
@@ -257,8 +307,18 @@
     return formatter.format(value);
   }
 
+  function productPriceLabel(product) {
+    if (!Number(product?.price)) return "Цена по запросу";
+    return product.priceMode === "from" ? `от ${money(product.price)}` : money(product.price);
+  }
+
   function displayText(value) {
     return window.SonaText?.fix(value) || String(value ?? "");
+  }
+
+  function authPhoneDigits(value) {
+    const digits = String(value || "").replace(/\D/g, "");
+    return digits.length === 11 && digits.startsWith("8") ? `7${digits.slice(1)}` : digits;
   }
 
   function byId(id) {
@@ -271,7 +331,7 @@
     const custom = Array.isArray(data.customProducts) ? data.customProducts : [];
 
     return [...products, ...custom]
-      .filter((product) => product?.id && !deleted.has(product.id))
+      .filter((product) => product?.id && !deleted.has(product.id) && !REMOVED_PRODUCT_IDS.has(product.id))
       .map((product) => ({
         ...product,
         ...(overrides[product.id] || {})
@@ -456,7 +516,9 @@
   function createSvgIcon(name, className) {
     const icons = {
       heart: ["M12 20.1s-7.4-4.4-8.9-9.2C2 7.4 4.1 4.2 7.6 4.2c2 0 3.4 1 4.4 2.4 1-1.4 2.4-2.4 4.4-2.4 3.5 0 5.6 3.2 4.5 6.7-1.5 4.8-8.9 9.2-8.9 9.2Z"],
-      close: ["M6.5 6.5 17.5 17.5", "M17.5 6.5 6.5 17.5"]
+      cart: ["M4 5h2l1.7 9.2a2 2 0 0 0 2 1.6h6.9a2 2 0 0 0 2-1.6L20 8H7", "M10 20h.1", "M17 20h.1"],
+      close: ["M6.5 6.5 17.5 17.5", "M17.5 6.5 6.5 17.5"],
+      image: ["M5 6.2h14a1.8 1.8 0 0 1 1.8 1.8v8a1.8 1.8 0 0 1-1.8 1.8H5A1.8 1.8 0 0 1 3.2 16V8A1.8 1.8 0 0 1 5 6.2Z", "m6.8 15 3.2-3.2 2.4 2.4 1.7-1.7 3.1 3.1", "M15.8 9.4h.1"]
     };
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", "0 0 24 24");
@@ -465,10 +527,11 @@
     (icons[name] || icons.heart).forEach((d) => {
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
       path.setAttribute("d", d);
-      path.setAttribute("fill", name === "close" ? "none" : "currentColor");
-      path.setAttribute("stroke", name === "close" ? "currentColor" : "none");
-      path.setAttribute("stroke-width", name === "close" ? "2.4" : "0");
+      path.setAttribute("fill", name === "heart" ? "currentColor" : "none");
+      path.setAttribute("stroke", name === "heart" ? "none" : "currentColor");
+      path.setAttribute("stroke-width", name === "close" ? "2.4" : "2");
       path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
       svg.append(path);
     });
     return svg;
@@ -483,15 +546,114 @@
     }, 2400);
   }
 
+  function getProductGallery(product) {
+    const gallery = Array.isArray(product.gallery) ? product.gallery : [];
+    const rows = gallery
+      .map((item, index) => {
+        if (typeof item === "string") return { id: `gallery-${index}`, src: item, alt: product.name || "", main: index === 0 };
+        return item && item.src ? item : null;
+      })
+      .filter(Boolean);
+
+    if (product.image && !rows.some((item) => item.src === product.image)) {
+      rows.unshift({ id: "main", src: product.image, alt: product.name || "", main: true });
+    }
+
+    return rows
+      .filter((item) => item.src)
+      .sort((a, b) => Number(Boolean(b.main)) - Number(Boolean(a.main)));
+  }
+
+  function safeImageSrc(value) {
+    const source = String(value || "").trim();
+    if (!source || /^(?:data:|blob:|https?:|\/)/i.test(source)) {
+      return source;
+    }
+    return new URL(encodeURI(source.replace(/^(?:\.{1,2}\/)+/, "")), document.baseURI).href;
+  }
+
+  function isSofaProduct(product) {
+    return ["прямой", "угловой", "модульный", "диван-кровать"].includes(product.category)
+      || displayText(`${product.name || ""} ${product.category || ""}`).toLowerCase().includes("диван");
+  }
+
+  function productCategoryLabel(product) {
+    if (isSofaProduct(product)) return "Диваны";
+    if (product.category === "кровать") return "Кровати";
+    if (product.category === "кресло") return "Кресла";
+    if (product.category === "услуга" || product.marketSection === "Услуги") return "Услуги";
+    return product.marketSection || product.category || "Каталог";
+  }
+
+  function defaultProductImage(product) {
+    const id = String(product.id || "").toLowerCase();
+    if (id.startsWith("sona-")) return SOURCE_PRODUCT_IMAGES.sofa;
+    if (id === "breeze-mini") return "assets/sofas/breeze-mini.svg";
+    if (id === "compact-nova-sofa") return "assets/sofas/azure-room.svg";
+    if (id.includes("bed")) return SOURCE_PRODUCT_IMAGES.bed;
+    if (id.includes("chair")) return SOURCE_PRODUCT_IMAGES.chair;
+    if (id.includes("service") || id.includes("design") || id.includes("marketplace") || id.includes("motion")) return SOURCE_PRODUCT_IMAGES.service;
+    if (id.includes("sofa") || id.includes("luna") || id.includes("nord") || id.includes("sona-island") || id.includes("azure") || id.includes("breeze")) {
+      return SOURCE_PRODUCT_IMAGES.sofa;
+    }
+
+    const readable = displayText(`${product.name || ""} ${product.category || ""}`).toLowerCase();
+    if (readable.includes("диван")) return SOURCE_PRODUCT_IMAGES.sofa;
+    if (readable.includes("кровать")) return SOURCE_PRODUCT_IMAGES.bed;
+    if (readable.includes("кресло")) return SOURCE_PRODUCT_IMAGES.chair;
+    if (readable.includes("услуг")) return SOURCE_PRODUCT_IMAGES.service;
+    return SOURCE_PRODUCT_IMAGES.all;
+  }
+
+  function resolveProductImage(product) {
+    const gallery = getProductGallery(product);
+    return safeImageSrc(gallery[0]?.src || product.image || defaultProductImage(product));
+  }
+
+  window.SonaProducts = {
+    getImage: resolveProductImage,
+    safeImageSrc
+  };
+
+  function syncFavoriteButtons(productId) {
+    const favorites = new Set(store.read().favorites || []);
+    const active = favorites.has(productId);
+
+    document.querySelectorAll("[data-favorite-product-id]").forEach((button) => {
+      if (button.dataset.favoriteProductId !== productId) return;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-label", active ? "Удалить из избранного" : "Добавить в избранное");
+    });
+  }
+
+  function setCartButtonState(button, isInCart) {
+    if (!button) return;
+    button.classList.toggle("is-in-cart", isInCart);
+    button.setAttribute("aria-pressed", String(isInCart));
+    const label = isInCart ? "В корзине" : (button.dataset.cartDefaultLabel || "В корзину");
+    const textNode = [...button.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
+    if (textNode) {
+      textNode.textContent = label;
+    } else {
+      button.prepend(document.createTextNode(label));
+    }
+  }
+
   function routeFromLocation() {
     const path = window.location.pathname.replace(/\/+$/, "") || "/";
+    const params = new URLSearchParams(window.location.search);
+    const queryRoute = params.get("route");
 
-    if (path === "/cart" || window.location.hash === "#cart") return "cart";
-    if (path === "/admin") return "admin";
-    if (path === "/profile") return "profile";
-    if (path === "/favorites") return "favorites";
-    if (path === "/category") {
-      const key = new URLSearchParams(window.location.search).get("type") || "all";
+    if (path === "/cart" || queryRoute === "cart" || window.location.hash === "#cart") return "cart";
+    if (path === "/admin" || queryRoute === "admin") return "admin";
+    if (path === "/profile" || queryRoute === "profile") return "profile";
+    if (path === "/favorites" || queryRoute === "favorites") return "favorites";
+    if (path === "/product" || queryRoute === "product") {
+      state.activeProductId = params.get("id") || "";
+      return "product";
+    }
+    if (path === "/category" || queryRoute === "category") {
+      const key = params.get("type") || "all";
       state.categoryPage = { ...categoryPresetByKey(key) };
       return "category";
     }
@@ -499,16 +661,33 @@
   }
 
   function routePath(route) {
+    const staticEntry = /\/(?:public\/)?index\.html$/i.test(window.location.pathname)
+      ? window.location.pathname
+      : "";
+    if (staticEntry) {
+      if (route === "home") return staticEntry;
+      if (route === "product") return `${staticEntry}?route=product&id=${encodeURIComponent(state.activeProductId || "")}`;
+      const type = route === "category"
+        ? `&type=${encodeURIComponent((state.categoryPage || CATEGORY_PAGE_PRESETS.all).key || "all")}`
+        : "";
+      return `${staticEntry}?route=${encodeURIComponent(route)}${type}`;
+    }
     if (route === "cart") return "/cart";
     if (route === "profile") return "/profile";
     if (route === "favorites") return "/favorites";
     if (route === "admin") return "/admin";
     if (route === "category") return `/category?type=${encodeURIComponent((state.categoryPage || CATEGORY_PAGE_PRESETS.all).key || "all")}`;
+    if (route === "product") return `/product?id=${encodeURIComponent(state.activeProductId || "")}`;
     return "/";
   }
 
-  function navigateTo(route, syncUrl = true) {
-    const nextRoute = ["home", "profile", "cart", "favorites", "admin", "category"].includes(route) ? route : "home";
+  function pageScrollBehavior(options = {}) {
+    if (options.behavior) return options.behavior;
+    return reduceMotion || mobileViewport.matches ? "auto" : "smooth";
+  }
+
+  function navigateTo(route, syncUrl = true, options = {}) {
+    const nextRoute = ["home", "profile", "cart", "favorites", "admin", "category", "product"].includes(route) ? route : "home";
 
     state.route = nextRoute;
     state.mobileAction = nextRoute === "admin" ? "profile" : (nextRoute === "category" ? "catalog" : nextRoute);
@@ -525,17 +704,21 @@
       }
     }
 
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    if (options.scroll !== false) {
+      window.scrollTo({ top: 0, behavior: pageScrollBehavior(options) });
+    }
   }
 
   function goToCatalog() {
     state.filters.favoritesOnly = false;
-    navigateTo("home");
+    if (state.route !== "home") {
+      const keepStaticUrl = /\/(?:public\/)?index\.html$/i.test(window.location.pathname);
+      navigateTo("home", !keepStaticUrl);
+    }
+    setCatalogTab("sofaCollections");
+    openFilters();
     state.mobileAction = "catalog";
     updateNavState();
-    window.requestAnimationFrame(() => {
-      document.getElementById("catalog")?.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
-    });
   }
 
   function getAds() {
@@ -576,7 +759,7 @@
     button.addEventListener("click", () => {
       const target = ad.link || "#catalog";
       if (target.startsWith("#")) {
-        document.querySelector(target)?.scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
+        document.querySelector(target)?.scrollIntoView({ block: "start", behavior: pageScrollBehavior() });
       } else {
         window.location.href = target;
       }
@@ -718,11 +901,29 @@
       const category = shortcut === "все" ? ALL_VALUE : shortcut;
       button.classList.toggle("is-active", category === state.filters.category && !state.filters.group);
     });
+
+    document.querySelectorAll("[data-catalog-intent]").forEach((button) => {
+      const intent = button.dataset.catalogIntent || "all";
+      const active = (
+        (intent === "all" && !state.filters.saleOnly && !state.filters.fastDelivery && state.filters.section === ALL_VALUE && state.filters.category === ALL_VALUE && !state.filters.group) ||
+        (intent === "compact" && state.filters.category === "диван-кровать") ||
+        (intent === "family" && state.filters.category === "угловой") ||
+        (intent === "sleep" && state.filters.category === "кровать") ||
+        (intent === "fast" && state.filters.fastDelivery) ||
+        (intent === "sale" && state.filters.saleOnly)
+      );
+      button.classList.toggle("is-active", active);
+    });
     updateQuickNav();
   }
 
   function updateQuickNav() {
     els.quickLinks.forEach((link) => {
+      if (link.dataset.navKey) {
+        link.classList.toggle("is-active", state.activeQuickKey === link.dataset.navKey);
+        return;
+      }
+
       const sale = link.dataset.sale === "true";
       const section = link.dataset.section || ALL_VALUE;
       const category = link.dataset.category || ALL_VALUE;
@@ -851,10 +1052,14 @@
     media.addEventListener("click", () => openProduct(product.id));
 
     favorite.type = "button";
+    favorite.dataset.favoriteProductId = product.id;
     favorite.setAttribute("aria-label", isFavorite ? "Удалить из избранного" : "Добавить в избранное");
     favorite.classList.toggle("is-active", isFavorite);
     favorite.append(createSvgIcon("heart", "favorite-icon"));
-    favorite.addEventListener("click", () => toggleFavorite(product.id));
+    favorite.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleFavorite(product.id);
+    });
 
     top.append(number, collection);
     price.append(createElement("strong", "", product.priceMode === "from" ? `от ${money(product.price)}` : money(product.price)));
@@ -885,6 +1090,8 @@
       title = "Распродажа SONA";
     } else if (state.filters.group === "sofas") {
       title = "Диваны SONA";
+    } else if (state.filters.category === "кровать") {
+      title = "Кровати SONA";
     } else if (state.filters.category === "кресло") {
       title = "Кресла SONA";
     } else if (state.filters.section === "Мебель") {
@@ -1167,7 +1374,9 @@
 
   function createProductCard(product, data) {
     const isFavorite = data.favorites.includes(product.id);
+    const isInCart = Number(data.cart?.[product.id]) > 0;
     const card = createElement("article", "product-card");
+    card.classList.toggle("is-sofa-card", isSofaProduct(product));
     card.tabIndex = 0;
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", `Открыть ${product.name}`);
@@ -1185,7 +1394,7 @@
     const favoriteButton = createElement("button", "favorite-button");
     const body = createElement("div", "product-body");
     const topLine = createElement("div", "product-top-line");
-    const brand = createElement("span", "product-brand", product.brand || "Soна");
+    const brand = createElement("span", "product-brand", productCategoryLabel(product));
     const rating = createElement("span", "rating", `★ ${reviewLabel(product.id, data)}`);
     const titleRow = createElement("div", "product-title-row");
     const title = createElement("h3", "", product.name);
@@ -1193,25 +1402,41 @@
     const swatches = createElement("div", "swatches");
     const footer = createElement("div", "product-footer");
     const price = createElement("div", "price");
-    const priceStrong = createElement("strong", "", money(product.price));
+    const priceStrong = createElement("strong", "", productPriceLabel(product));
     const delivery = createElement("div", "delivery-note", product.deliveryDays <= 3 ? "доставим быстро" : `доставка от ${product.deliveryDays} дней`);
-    const bonus = createElement("div", "bonus-note", `+ ${Math.max(300, Math.round(product.price * 0.02)).toLocaleString("ru-RU")} бонусов`);
-    const addButton = createElement("button", "primary-button", product.category === "услуга" ? "Заказать" : "В корзину");
+    const serviceNote = createElement("div", "service-note", product.category === "услуга" ? "согласуем детали после заявки" : "проверим наличие перед доставкой");
+    const defaultCartLabel = product.category === "услуга" ? "Заказать" : "В корзину";
+    const addButton = createElement("button", "primary-button", defaultCartLabel);
+    addButton.classList.add("product-cart-button");
+    addButton.dataset.cartProductId = product.id;
+    addButton.dataset.cartDefaultLabel = defaultCartLabel;
+    addButton.setAttribute("aria-label", product.category === "услуга" ? "Заказать услугу" : `Добавить ${product.name} в корзину`);
+    addButton.append(createSvgIcon("cart", "product-cart-icon"));
+    setCartButtonState(addButton, isInCart);
 
     if (product.oldPrice) {
-      const discount = Math.round((1 - product.price / product.oldPrice) * 100);
+      const discount = product.discountPercent || Math.round((1 - product.price / product.oldPrice) * 100);
       tagWrap.append(createElement("span", "tag discount-tag", `−${discount}%`));
     }
 
-    (product.tags || []).slice(0, 2).forEach((tag) => {
-      tagWrap.append(createElement("span", "tag", tag));
-    });
+    (product.tags || [])
+      .filter((tag) => {
+        const label = displayText(tag).toLowerCase();
+        const isStatusTag = label === "хит" || label === "новинка";
+        return !isStatusTag && !(product.oldPrice && (label.includes("скид") || label.includes("%")));
+      })
+      .slice(0, product.oldPrice ? 1 : 2)
+      .forEach((tag) => {
+        tagWrap.append(createElement("span", "tag", tag));
+      });
 
     favoriteButton.type = "button";
+    favoriteButton.dataset.favoriteProductId = product.id;
     favoriteButton.setAttribute("aria-label", isFavorite ? "Удалить из избранного" : "Добавить в избранное");
     favoriteButton.classList.toggle("is-active", isFavorite);
     favoriteButton.append(createSvgIcon("heart", "favorite-icon"));
     favoriteButton.addEventListener("click", (event) => {
+      event.preventDefault();
       event.stopPropagation();
       toggleFavorite(product.id);
     });
@@ -1239,13 +1464,14 @@
 
     addButton.type = "button";
     addButton.addEventListener("click", (event) => {
+      event.preventDefault();
       event.stopPropagation();
-      addToCart(product.id, addButton);
+      toggleCart(product.id, addButton);
     });
 
     topLine.append(brand, rating);
     titleRow.append(title);
-    footer.append(price, bonus, delivery, addButton);
+    footer.append(price, serviceNote, delivery, addButton);
     media.append(placeholder, tagWrap, favoriteButton);
     body.append(topLine, titleRow, meta, swatches, footer);
     card.append(media, body);
@@ -1255,42 +1481,86 @@
 
   function createProductPlaceholder(product, viewLabel = "Фото товара") {
     const placeholder = createElement("div", "product-placeholder");
-    if (product.image) {
+    const gallery = getProductGallery(product);
+    const imageSource = resolveProductImage(product);
+
+    if (imageSource) {
       const image = document.createElement("img");
-      image.src = product.image;
-      image.alt = displayText(product.name || "");
+      image.src = imageSource;
+      image.alt = displayText(gallery[0]?.alt || product.name || "");
+      image.loading = "eager";
+      image.decoding = "async";
+      image.setAttribute("fetchpriority", "high");
+      image.addEventListener("error", () => {
+        if (image.dataset.fallbackApplied === "true") return;
+        image.dataset.fallbackApplied = "true";
+        image.src = safeImageSrc(defaultProductImage(product));
+      }, { once: true });
       placeholder.classList.add("has-image");
+      placeholder.dataset.productId = product.id || "";
+      if (isSofaProduct(product)) {
+        placeholder.classList.add("is-sofa-image");
+      }
       placeholder.append(image);
       return placeholder;
     }
+
     const section = createElement("span", "placeholder-section", product.marketSection || "SONA");
-    const title = createElement("strong", "", product.name);
-    const line = createElement("span", "placeholder-line", (product.specs || product.materials || []).slice(0, 2).join(" · "));
+    const slot = createElement("span", "photo-slot");
+    const iconWrap = createElement("span", "photo-slot-icon");
     const mark = createElement("i", "", viewLabel);
 
     placeholder.dataset.kind = product.marketSection || "market";
-    placeholder.append(section, title, line, mark);
+    placeholder.classList.add("is-photo-slot");
+    iconWrap.append(createSvgIcon("image", "photo-slot-svg"));
+    slot.append(iconWrap, mark);
+    placeholder.append(section, slot);
     return placeholder;
   }
 
   function openProduct(productId) {
     const product = byId(productId);
     if (!product) return;
+    state.activeProductId = product.id;
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    if (routeFromLocation() !== "product") {
+      state.productReturnPath = currentPath;
+    }
 
+    closeSearchResults();
+    if (els.searchInput) {
+      const hadSearch = Boolean(els.searchInput.value || state.filters.query);
+      els.searchInput.value = "";
+      els.searchInput.blur();
+      state.filters.query = "";
+      if (hadSearch) renderProducts();
+    }
     renderProductDetail(product);
     els.productModal.classList.add("is-open");
     els.productModal.setAttribute("aria-hidden", "false");
     document.body.classList.add("modal-lock");
+    const nextPath = routePath("product");
+    if (currentPath !== nextPath) {
+      window.history.pushState({ route: "product", productId: product.id }, "", nextPath);
+    }
   }
 
   function closeProduct() {
     els.productModal.classList.remove("is-open");
     els.productModal.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-lock");
+    if (routeFromLocation() === "product") {
+      const returnPath = state.productReturnPath || routePath("home");
+      window.history.pushState({ route: "home" }, "", returnPath);
+      state.route = routeFromLocation();
+      renderRoute();
+    }
   }
 
   function renderProductDetail(product) {
-    const discount = product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
+    const data = store.read();
+    const isInCart = Number(data.cart?.[product.id]) > 0;
+    const discount = product.discountPercent || (product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0);
     const main = createElement("div", "detail-main");
     const gallery = createElement("div", "detail-gallery");
     const thumbList = createElement("div", "detail-thumbs");
@@ -1309,9 +1579,12 @@
     const buyButton = createElement("button", "secondary-action", "Купить в 1 клик");
     const sellerCall = createSellerCall(product);
     const variants = createVariantsSection(product);
-    const optionGrid = createElement("div", "detail-options");
+    const characteristics = createElement("section", "detail-characteristics");
     const delivery = createElement("div", "detail-delivery");
-    const galleryLabels = ["Фото товара", "Вид спереди", "Детали", "Материал", "В интерьере"];
+    const galleryItems = getProductGallery(product);
+    const fallbackGallery = galleryItems.length
+      ? galleryItems
+      : [{ src: resolveProductImage(product), alt: product.name, main: true }];
 
     close.type = "button";
     close.setAttribute("aria-label", "Закрыть товар");
@@ -1319,15 +1592,38 @@
     close.addEventListener("click", closeProduct);
 
     function setGallery(index) {
-      stage.replaceChildren(createProductPlaceholder(product, galleryLabels[index]));
+      const item = fallbackGallery[index];
+      if (item?.src) {
+        const holder = createElement("div", "product-placeholder has-image");
+        const image = document.createElement("img");
+        image.src = safeImageSrc(item.src);
+        image.alt = displayText(item.alt || product.name || "");
+        image.loading = "eager";
+        image.decoding = "async";
+        if (isSofaProduct(product)) {
+          holder.classList.add("is-sofa-image");
+        }
+        holder.append(image);
+        stage.replaceChildren(holder);
+      } else {
+        stage.replaceChildren(createProductPlaceholder(product, item?.label || "Фото товара"));
+      }
       thumbList.querySelectorAll(".detail-thumb").forEach((button, buttonIndex) => {
         button.classList.toggle("is-active", buttonIndex === index);
       });
     }
 
-    galleryLabels.forEach((label, index) => {
-      const thumb = createElement("button", "detail-thumb", index === 0 ? "Фото" : `Вид ${index + 1}`);
+    fallbackGallery.forEach((item, index) => {
+      const thumb = createElement("button", "detail-thumb");
       thumb.type = "button";
+      if (item?.src) {
+        const thumbImage = document.createElement("img");
+        thumbImage.src = safeImageSrc(item.src);
+        thumbImage.alt = "";
+        thumb.append(thumbImage);
+      } else {
+        thumb.textContent = item?.label || (index === 0 ? "Фото" : `Вид ${index + 1}`);
+      }
       if (index === 0) thumb.classList.add("is-active");
       thumb.addEventListener("click", () => setGallery(index));
       thumbList.append(thumb);
@@ -1339,37 +1635,50 @@
     titleWrap.append(title, code);
     titleRow.append(titleWrap, close);
 
-    price.append(createElement("strong", "", money(product.price)));
+    const priceMain = createElement("div", "detail-price-main");
+    const priceMeta = createElement("div", "detail-price-meta");
+    priceMain.append(createElement("strong", "", productPriceLabel(product)));
     if (product.oldPrice) {
-      price.append(createElement("del", "", money(product.oldPrice)));
-      price.append(createElement("span", "", `−${discount}%`));
+      priceMeta.append(
+        createElement("span", "detail-discount", `−${discount}%`),
+        createElement("del", "", money(product.oldPrice))
+      );
     }
+    if (product.benefit) priceMeta.append(createElement("span", "detail-benefit", `Выгода ${money(product.benefit)}`));
+    price.append(priceMain, priceMeta);
 
     addButton.type = "button";
-    addButton.addEventListener("click", () => {
-      addToCart(product.id, addButton);
-      closeProduct();
+    addButton.classList.add("product-cart-button");
+    addButton.dataset.cartProductId = product.id;
+    addButton.dataset.cartDefaultLabel = product.category === "услуга" ? "Заказать услугу" : "В корзину";
+    setCartButtonState(addButton, isInCart);
+    addButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      toggleCart(product.id, addButton);
     });
 
     buyButton.type = "button";
     buyButton.addEventListener("click", () => {
       sellerCall.hidden = !sellerCall.hidden;
+      buyButton.classList.toggle("is-open", !sellerCall.hidden);
     });
     actions.append(addButton, buyButton);
 
-    optionGrid.append(
-      createDetailOption("Категория", product.category),
-      createDetailOption("Раздел", product.marketSection || "Маркетплейс"),
-      createDetailOption("Материалы", (product.materials || []).join(", ")),
-      createDetailOption("Характеристики", (product.specs || []).join(", "))
-    );
+    const characteristicGrid = createElement("div", "detail-characteristics-grid");
+    [
+      ["Габаритные размеры", product.dimensions],
+      ["Спальное место", product.sleepingPlace],
+      ["Механизм", product.mechanism],
+      ["Материалы", (product.materials || []).join(", ")]
+    ].filter(([, value]) => value).forEach(([label, value]) => characteristicGrid.append(createDetailOption(label, value)));
+    characteristics.append(createElement("h3", "", "Характеристики"), characteristicGrid);
 
     delivery.append(
       createElement("h3", "", "Доставка"),
       createElement("p", "", product.deliveryDays <= 3 ? "Доставим быстро по Москве и области." : `Доставка от ${product.deliveryDays} дней. Самовывоз доступен из пункта выдачи.`)
     );
 
-    info.append(titleRow, rating, warranty, price, actions, sellerCall, variants, optionGrid, delivery);
+    info.append(titleRow, rating, warranty, price, actions, sellerCall, variants, characteristics, delivery);
     main.append(gallery, info);
     els.productDetail.replaceChildren(main, createReviewsSection(product), createSimilarSection(product));
   }
@@ -1377,30 +1686,95 @@
   function createVariantsSection(product) {
     const section = createElement("section", "variant-section");
     const head = createElement("div", "variant-head");
-    const title = createElement("h3", "", product.category === "услуга" ? "Пакет услуги" : "Материал и цена");
-    const note = createElement("span", "", "Цена зависит от выбранного варианта");
+    const isService = displayText(product.category) === "услуга" || displayText(product.marketSection) === "Услуги";
+    const title = createElement("h3", "", isService ? "Пакет услуги" : "Выбор ткани");
+    const note = createElement("span", "", isService ? "Выберите подходящий вариант" : "Подберите цвет, фактуру и тип обивки");
     const grid = createElement("div", "variant-grid");
+    const options = isService ? (product.variants || []) : getFabricOptions(product);
 
     head.append(title, note);
-    (product.variants || []).forEach((variant, index) => {
+    if (!isService) section.classList.add("is-fabric-picker");
+
+    options.forEach((variant, index) => {
       const option = createElement("button", "variant-option");
       const color = createElement("span", "variant-color");
-      const text = createElement("strong", "", variant.name);
-      const price = createElement("span", "", money(variant.price));
+      const copy = createElement("span", "variant-copy");
+      const text = createElement("strong", "", variant.name || variant.title || "Вариант");
+      const meta = createElement("span", "variant-meta", isService ? "вариант пакета" : fabricTypeLabel(variant, product, index));
+      const price = createElement("span", "", money(variant.price || product.price));
 
       option.type = "button";
       option.classList.toggle("is-active", index === 0);
-      color.style.background = variant.color;
+      option.setAttribute("aria-pressed", String(index === 0));
+      color.style.background = normalizeFabricColor(variant.color, index);
       option.addEventListener("click", () => {
-        grid.querySelectorAll(".variant-option").forEach((button) => button.classList.remove("is-active"));
+        grid.querySelectorAll(".variant-option").forEach((button) => {
+          button.classList.remove("is-active");
+          button.setAttribute("aria-pressed", "false");
+        });
         option.classList.add("is-active");
+        option.setAttribute("aria-pressed", "true");
       });
-      option.append(color, text, price);
+      copy.append(text, meta);
+      option.append(color, copy);
+      if (isService) option.append(price);
       grid.append(option);
     });
 
     section.append(head, grid);
     return section;
+  }
+
+  function getFabricOptions(product) {
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    const materials = Array.isArray(product.materials) ? product.materials.map(displayText).filter(Boolean) : [];
+    const colors = Array.isArray(product.colors) ? product.colors : [];
+    const defaults = [
+      { name: "Azure, микровелюр", color: "#246aaf", type: "мягкий микровелюр" },
+      { name: "Mist, велюр", color: "#9cc8e8", type: "бархатистый велюр" },
+      { name: "Snow, букле", color: "#e8f5ff", type: "объемное букле" },
+      { name: "Sage, рогожка", color: "#9cc9b9", type: "плотная рогожка" },
+      { name: "Latte, шенилл", color: "#d7c4ad", type: "теплый шенилл" },
+      { name: "Graphite, велюр", color: "#506070", type: "темный велюр" },
+      { name: "Pearl, букле", color: "#f1eee6", type: "светлое букле" },
+      { name: "Terracotta, микрофибра", color: "#bd7462", type: "практичная микрофибра" }
+    ];
+    const seen = new Set();
+    const options = variants.map((variant, index) => {
+      const title = displayText(variant.name || variant.title || materials[index % materials.length] || `Ткань ${index + 1}`);
+      seen.add(title.toLowerCase());
+      return {
+        ...variant,
+        name: title,
+        color: variant.color || colors[index % colors.length],
+        type: fabricTypeLabel(variant, product, index)
+      };
+    });
+
+    defaults.forEach((fabric) => {
+      if (options.length >= 8) return;
+      if (seen.has(fabric.name.toLowerCase())) return;
+      options.push(fabric);
+      seen.add(fabric.name.toLowerCase());
+    });
+
+    return options;
+  }
+
+  function fabricTypeLabel(variant, product, index) {
+    const direct = variant.type || variant.material || variant.configuration || "";
+    if (direct) return displayText(direct);
+    const title = displayText(variant.name || variant.title || "");
+    const [, fromTitle] = title.split(",");
+    if (fromTitle) return fromTitle.trim();
+    const materials = Array.isArray(product.materials) ? product.materials.map(displayText).filter(Boolean) : [];
+    return materials[index % materials.length] || "ткань для обивки";
+  }
+
+  function normalizeFabricColor(color, index) {
+    const fallback = ["#246aaf", "#9cc8e8", "#e8f5ff", "#9cc9b9", "#d7c4ad", "#506070", "#f1eee6", "#bd7462"];
+    const value = String(color || "").trim();
+    return /^(#|rgb|hsl)/i.test(value) ? value : fallback[index % fallback.length];
   }
 
   function createSellerCall(product) {
@@ -1474,12 +1848,15 @@
   function createSimilarCard(product) {
     const card = createElement("button", "similar-card");
     const media = createProductPlaceholder(product, "Фото");
+    const body = createElement("span", "similar-card-body");
+    const meta = createElement("span", "similar-card-meta", (product.specs || product.materials || []).slice(0, 2).join(" · "));
     const title = createElement("strong", "", product.name);
     const price = createElement("span", "", money(product.price));
 
     card.type = "button";
     card.addEventListener("click", () => openProduct(product.id));
-    card.append(media, title, price);
+    body.append(title, meta, price);
+    card.append(media, body);
     return card;
   }
 
@@ -1499,8 +1876,15 @@
         ? [...data.favorites, id]
         : data.favorites.filter((item) => item !== id);
     });
-    render();
-    showToast(added ? "Товар добавлен в избранное" : "Товар удалён из избранного");
+    syncFavoriteButtons(id);
+    renderProfilePage();
+    if (state.route === "favorites") {
+      renderFavoritesPage();
+    }
+    if (state.filters.favoritesOnly) {
+      renderProducts();
+    }
+    showToast(added ? "В избранном" : "Удалено из избранного");
   }
 
   function removeFavorite(productId) {
@@ -1515,37 +1899,87 @@
 
   function playCartMotion(triggerButton) {
     if (triggerButton && !reduceMotion) {
-      const originalText = triggerButton.textContent;
       triggerButton.classList.add("is-added");
-      triggerButton.textContent = "Р”РѕР±Р°РІР»РµРЅРѕ";
 
       window.clearTimeout(triggerButton.motionTimer);
       triggerButton.motionTimer = window.setTimeout(() => {
         triggerButton.classList.remove("is-added");
-        triggerButton.textContent = originalText;
       }, 1100);
     }
 
     if (reduceMotion) return;
 
-    [els.cartButton, els.cartBadge, els.mobileCartBadge].forEach((element) => {
-      if (!element) return;
-      element.classList.remove("is-bouncing");
-      void element.offsetWidth;
-      element.classList.add("is-bouncing");
-    });
+    els.cartBadge?.classList.add("is-bouncing");
+    els.mobileCartBadge?.classList.add("is-bouncing");
+  }
+
+  function preserveElementViewportPosition(element, renderAction) {
+    if (!element || typeof renderAction !== "function") {
+      renderAction?.();
+      return;
+    }
+
+    const previousTop = element.getBoundingClientRect().top;
+    renderAction();
+    const nextTop = element.getBoundingClientRect().top;
+    const offset = nextTop - previousTop;
+
+    if (Math.abs(offset) > 0.5) {
+      window.scrollBy({ top: offset, left: 0, behavior: "instant" });
+    }
   }
 
   function addToCart(productId, triggerButton) {
     const id = security.safeProductId(productId);
+    if (triggerButton && !triggerButton.dataset.cartDefaultLabel) {
+      triggerButton.dataset.cartDefaultLabel = triggerButton.textContent.trim() || "В корзину";
+    }
     store.update((data) => {
       data.cart[id] = Math.min((Number(data.cart[id]) || 0) + 1, 20);
     });
-    renderCart();
+    preserveElementViewportPosition(
+      state.route === "cart" ? els.cartRecommendations : null,
+      renderCart
+    );
     renderProfilePage();
-    renderFavoritesPage();
+    syncCartButtons(id);
+    setCartButtonState(triggerButton, true);
     playCartMotion(triggerButton);
-    showToast("Товар добавлен в корзину");
+    showToast("В корзине");
+  }
+
+  function toggleCart(productId, triggerButton) {
+    const id = security.safeProductId(productId);
+    let added = false;
+    store.update((data) => {
+      added = !(Number(data.cart[id]) > 0);
+      if (added) {
+        data.cart[id] = 1;
+      } else {
+        delete data.cart[id];
+      }
+    });
+    preserveElementViewportPosition(
+      state.route === "cart" ? els.cartRecommendations : null,
+      renderCart
+    );
+    renderProfilePage();
+    syncCartButtons(id);
+    if (added) {
+      playCartMotion(triggerButton);
+    } else if (triggerButton) {
+      window.clearTimeout(triggerButton.motionTimer);
+      triggerButton.classList.remove("is-added");
+    }
+    showToast(added ? "В корзине" : "Удалено из корзины");
+  }
+
+  function syncCartButtons(productId) {
+    const id = security.safeProductId(productId);
+    const isInCart = Number(store.read().cart?.[id]) > 0;
+    document.querySelectorAll(`[data-cart-product-id="${id}"]`).forEach((button) => {
+      setCartButtonState(button, isInCart);
+    });
   }
 
   function setQuantity(productId, quantity) {
@@ -1600,14 +2034,10 @@
 
     if (!rows.length) {
       const empty = createElement("div", "cart-empty cart-empty-page");
-      const icon = createElement("div", "empty-icon", "Soна");
-      const title = createElement("strong", "", "Корзина пока пустая");
-      const text = createElement("span", "", "Добавьте товары из каталога, а здесь появятся количество, стоимость и оформление заказа.");
-      const button = createElement("button", "primary-button", "Перейти к товарам");
+      const title = createElement("strong", "", "Товаров нет");
+      const text = createElement("span", "", "Корзина пустая.");
 
-      button.type = "button";
-      button.addEventListener("click", goToCatalog);
-      empty.append(icon, title, text, button);
+      empty.append(title, text);
       els.cartItems.replaceChildren(empty);
       renderCartRecommendations(rows);
       return;
@@ -1777,14 +2207,26 @@
 
   function closeMobileConsultMenu() {
     if (!els.mobileConsultButton || !els.mobileConsultMenu) return;
-    els.mobileConsultMenu.hidden = true;
+    els.mobileConsultMenu.classList.remove("is-open");
     els.mobileConsultButton.setAttribute("aria-expanded", "false");
+    window.clearTimeout(closeMobileConsultMenu.timer);
+    closeMobileConsultMenu.timer = window.setTimeout(() => {
+      if (!els.mobileConsultMenu.classList.contains("is-open")) {
+        els.mobileConsultMenu.hidden = true;
+      }
+    }, 240);
   }
 
   function toggleMobileConsultMenu() {
     if (!els.mobileConsultButton || !els.mobileConsultMenu) return;
-    const nextOpen = els.mobileConsultMenu.hidden;
-    els.mobileConsultMenu.hidden = !nextOpen;
+    const nextOpen = els.mobileConsultMenu.hidden || !els.mobileConsultMenu.classList.contains("is-open");
+    if (nextOpen) {
+      window.clearTimeout(closeMobileConsultMenu.timer);
+      els.mobileConsultMenu.hidden = false;
+      window.requestAnimationFrame(() => els.mobileConsultMenu.classList.add("is-open"));
+    } else {
+      closeMobileConsultMenu();
+    }
     els.mobileConsultButton.setAttribute("aria-expanded", String(nextOpen));
   }
 
@@ -1883,7 +2325,28 @@
       },
       completeOrder,
       createReview,
+      endSession: (sessionId) => {
+        const currentId = window.SonaProfile?.currentDeviceId?.();
+        store.update((data) => {
+          data.accountSessions = (data.accountSessions || []).filter((session) => session.id !== sessionId);
+        });
+        if (sessionId === currentId) {
+          window.SonaProfile?.clearLocalAuth?.();
+          store.clearProfile();
+          window.SonaProfile?.setSection("home");
+          render();
+          showToast("Текущий сеанс завершён");
+          return;
+        }
+        render();
+        showToast("Сеанс завершён");
+      },
       logout: () => {
+        const currentId = window.SonaProfile?.currentDeviceId?.();
+        window.SonaProfile?.clearLocalAuth?.();
+        store.update((data) => {
+          data.accountSessions = (data.accountSessions || []).filter((session) => session.id !== currentId);
+        });
         store.clearProfile();
         window.SonaProfile?.setSection("home");
         render();
@@ -1955,20 +2418,28 @@
       const rating = createElement("span", "rating", `★ ${reviewLabel(product.id, data)}`);
       const meta = createElement("div", "favorite-meta");
       const price = createElement("strong", "", money(product.price));
-      const delivery = createElement("span", "", product.deliveryDays <= 3 ? "Быстрая доставка" : `Доставка от ${product.deliveryDays} дней`);
+      const category = createElement(
+        "span",
+        "favorite-category",
+        isSofaProduct(product) ? "Диваны" : (product.marketSection || product.category || "Каталог")
+      );
       const actions = createElement("div", "favorite-actions");
       const cart = createElement("button", "primary-button", "В корзину");
-      const remove = createElement("button", "soft-button", "Удалить");
+      const remove = createElement("button", "soft-button favorite-remove-arrow", "×");
 
       cart.type = "button";
+      cart.classList.add("product-cart-button");
+      cart.dataset.cartProductId = product.id;
+      cart.dataset.cartDefaultLabel = "В корзину";
+      setCartButtonState(cart, Number(data.cart?.[product.id]) > 0);
       remove.type = "button";
       remove.setAttribute("aria-label", `Удалить ${product.name} из избранного`);
-      cart.addEventListener("click", () => addToCart(product.id, cart));
+      cart.addEventListener("click", () => toggleCart(product.id, cart));
       remove.addEventListener("click", () => removeFavorite(product.id));
       top.append(brand, rating);
-      meta.append(price, delivery);
-      actions.append(cart, remove);
-      media.append(thumb);
+      meta.append(category, price);
+      actions.append(cart);
+      media.append(thumb, remove);
       body.append(top, title, meta, actions);
       card.append(media, body);
       list.append(card);
@@ -2015,6 +2486,27 @@
       };
     }
 
+    const servicePreset = CATEGORY_PAGE_GROUPS.services.find((item) => item.key === key);
+    if (servicePreset) {
+      return {
+        ...CATEGORY_PAGE_PRESETS.services,
+        ...servicePreset,
+        eyebrow: "услуги",
+        section: "Услуги",
+        saleOnly: false
+      };
+    }
+
+    const salePreset = CATEGORY_PAGE_GROUPS.sale.find((item) => item.key === key);
+    if (salePreset) {
+      return {
+        ...CATEGORY_PAGE_PRESETS.sale,
+        ...salePreset,
+        eyebrow: "распродажа",
+        saleOnly: true
+      };
+    }
+
     const titles = {
       "прямой": "Прямые диваны",
       "угловой": "Угловые диваны",
@@ -2022,7 +2514,6 @@
       "диван-кровать": "Диваны-кровати",
       "кровать": "Кровати SONA",
       "кресло": "Кресла SONA",
-      "шкаф": "Шкафы SONA",
       "услуга": "Услуги SONA"
     };
     const sofaCategories = ["прямой", "угловой", "модульный", "диван-кровать"];
@@ -2045,17 +2536,30 @@
     const data = store.read();
     const favoriteIds = new Set(data.favorites || []);
     const target = preset || CATEGORY_PAGE_PRESETS.all;
+    const query = String(target.query || "").toLowerCase();
 
     return state.products
       .filter((product) => !product.hidden)
       .filter((product) => {
         const isSofa = ["прямой", "угловой", "модульный", "диван-кровать"].includes(product.category);
+        const text = [
+          product.name,
+          product.brand,
+          product.category,
+          product.marketSection,
+          product.size,
+          ...(product.materials || []),
+          ...(product.specs || []),
+          ...(product.tags || [])
+        ].join(" ").toLowerCase();
         return (
           (target.section === ALL_VALUE || product.marketSection === target.section) &&
           (!target.group || (target.group === "sofas" && isSofa)) &&
           (target.category === ALL_VALUE || product.category === target.category) &&
+          (!target.maxDeliveryDays || product.deliveryDays <= target.maxDeliveryDays) &&
           (!target.saleOnly || Boolean(product.oldPrice)) &&
-          (!target.favoritesOnly || favoriteIds.has(product.id))
+          (!target.favoritesOnly || favoriteIds.has(product.id)) &&
+          (!query || text.includes(query))
         );
       })
       .sort((a, b) => {
@@ -2084,6 +2588,33 @@
 
     copy.append(eyebrow, title, text);
     head.append(copy);
+    const back = createElement("button", "category-page-back");
+    const backIcon = createElement("span", "category-page-back-icon");
+    const backLabel = createElement("span", "category-page-back-label",
+      preset.section === "Услуги" ? "Назад к услугам" : (preset.saleOnly ? "Назад к распродаже" : "Назад в каталог"));
+    back.type = "button";
+    back.setAttribute("aria-label", backLabel.textContent);
+    back.append(backIcon, backLabel);
+    back.addEventListener("click", () => {
+      if (preset.saleOnly) {
+        openCatalogCollection("sale", {
+          section: ALL_VALUE,
+          category: ALL_VALUE,
+          group: "",
+          saleOnly: true,
+          navKey: "sale"
+        });
+        return;
+      }
+      openCatalogCollection(tabForCategoryPreset(preset), {
+        section: preset.section || ALL_VALUE,
+        category: preset.category || ALL_VALUE,
+        group: preset.group || "",
+        saleOnly: false,
+        navKey: preset.key || ""
+      });
+    });
+    head.append(back);
 
     categorySwitchItems(preset).forEach((item) => {
       const nextPreset = {
@@ -2116,23 +2647,35 @@
   }
 
   function categorySwitchItems(preset = {}) {
+    if (preset.key === "fast") {
+      return [
+        {
+          key: "fast",
+          label: "Быстрая доставка",
+          title: "Быстрая доставка",
+          section: ALL_VALUE,
+          category: ALL_VALUE,
+          group: "",
+          maxDeliveryDays: 3,
+          text: "Товары, которые можно привезти за 1-3 дня."
+        }
+      ];
+    }
+    if (preset.key === "sale" || preset.key?.startsWith("sale-") || preset.saleOnly) return CATEGORY_PAGE_GROUPS.sale;
     if (preset.group === "sofas" || ["sofas", "прямой", "угловой", "модульный", "диван-кровать"].includes(preset.key) || ["прямой", "угловой", "модульный", "диван-кровать"].includes(preset.category)) {
       return CATEGORY_PAGE_GROUPS.sofas;
     }
     if (preset.key === "beds" || preset.category === "кровать") return CATEGORY_PAGE_GROUPS.beds;
     if (preset.key === "chairs" || preset.category === "кресло") return CATEGORY_PAGE_GROUPS.chairs;
-    if (preset.key === "wardrobes" || preset.category === "шкаф") return CATEGORY_PAGE_GROUPS.wardrobes;
     if (preset.key === "services" || preset.section === "Услуги" || preset.category === "услуга") return CATEGORY_PAGE_GROUPS.services;
-    if (preset.key === "sale" || preset.saleOnly) return CATEGORY_PAGE_GROUPS.sale;
     return CATEGORY_PAGE_GROUPS.all;
   }
 
   function tabForCategoryPreset(preset = {}) {
+    if (preset.saleOnly || preset.key === "sale" || preset.key?.startsWith("sale-")) return "sale";
     if (preset.key === "beds" || preset.category === "кровать") return "bedCollections";
     if (preset.key === "chairs" || preset.category === "кресло") return "chairCollections";
-    if (preset.key === "wardrobes" || preset.category === "шкаф") return "wardrobeCollections";
     if (preset.key === "services" || preset.category === "услуга" || preset.section === "Услуги") return "serviceCollections";
-    if (preset.saleOnly) return "sale";
     return "sofaCollections";
   }
 
@@ -2160,13 +2703,74 @@
     openCategoryPage(preset);
   }
 
+  function openServiceCategory(button) {
+    const key = button.dataset.serviceCategory || "development";
+    const preset = CATEGORY_PAGE_GROUPS.services.find((item) => item.key === key) || CATEGORY_PAGE_GROUPS.services[0];
+    closeFilters();
+    openCategoryPage({
+      ...CATEGORY_PAGE_PRESETS.services,
+      ...preset,
+      key: preset.key,
+      section: "Услуги"
+    });
+  }
+
+  function openCatalogIntent(button) {
+    const intent = button.dataset.catalogIntent || "all";
+    const presets = {
+      all: {
+        ...CATEGORY_PAGE_PRESETS.all,
+        key: "all",
+        title: "Вся витрина SONA",
+        text: "Мебель, услуги и предложения каталога в одном списке."
+      },
+      compact: {
+        ...categoryPresetByKey("диван-кровать"),
+        key: "диван-кровать",
+        title: "Компактные решения",
+        text: "Диваны-кровати и модели для студий, небольших гостиных и гостевых комнат."
+      },
+      family: {
+        ...categoryPresetByKey("угловой"),
+        key: "угловой",
+        title: "Для семьи и гостей",
+        text: "Просторные модели для отдыха, общения и больших комнат."
+      },
+      sleep: {
+        ...categoryPresetByKey("кровать"),
+        key: "кровать",
+        title: "Сон и хранение",
+        text: "Кровати и решения для спокойной спальни, порядка и ежедневного комфорта."
+      },
+      fast: {
+        ...CATEGORY_PAGE_PRESETS.all,
+        key: "fast",
+        title: "Быстрая доставка",
+        text: "Товары, которые можно привезти за 1-3 дня.",
+        maxDeliveryDays: 3
+      },
+      sale: {
+        ...CATEGORY_PAGE_PRESETS.sale,
+        key: "sale",
+        title: "Скидки SONA",
+        text: "Актуальные товары и услуги со сниженной ценой."
+      }
+    };
+
+    closeFilters();
+    openCategoryPage(presets[intent] || presets.all);
+  }
+
   function updateNavState() {
     els.profileButton?.classList.toggle("is-active", state.route === "profile");
     els.favoritesButton?.classList.toggle("is-active", state.route === "favorites");
     els.cartButton?.classList.toggle("is-active", state.route === "cart");
+    const mobileActiveAction = state.route === "home"
+      ? (els.filterDrawer?.classList.contains("is-open") ? "catalog" : "home")
+      : (state.route === "admin" ? "profile" : state.route);
     document.querySelectorAll("[data-mobile-action]").forEach((button) => {
       const action = button.dataset.mobileAction;
-      const isActive = action === state.mobileAction || (state.route === "admin" && action === "profile");
+      const isActive = action === mobileActiveAction;
       button.classList.toggle("is-active", isActive);
       if (isActive) {
         button.setAttribute("aria-current", "page");
@@ -2197,7 +2801,8 @@
       }
     }
 
-    const isHome = state.route === "home";
+    const isProduct = state.route === "product";
+    const isHome = state.route === "home" || isProduct;
     const isCart = state.route === "cart";
     const isProfile = state.route === "profile";
     const isFavorites = state.route === "favorites";
@@ -2221,16 +2826,106 @@
     renderSupportChat();
     updateNavState();
     updateQuickNav();
+    if (isProduct && state.activeProductId) {
+      const product = byId(state.activeProductId);
+      if (product) {
+        renderProductDetail(product);
+        els.productModal.classList.add("is-open");
+        els.productModal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-lock");
+      }
+    }
   }
 
   function openFilters() {
+    window.clearTimeout(closeFilters.timer);
     els.filterDrawer.classList.add("is-open");
     els.filterDrawer.setAttribute("aria-hidden", "false");
+    els.filterButton?.classList.add("is-open");
+    els.filterButton?.setAttribute("aria-expanded", "true");
   }
 
   function closeFilters() {
     els.filterDrawer.classList.remove("is-open");
-    els.filterDrawer.setAttribute("aria-hidden", "true");
+    window.clearTimeout(closeFilters.timer);
+    closeFilters.timer = window.setTimeout(() => {
+      if (!els.filterDrawer.classList.contains("is-open")) {
+        els.filterDrawer.setAttribute("aria-hidden", "true");
+      }
+    }, 320);
+    els.filterButton?.classList.remove("is-open");
+    els.filterButton?.setAttribute("aria-expanded", "false");
+    if (state.route === "home") {
+      state.mobileAction = "home";
+      updateNavState();
+    }
+  }
+
+  function searchProductText(product) {
+    return [
+      product.name,
+      product.brand,
+      product.category,
+      product.marketSection,
+      ...(product.materials || []),
+      ...(product.specs || []),
+      ...(product.tags || [])
+    ].join(" ").toLowerCase();
+  }
+
+  function closeSearchResults() {
+    if (!els.searchResults) return;
+    els.searchResults.hidden = true;
+    els.searchResults.replaceChildren();
+  }
+
+  function renderSearchResults() {
+    if (!els.searchResults || !els.searchInput) return;
+    const query = security.sanitizeText(els.searchInput.value, 80).trim().toLowerCase();
+    if (!query) {
+      closeSearchResults();
+      return;
+    }
+
+    const matches = state.products
+      .filter((product) => !product.hidden && searchProductText(product).includes(query))
+      .slice(0, 6);
+
+    const rows = matches.map((product) => {
+      const button = createElement("button", "search-result");
+      const image = document.createElement("img");
+      const copy = createElement("span", "search-result-copy");
+      image.src = safeImageSrc(resolveProductImage(product));
+      image.alt = "";
+      copy.append(
+        createElement("strong", "", product.name),
+        createElement("span", "", `${product.category || product.marketSection || "Товар"} · ${money(product.price)}`)
+      );
+      button.type = "button";
+      button.append(image, copy, createElement("span", "search-result-arrow", "→"));
+      button.addEventListener("click", () => {
+        closeSearchResults();
+        openProduct(product.id);
+      });
+      return button;
+    });
+
+    if (!rows.length) {
+      rows.push(createElement("p", "search-results-empty", "Товары не найдены"));
+    }
+    els.searchResults.replaceChildren(...rows);
+    els.searchResults.hidden = false;
+  }
+
+  function showFullSearchResults() {
+    if (!state.filters.query.trim()) return;
+    if (state.route !== "home") {
+      navigateTo("home");
+    }
+    closeSearchResults();
+    window.requestAnimationFrame(() => {
+      document.getElementById("catalog")?.scrollIntoView({ block: "start", behavior: pageScrollBehavior() });
+    });
   }
 
   function setCatalogTab(tabName) {
@@ -2256,6 +2951,7 @@
     state.filters.group = options.group || "";
     state.filters.saleOnly = Boolean(options.saleOnly);
     state.filters.favoritesOnly = false;
+    state.activeQuickKey = options.navKey || "";
     els.saleOnly.checked = state.filters.saleOnly;
     setCatalogTab(tabName);
     renderProducts();
@@ -2339,21 +3035,26 @@
     event.preventDefault();
     store.update((data) => {
       const phone = security.sanitizePhone(els.profilePhoneInput?.value || "");
-      const role = data.profile?.role || (window.SonaAdmin?.ADMIN_PHONE && phone.replace(/\D/g, "").endsWith(window.SonaAdmin.ADMIN_PHONE.slice(1)) ? "admin" : "user");
+      const email = security.sanitizeEmail(els.profileEmailInput?.value || "");
+      const isAdminEmail = Boolean(window.SonaAdmin?.ADMIN_EMAIL && email === window.SonaAdmin.ADMIN_EMAIL);
+      const role = isAdminEmail ? "admin" : "user";
       data.profile = {
         ...data.profile,
         isActive: true,
         name: security.sanitizeText(els.profileNameInput?.value || "", 40),
-        email: security.sanitizeEmail(els.profileEmailInput?.value || ""),
+        email,
         phone,
         address: security.sanitizeText(els.profileAddressInput?.value || "", 120),
         role,
         registeredAt: data.profile?.registeredAt || new Date().toISOString()
       };
+      if (!isAdminEmail) {
+        data.admin = { ...(data.admin || {}), isAuthenticated: false, email: "" };
+      }
       data.users = [
-        ...(data.users || []).filter((user) => user.phone !== phone),
+        ...(data.users || []).filter((user) => user.email !== data.profile.email),
         {
-          id: `USER-${phone.replace(/\D/g, "") || Date.now()}`,
+          id: `USER-${data.profile.email.replace(/[^a-z0-9]/gi, "-") || Date.now()}`,
           name: data.profile.name || "Покупатель Soна",
           email: data.profile.email || "",
           phone,
@@ -2373,6 +3074,11 @@
     const rows = cartRows();
     if (!rows.length) {
       showToast("Корзина пустая");
+      return;
+    }
+    if (!isProfileActive()) {
+      navigateTo("profile");
+      showToast("Войдите в аккаунт, чтобы оформить заказ");
       return;
     }
 
@@ -2428,6 +3134,7 @@
     els.saleOnly.checked = false;
     els.searchInput.value = "";
     els.sortSelect.value = "popular";
+    state.activeQuickKey = "";
     updateSortControl();
     render();
   }
@@ -2440,6 +3147,7 @@
     state.filters.favoritesOnly = false;
     state.filters.query = "";
     state.filters.size = ALL_VALUE;
+    state.activeQuickKey = link.dataset.navKey || "";
 
     els.saleOnly.checked = state.filters.saleOnly;
     els.searchInput.value = "";
@@ -2447,7 +3155,20 @@
     render();
     closeFilters();
     window.history.pushState({ route: "home" }, "", "/");
-    document.getElementById("catalog").scrollIntoView({ block: "start", behavior: reduceMotion ? "auto" : "smooth" });
+    document.getElementById("catalog").scrollIntoView({ block: "start", behavior: pageScrollBehavior() });
+  }
+
+  function openQuickCatalog(link) {
+    const preset = categoryPresetByKey(link.dataset.navKey || "all");
+    const options = {
+      ...preset,
+      section: link.dataset.section || preset.section || ALL_VALUE,
+      category: link.dataset.category || preset.category || ALL_VALUE,
+      group: link.dataset.group || preset.group || "",
+      saleOnly: link.dataset.sale === "true" || Boolean(preset.saleOnly),
+      navKey: link.dataset.navKey || preset.key || ""
+    };
+    openCatalogCollection(tabForCategoryPreset(options), options);
   }
 
   function showFavorites() {
@@ -2493,7 +3214,6 @@
       "Искать диван Luna Cloud",
       "Искать кровать с хранением",
       "Искать кресло для гостиной",
-      "Искать шкаф в спальню",
       "Искать услугу дизайна"
     ];
     let phraseIndex = 0;
@@ -2562,9 +3282,11 @@
       state.route = routeFromLocation();
       renderRoute();
     });
-    document.querySelector(".brand")?.addEventListener("click", (event) => {
-      event.preventDefault();
-      navigateTo("home");
+    document.querySelectorAll(".brand, .footer-brand").forEach((logo) => {
+      logo.addEventListener("click", (event) => {
+        event.preventDefault();
+        navigateTo("home");
+      });
     });
 
     els.priceRange.addEventListener("input", () => {
@@ -2589,6 +3311,20 @@
     els.searchInput.addEventListener("input", () => {
       state.filters.query = security.sanitizeText(els.searchInput.value, 80);
       renderProducts();
+      renderSearchResults();
+    });
+    els.searchInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        showFullSearchResults();
+      }
+      if (event.key === "Escape") {
+        closeSearchResults();
+        els.searchInput.blur();
+      }
+    });
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".search")) closeSearchResults();
     });
     initLiveSearchPlaceholder();
 
@@ -2612,11 +3348,7 @@
 
     els.resetFilters.addEventListener("click", resetFilters);
     els.filterButton.addEventListener("click", () => {
-      if (state.route !== "home") {
-        navigateTo("home");
-      }
-      setCatalogTab("sofaCollections");
-      openFilters();
+      goToCatalog();
     });
     els.quickLinks.forEach((link) => {
       link.addEventListener("click", (event) => {
@@ -2634,6 +3366,10 @@
           openSofaCollections();
           return;
         }
+        if (link.dataset.navKey) {
+          openQuickCatalog(link);
+          return;
+        }
         applyQuickFilter(link);
       });
     });
@@ -2644,16 +3380,34 @@
       button.addEventListener("click", () => setCatalogTab(button.dataset.catalogSwitch));
     });
     document.querySelectorAll("[data-category-page]").forEach((button) => {
-      button.addEventListener("click", () => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
         closeFilters();
         openCategoryPage(CATEGORY_PAGE_PRESETS[button.dataset.categoryPage] || CATEGORY_PAGE_PRESETS.all);
       });
+    });
+    document.querySelectorAll("[data-catalog-intent]").forEach((button) => {
+      button.addEventListener("click", () => openCatalogIntent(button));
     });
     document.querySelectorAll("[data-close-filters]").forEach((button) => button.addEventListener("click", closeFilters));
     document.querySelectorAll("[data-category-shortcut]").forEach((button) => {
       button.addEventListener("click", (event) => {
         event.preventDefault();
         openCategoryPageFromShortcut(button);
+      });
+    });
+    document.querySelectorAll("[data-service-category]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        openServiceCategory(button);
+      });
+    });
+    document.querySelectorAll("[data-sale-category]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        const preset = CATEGORY_PAGE_GROUPS.sale.find((item) => item.key === button.dataset.saleCategory) || CATEGORY_PAGE_PRESETS.sale;
+        closeFilters();
+        openCategoryPage({ ...CATEGORY_PAGE_PRESETS.sale, ...preset });
       });
     });
 
@@ -2666,6 +3420,14 @@
       event.preventDefault();
       closeMobileConsultMenu();
       openSupportChat();
+    });
+    els.mobileConsultMenu?.querySelector("a[href^='tel:']")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const href = event.currentTarget.href;
+      closeMobileConsultMenu();
+      window.location.href = href;
+      window.setTimeout(openSupportChat, 450);
     });
     document.addEventListener("click", (event) => {
       if (!els.mobileConsultMenu || !els.mobileConsultButton) return;
@@ -2682,6 +3444,7 @@
         if (action === "favorites") showFavorites();
         if (action === "cart") openCart();
         if (action === "profile") navigateTo(window.SonaAdmin?.isAdmin(store.read()) ? "admin" : "profile");
+        button.blur();
       });
     });
     document.querySelectorAll("[data-close-cart]").forEach((button) => button.addEventListener("click", closeCart));
@@ -2693,6 +3456,11 @@
 
     els.profileForm.addEventListener("submit", saveProfile);
     els.clearProfile.addEventListener("click", () => {
+      const currentId = window.SonaProfile?.currentDeviceId?.();
+      window.SonaProfile?.clearLocalAuth?.();
+      store.update((data) => {
+        data.accountSessions = (data.accountSessions || []).filter((session) => session.id !== currentId);
+      });
       store.clearProfile();
       state.filters.favoritesOnly = false;
       renderProfile();
@@ -2700,7 +3468,7 @@
       renderProducts();
       closeCart();
       els.profileModal.close();
-      showToast("Р’С‹ РІС‹С€Р»Рё РёР· РїСЂРѕС„РёР»СЏ");
+      showToast("Вы вышли из профиля");
     });
 
     document.addEventListener("keydown", (event) => {
@@ -2734,7 +3502,7 @@
       if (!response.ok) {
         throw new Error("Products loading failed");
       }
-      state.baseProducts = await response.json();
+      state.baseProducts = [...await response.json(), ...PERMANENT_SOFA_PRODUCTS];
       refreshProductsFromAdmin();
       state.route = routeFromLocation();
       render();

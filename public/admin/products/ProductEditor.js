@@ -4,6 +4,7 @@
   const schemas = () => window.SonaProductSchemas;
   const tabs = () => schemas().commonTabs;
   const categoryTitle = (id) => schemas().categories.find((item) => item[0] === id)?.[1] || "Товар";
+  const fixedText = (value) => window.SonaText?.fix(value) || String(value ?? "");
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -23,9 +24,10 @@
   }
 
   function createDraft(product, type) {
-    const categoryLabel = categoryTitle(product.productType || type);
+    const productType = inferProductType(product, type);
+    const categoryLabel = categoryTitle(productType);
     return {
-      productType: product.productType || type,
+      productType,
       categoryLabel: product.categoryLabel || categoryLabel,
       category: product.category || categoryLabel,
       marketSection: product.marketSection || (type === "service" ? "Услуги" : "Мебель"),
@@ -38,6 +40,17 @@
       reviewsCount: product.reviewsCount ?? 0,
       ...product
     };
+  }
+
+  function inferProductType(product, fallback) {
+    if (product.productType) return product.productType;
+    const text = fixedText([product.category, product.categoryLabel, product.name, product.marketSection].filter(Boolean).join(" ")).toLowerCase();
+    if (text.includes("услуг")) return "service";
+    if (text.includes("кровать")) return "bed";
+    if (text.includes("шкаф")) return "wardrobe";
+    if (text.includes("кресл") || text.includes("стул")) return "chair";
+    if (text.includes("диван") || text.includes("прямой") || text.includes("угловой") || text.includes("модульный")) return "sofa";
+    return fallback || "other";
   }
 
   function renderField({ field, value, onChange, error }) {

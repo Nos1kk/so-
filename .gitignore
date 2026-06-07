@@ -6,3 +6,8 @@ yarn-debug.log*
 yarn-error.log*
 data/
 .DS_Store
+artifacts/edge-scroll-profile/
+artifacts/scroll-server.*.log
+logs/edge-profile-*/
+logs/*.log
+debug.log

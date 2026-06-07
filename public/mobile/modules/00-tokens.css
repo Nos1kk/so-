@@ -1,0 +1,43 @@
+/* Mobile design tokens
+   Source: public/mobile/mobile.css, first cascade pass. */
+@media (max-width: 760px) {
+  :root {
+    --m-navy: #101b2d;
+    --m-navy-2: #1d304d;
+    --m-ink: #142033;
+    --m-ink-soft: #243b5a;
+    --m-muted: #667386;
+    --m-muted-2: #7a8798;
+    --m-line: rgba(174, 191, 210, 0.44);
+    --m-line-strong: rgba(158, 183, 209, 0.66);
+    --m-paper: rgba(255, 255, 255, 0.88);
+    --m-surface: rgba(255, 255, 255, 0.92);
+    --m-surface-strong: #ffffff;
+    --m-surface-blue: rgba(238, 247, 255, 0.94);
+    --m-cream: #f5f0e8;
+    --m-blue: #0752a6;
+    --m-blue-soft: #e9f4ff;
+    --m-accent: #00a7ad;
+    --m-space-1: 4px;
+    --m-space-2: 8px;
+    --m-space-3: 12px;
+    --m-space-4: 16px;
+    --m-space-5: 20px;
+    --m-space-6: 24px;
+    --m-radius: 18px;
+    --m-radius-sm: 12px;
+    --m-radius-md: 18px;
+    --m-radius-lg: 24px;
+    --m-radius-xl: 28px;
+    --m-radius-pill: 999px;
+    --m-shadow: 0 18px 46px rgba(17, 31, 51, 0.12);
+    --m-shadow-soft: 0 12px 30px rgba(20, 35, 58, 0.08);
+    --m-shadow-card: 0 18px 42px rgba(20, 45, 78, 0.12);
+    --m-shadow-float: 0 24px 70px rgba(13, 27, 45, 0.22);
+    --m-blur-surface: blur(20px) saturate(1.12);
+    --m-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --m-z-header: 80;
+    --m-z-bottom-nav: 100;
+    --m-z-modal: 10020;
+  }
+}

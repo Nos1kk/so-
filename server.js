@@ -1,15 +1,27 @@
 const http = require("http");
-const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
+const crypto = require("crypto");
+const net = require("net");
+const tls = require("tls");
+
+loadEnvFile(path.join(__dirname, ".env"));
 
 const PORT = Number(process.env.PORT || process.env.AMVERA_PORT || process.env.APP_PORT) || 8000;
 const HOST = process.env.HOST || "0.0.0.0";
 const PUBLIC_DIR = path.join(__dirname, "public");
 const DATA_DIR = process.env.SONA_DATA_DIR || path.join(__dirname, "data");
 const STORE_FILE = path.join(DATA_DIR, "store.json");
-const smsCodes = new Map();
+const ACCOUNTS_DIR = path.join(DATA_DIR, "accounts");
+const ACCOUNTS_FILE = path.join(ACCOUNTS_DIR, "accounts.json");
+const ADMIN_EMAIL = normalizeEmail(process.env.SONA_ADMIN_EMAIL || "kcel046@gmail.com");
+const emailCodes = new Map();
+const authRateLimits = new Map();
+const authBlockedClients = new Map();
+const lastCodeHashes = new Map();
+const CODE_TTL_MS = 10 * 60 * 1000;
+const BLOCK_TTL_MS = 24 * 60 * 60 * 1000;
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -23,6 +35,32 @@ const MIME_TYPES = {
   ".webp": "image/webp",
   ".ico": "image/x-icon"
 };
+
+function loadEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return;
+
+  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return;
+
+    const separator = trimmed.indexOf("=");
+    if (separator < 1) return;
+
+    const key = trimmed.slice(0, separator).trim();
+    let value = trimmed.slice(separator + 1).trim();
+    if (!key || process.env[key] !== undefined) return;
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[key] = value;
+  });
+}
 
 function setSecurityHeaders(res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -47,8 +85,19 @@ function setSecurityHeaders(res) {
 
 function sendJson(res, statusCode, payload) {
   setSecurityHeaders(res);
+  setApiCorsHeaders(res);
   res.writeHead(statusCode, { "Content-Type": MIME_TYPES[".json"] });
   res.end(JSON.stringify(payload));
+}
+
+function methodNotAllowed(res) {
+  sendJson(res, 405, { ok: false, error: "Method not allowed" });
+}
+
+function setApiCorsHeaders(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, PUT, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
 }
 
 function cacheControlFor(ext) {
@@ -86,6 +135,171 @@ function readJsonBody(req, callback, options = {}) {
       callback(error);
     }
   });
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(normalizeEmail(value));
+}
+
+function hashAuthCode(email, code) {
+  const secret = process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET || "sona-local-auth-secret";
+  return crypto
+    .createHmac("sha256", secret)
+    .update(`${normalizeEmail(email)}:${String(code || "").trim()}`)
+    .digest("hex");
+}
+
+function createAuthCode(email) {
+  let code = "";
+  let hash = "";
+  const previousHash = lastCodeHashes.get(normalizeEmail(email));
+
+  do {
+    code = String(crypto.randomInt(100000, 1000000));
+    hash = hashAuthCode(email, code);
+  } while (hash === previousHash);
+
+  lastCodeHashes.set(normalizeEmail(email), hash);
+  return { code, hash };
+}
+
+function safeAccount(account) {
+  if (!account) return null;
+  return {
+    id: account.id,
+    email: account.email,
+    name: account.name || "",
+    role: account.role || "user",
+    status: account.status || "active",
+    createdAt: account.createdAt || "",
+    lastLoginAt: account.lastLoginAt || ""
+  };
+}
+
+function readAccounts(callback) {
+  fs.readFile(ACCOUNTS_FILE, "utf8", (error, content) => {
+    if (error) {
+      if (error.code === "ENOENT") {
+        callback(null, { accounts: [] });
+        return;
+      }
+      callback(error);
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(content);
+      callback(null, { accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [] });
+    } catch (parseError) {
+      callback(parseError);
+    }
+  });
+}
+
+function writeAccounts(state, callback) {
+  fs.mkdir(ACCOUNTS_DIR, { recursive: true }, (mkdirError) => {
+    if (mkdirError) {
+      callback(mkdirError);
+      return;
+    }
+
+    const payload = {
+      updatedAt: new Date().toISOString(),
+      accounts: Array.isArray(state.accounts) ? state.accounts : []
+    };
+    fs.writeFile(ACCOUNTS_FILE, JSON.stringify(payload, null, 2), "utf8", callback);
+  });
+}
+
+function accountIdFor(email) {
+  return `USER-${crypto.createHash("sha256").update(normalizeEmail(email)).digest("hex").slice(0, 12)}`;
+}
+
+function upsertAccount(email, callback) {
+  const normalizedEmail = normalizeEmail(email);
+  const now = new Date().toISOString();
+
+  readAccounts((readError, state) => {
+    if (readError) {
+      callback(readError);
+      return;
+    }
+
+    const existing = state.accounts.find((account) => account.email === normalizedEmail);
+    const account = {
+      ...(existing || {}),
+      id: existing?.id || accountIdFor(normalizedEmail),
+      email: normalizedEmail,
+      role: normalizedEmail === ADMIN_EMAIL ? "admin" : (existing?.role || "user"),
+      status: existing?.status || "active",
+      createdAt: existing?.createdAt || now,
+      lastLoginAt: now
+    };
+
+    if (account.status === "blocked") {
+      callback(null, account, state, true);
+      return;
+    }
+
+    state.accounts = [
+      ...state.accounts.filter((item) => item.email !== normalizedEmail),
+      account
+    ].sort((a, b) => String(a.email).localeCompare(String(b.email)));
+
+    writeAccounts(state, (writeError) => {
+      callback(writeError, account, state, false);
+    });
+  });
+}
+
+function requestKey(req, email) {
+  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  const ip = forwarded || req.socket.remoteAddress || "local";
+  return `${ip}:${normalizeEmail(email)}`;
+}
+
+function deviceKey(req, email) {
+  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  const ip = forwarded || req.socket.remoteAddress || "local";
+  const userAgent = String(req.headers["user-agent"] || "unknown").slice(0, 180);
+  const fingerprint = crypto.createHash("sha256").update(`${ip}:${userAgent}`).digest("hex").slice(0, 18);
+  return `${normalizeEmail(email)}:${fingerprint}`;
+}
+
+function checkRateLimit(key, maxAttempts, windowMs) {
+  const now = Date.now();
+  const current = authRateLimits.get(key);
+  if (!current || current.resetAt < now) {
+    authRateLimits.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+
+  current.count += 1;
+  return current.count <= maxAttempts;
+}
+
+function blockClient(req, email) {
+  authBlockedClients.set(deviceKey(req, email), {
+    until: Date.now() + BLOCK_TTL_MS,
+    email: normalizeEmail(email)
+  });
+}
+
+function blockInfo(req, email) {
+  const key = deviceKey(req, email);
+  const block = authBlockedClients.get(key);
+  if (!block) return null;
+
+  if (block.until <= Date.now()) {
+    authBlockedClients.delete(key);
+    return null;
+  }
+
+  return block;
 }
 
 function readStore(callback) {
@@ -147,41 +361,110 @@ function handleStorePut(req, res) {
   }, { maxBytes: 12 * 1024 * 1024 });
 }
 
-function normalizePhone(value) {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (digits.length === 11 && digits.startsWith("8")) return `7${digits.slice(1)}`;
-  return digits;
+function smtpRead(socket) {
+  return new Promise((resolve, reject) => {
+    let raw = "";
+    const onData = (chunk) => {
+      raw += chunk.toString("utf8");
+      const lines = raw.split(/\r?\n/).filter(Boolean);
+      const last = lines[lines.length - 1] || "";
+      if (/^\d{3} /.test(last)) {
+        cleanup();
+        resolve(raw);
+      }
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const cleanup = () => {
+      socket.off("data", onData);
+      socket.off("error", onError);
+    };
+    socket.on("data", onData);
+    socket.on("error", onError);
+  });
 }
 
-function createSmsCode() {
-  return String(Math.floor(1000 + Math.random() * 9000));
+async function smtpCommand(socket, command, expectedCodes) {
+  socket.write(`${command}\r\n`);
+  const response = await smtpRead(socket);
+  const code = Number(response.slice(0, 3));
+  const expected = Array.isArray(expectedCodes) ? expectedCodes : [expectedCodes];
+  if (!expected.includes(code)) {
+    throw new Error(`SMTP command failed: ${response.trim()}`);
+  }
+  return response;
 }
 
-function sendSms(phone, code, callback) {
-  const apiId = process.env.SMSRU_API_ID;
+function connectSmtp({ host, port, secure }) {
+  return new Promise((resolve, reject) => {
+    const socket = secure
+      ? tls.connect({ host, port, servername: host })
+      : net.connect({ host, port });
+    socket.setTimeout(12000);
+    socket.once("connect", () => {
+      if (!secure) resolve(socket);
+    });
+    socket.once("secureConnect", () => resolve(socket));
+    socket.once("timeout", () => reject(new Error("SMTP connection timeout")));
+    socket.once("error", reject);
+  });
+}
 
-  if (!apiId) {
-    console.log(`[SONA demo SMS] +${phone}: ${code}`);
-    callback(null, { demo: true });
-    return;
+async function sendSmtpMail({ to, subject, text }) {
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || 465);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.SMTP_FROM || user;
+  const secure = process.env.SMTP_SECURE !== "false";
+
+  if (!host || !user || !pass || !from) {
+    throw new Error("SMTP is not configured");
   }
 
-  const message = encodeURIComponent(`Код входа Soна: ${code}`);
-  const url = `https://sms.ru/sms/send?api_id=${encodeURIComponent(apiId)}&to=${encodeURIComponent(phone)}&msg=${message}&json=1`;
+  const socket = await connectSmtp({ host, port, secure });
+  const encodedSubject = `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
+  const message = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${encodedSubject}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    text.replace(/^\./gm, "..")
+  ].join("\r\n");
 
-  https.get(url, (smsRes) => {
-    let raw = "";
-    smsRes.on("data", (chunk) => {
-      raw += chunk;
-    });
-    smsRes.on("end", () => {
-      if (smsRes.statusCode >= 200 && smsRes.statusCode < 300) {
-        callback(null, { demo: false, provider: "sms.ru" });
-      } else {
-        callback(new Error(raw || "SMS provider error"));
-      }
-    });
-  }).on("error", callback);
+  try {
+    await smtpRead(socket);
+    await smtpCommand(socket, "EHLO sona.local", 250);
+    await smtpCommand(socket, "AUTH LOGIN", 334);
+    await smtpCommand(socket, Buffer.from(user).toString("base64"), 334);
+    await smtpCommand(socket, Buffer.from(pass).toString("base64"), 235);
+    await smtpCommand(socket, `MAIL FROM:<${from}>`, 250);
+    await smtpCommand(socket, `RCPT TO:<${to}>`, [250, 251]);
+    await smtpCommand(socket, "DATA", 354);
+    await smtpCommand(socket, `${message}\r\n.`, 250);
+    await smtpCommand(socket, "QUIT", [221, 250]);
+    return { provider: "smtp" };
+  } finally {
+    socket.destroy();
+  }
+}
+
+function sendEmailCode(email, code, callback) {
+  const subject = "Код входа SONA";
+  const text = [
+    `Ваш код входа в SONA: ${code}`,
+    "",
+    "Код действует 10 минут. Если вы не запрашивали вход, просто проигнорируйте это письмо."
+  ].join("\n");
+
+  sendSmtpMail({ to: email, subject, text })
+    .then((result) => callback(null, result))
+    .catch(callback);
 }
 
 function handleAuthRequest(req, res) {
@@ -191,28 +474,42 @@ function handleAuthRequest(req, res) {
       return;
     }
 
-    const phone = normalizePhone(body.phone);
-    if (phone.length < 10 || phone.length > 15) {
-      sendJson(res, 400, { ok: false, error: "Invalid phone" });
+    const email = normalizeEmail(body.email);
+    if (!isValidEmail(email)) {
+      sendJson(res, 400, { ok: false, error: "Invalid email" });
       return;
     }
 
-    const code = createSmsCode();
-    smsCodes.set(phone, {
-      code,
-      expiresAt: Date.now() + 5 * 60 * 1000
+    if (blockInfo(req, email)) {
+      sendJson(res, 403, {
+        ok: false,
+        error: "Device blocked",
+        message: "Доступ с этого устройства временно закрыт после неверных кодов."
+      });
+      return;
+    }
+
+    if (!checkRateLimit(requestKey(req, email), 5, 10 * 60 * 1000)) {
+      sendJson(res, 429, { ok: false, error: "Too many code requests" });
+      return;
+    }
+
+    const authCode = createAuthCode(email);
+    emailCodes.set(email, {
+      hash: authCode.hash,
+      attempts: 0,
+      expiresAt: Date.now() + CODE_TTL_MS
     });
 
-    sendSms(phone, code, (smsError, result) => {
-      if (smsError) {
-        sendJson(res, 502, { ok: false, error: "SMS provider failed" });
+    sendEmailCode(email, authCode.code, (mailError) => {
+      if (mailError) {
+        emailCodes.delete(email);
+        sendJson(res, 502, { ok: false, error: "Email provider failed" });
         return;
       }
 
       sendJson(res, 200, {
-        ok: true,
-        demo: Boolean(result.demo),
-        devCode: result.demo ? code : undefined
+        ok: true
       });
     });
   });
@@ -225,23 +522,65 @@ function handleAuthVerify(req, res) {
       return;
     }
 
-    const phone = normalizePhone(body.phone);
+    const email = normalizeEmail(body.email);
     const code = String(body.code || "").trim();
-    const record = smsCodes.get(phone);
+    const record = emailCodes.get(email);
+
+    if (!isValidEmail(email) || !/^\d{6}$/.test(code)) {
+      sendJson(res, 400, { ok: false, error: "Invalid auth payload" });
+      return;
+    }
+
+    if (blockInfo(req, email)) {
+      sendJson(res, 403, {
+        ok: false,
+        error: "Device blocked",
+        message: "Доступ с этого устройства временно закрыт после неверных кодов."
+      });
+      return;
+    }
 
     if (!record || record.expiresAt < Date.now()) {
-      smsCodes.delete(phone);
+      emailCodes.delete(email);
       sendJson(res, 400, { ok: false, error: "Code expired" });
       return;
     }
 
-    if (record.code !== code) {
-      sendJson(res, 400, { ok: false, error: "Wrong code" });
+    if (record.hash !== hashAuthCode(email, code)) {
+      record.attempts += 1;
+      if (record.attempts >= 4) {
+        emailCodes.delete(email);
+        blockClient(req, email);
+        sendJson(res, 403, {
+          ok: false,
+          error: "Device blocked",
+          message: "Доступ с этого устройства закрыт после 4 неверных попыток."
+        });
+        return;
+      }
+
+      const payload = { ok: false, error: "Wrong code" };
+      if (record.attempts === 3) {
+        payload.warning = "Вы ввели код неверно 3 раза. Следующая ошибка может заблокировать этот IP для входа на сайт.";
+      }
+      sendJson(res, 400, payload);
       return;
     }
 
-    smsCodes.delete(phone);
-    sendJson(res, 200, { ok: true, phone });
+    emailCodes.delete(email);
+    upsertAccount(email, (accountError, account, _state, blocked) => {
+      if (accountError) {
+        sendJson(res, 500, { ok: false, error: "Account store unavailable" });
+        return;
+      }
+
+      if (blocked) {
+        sendJson(res, 403, { ok: false, error: "Account blocked" });
+        return;
+      }
+
+      sendJson(res, 200, { ok: true, account: safeAccount(account) });
+    });
   });
 }
 
@@ -267,12 +606,20 @@ function resolveSafePath(urlPath) {
 
 function createServer() {
   return http.createServer((req, res) => {
-  if (req.method === "POST" && req.url === "/api/auth/request-sms") {
+  if (req.method === "OPTIONS" && String(req.url || "").startsWith("/api/")) {
+    setSecurityHeaders(res);
+    setApiCorsHeaders(res);
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/request-email") {
     handleAuthRequest(req, res);
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/auth/verify-sms") {
+  if (req.method === "POST" && req.url === "/api/auth/verify-email") {
     handleAuthVerify(req, res);
     return;
   }

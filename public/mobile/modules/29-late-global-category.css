@@ -1,0 +1,513 @@
+/* Late global overflow, header and category/favorites grid layer.
+
+   Consolidated from ordered 98* late patch modules; keep this import position until absorbed into base modules. */
+
+/* Source: 98m-global-category-overflow-late-patch.css */
+/* Late global overflow, header and category/favorites grid patches extracted from 99.
+
+   Ordered late patch layer preserved during 99-cascade-patches.css migration. */
+
+@media (max-width: 760px) {
+  html,
+  body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .site-header,
+  .page,
+  .app-shell,
+  .category-page,
+  .catalog-content,
+  .favorites-page-grid,
+  .favorites-hits,
+  .favorites-hits-grid,
+  .category-product-grid,
+  .sofa-collection-grid,
+  .catalog-collection-grid {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .site-header {
+    overflow-x: clip !important;
+  }
+
+  .header-grid {
+    grid-template-columns: auto 44px minmax(0, 1fr);
+    gap: 8px;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .brand {
+    min-width: 0 !important;
+  }
+
+  .catalog-button {
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+    color: #fff !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    text-indent: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .catalog-button > span:not(.burger-lines),
+  .catalog-button > strong,
+  .catalog-button > em {
+    display: none !important;
+  }
+
+  .burger-lines {
+    position: relative !important;
+    width: 20px !important;
+    height: 3px !important;
+    display: block !important;
+    flex: 0 0 20px !important;
+    margin: 0 !important;
+    border-radius: 999px !important;
+    background: currentColor !important;
+    color: inherit !important;
+    transform: none !important;
+  }
+
+  .burger-lines::before,
+  .burger-lines::after {
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important;
+    width: 20px !important;
+    height: 3px !important;
+    border-radius: 999px !important;
+    background: currentColor !important;
+  }
+
+  .burger-lines::before {
+    top: -7px !important;
+  }
+
+  .burger-lines::after {
+    top: 7px !important;
+  }
+
+  .search {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .search input {
+    min-width: 0 !important;
+    font-size: 14px !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .quick-nav {
+    width: 100% !important;
+    min-height: 42px !important;
+    gap: 6px !important;
+    padding: 5px 10px 7px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+  }
+
+  .quick-nav::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .quick-link,
+  .quick-phone {
+    min-height: 34px;
+    height: 34px;
+    gap: 5px !important;
+    padding: 0 9px;
+    border-radius: 999px !important;
+    font-size: 11.5px;
+    line-height: 1 !important;
+  }
+
+  .quick-icon {
+    width: 23px;
+    height: 23px;
+    border-radius: 8px !important;
+  }
+
+  .quick-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .quick-link span:last-child,
+  .quick-phone span:last-child {
+    max-width: 74px;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .catalog-content,
+  .category-page.app-shell {
+    width: min(100%, 430px) !important;
+    margin-inline: auto !important;
+    padding-inline: 10px;
+    overflow: hidden !important;
+  }
+
+  .sofa-collection-grid,
+  .catalog-collection-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .sofa-collection-card,
+  .catalog-collection-card {
+    min-height: 194px;
+    padding: 10px;
+    border-radius: 18px !important;
+  }
+
+  .sofa-collection-photo,
+  .catalog-collection-photo,
+  .sofa-collection-card .collection-image,
+  .catalog-collection-card .collection-image {
+    min-height: 92px;
+    height: 92px;
+    border-radius: 14px !important;
+  }
+
+  .sofa-collection-card h3,
+  .catalog-collection-card h3,
+  .sofa-collection-card strong,
+  .catalog-collection-card strong {
+    font-size: 17px;
+    line-height: 1.05 !important;
+  }
+
+  .sofa-collection-card b,
+  .catalog-collection-card b {
+    font-size: 13px !important;
+    line-height: 1.16 !important;
+  }
+
+  .sofa-collection-card p,
+  .catalog-collection-card p,
+  .sofa-collection-card small,
+  .catalog-collection-card small {
+    font-size: 12.5px !important;
+    line-height: 1.28 !important;
+  }
+
+  .category-page {
+    padding-top: 14px !important;
+    padding-bottom: 82px !important;
+  }
+
+  .category-hero {
+    padding: 16px !important;
+    border-radius: 24px !important;
+  }
+
+  .category-hero h1 {
+    font-size: clamp(36px, 10vw, 52px) !important;
+    line-height: 0.96 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .category-switcher {
+    width: 100% !important;
+    padding: 8px !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+  }
+
+  .category-switcher::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .category-switch-button {
+    min-height: 40px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  .category-product-grid,
+  .favorites-hits-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .category-product-grid .product-card,
+  .favorites-hits-grid .product-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 286px;
+    display: grid !important;
+    grid-template-rows: 112px minmax(0, 1fr);
+    overflow: hidden !important;
+    border-radius: 18px;
+  }
+
+  .category-product-grid .product-media,
+  .favorites-hits-grid .product-media {
+    min-height: 112px;
+    height: 112px;
+    padding: 8px;
+  }
+
+  .category-product-grid .product-placeholder,
+  .favorites-hits-grid .product-placeholder {
+    min-height: 96px;
+    height: 96px;
+    border-radius: 14px !important;
+  }
+
+  .category-product-grid .product-body,
+  .favorites-hits-grid .product-body {
+    min-width: 0 !important;
+    gap: 5px !important;
+    padding: 8px;
+    overflow: hidden !important;
+  }
+
+  .category-product-grid .product-top-line,
+  .favorites-hits-grid .product-top-line {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 4px !important;
+  }
+
+  .category-product-grid .product-brand,
+  .favorites-hits-grid .product-brand,
+  .category-product-grid .rating,
+  .favorites-hits-grid .rating {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    font-size: 10.5px !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .category-product-grid .product-title-row h3,
+  .category-product-grid .product-card h3,
+  .favorites-hits-grid .product-title-row h3,
+  .favorites-hits-grid .product-card h3 {
+    display: -webkit-box !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    font-size: 13.5px;
+    line-height: 1.08 !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .category-product-grid .product-meta,
+  .favorites-hits-grid .product-meta {
+    font-size: 10.5px !important;
+    line-height: 1.1 !important;
+  }
+
+  .category-product-grid .product-meta span:nth-child(n + 2),
+  .favorites-hits-grid .product-meta span:nth-child(n + 2),
+  .category-product-grid .bonus-note,
+  .favorites-hits-grid .bonus-note,
+  .category-product-grid .swatches,
+  .favorites-hits-grid .swatches {
+    display: none !important;
+  }
+
+  .category-product-grid .price strong,
+  .favorites-hits-grid .price strong {
+    font-size: 17px;
+    line-height: 1.05 !important;
+  }
+
+  .category-product-grid .price del,
+  .favorites-hits-grid .price del {
+    font-size: 10.5px !important;
+  }
+
+  .category-product-grid .delivery-note,
+  .favorites-hits-grid .delivery-note {
+    overflow: hidden !important;
+    font-size: 10.5px !important;
+    line-height: 1.05 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .category-product-grid .primary-button,
+  .favorites-hits-grid .primary-button {
+    width: 100% !important;
+    min-height: 36px;
+    padding: 0 8px !important;
+    border-radius: 999px !important;
+    font-size: 11.5px;
+  }
+
+  .favorites-empty-simple {
+    min-height: 82px !important;
+    padding: 16px !important;
+    border-radius: 20px !important;
+  }
+
+  .favorites-empty-simple strong {
+    font-size: 22px !important;
+    line-height: 1.08 !important;
+  }
+
+  .favorites-hits {
+    gap: 12px !important;
+    padding: 14px 10px !important;
+    border-radius: 22px !important;
+    overflow: hidden !important;
+  }
+
+  .favorites-hits-head h2 {
+    font-size: 26px !important;
+    line-height: 1 !important;
+  }
+}
+
+@media (max-width: 374px) {
+  .header-grid {
+    grid-template-columns: auto 40px minmax(0, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .catalog-button {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+  }
+
+  .quick-nav {
+    padding-inline: 8px !important;
+  }
+
+  .quick-link,
+  .quick-phone {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 8px !important;
+    font-size: 10.5px !important;
+  }
+
+  .quick-icon {
+    width: 21px !important;
+    height: 21px !important;
+  }
+
+  .quick-link span:last-child,
+  .quick-phone span:last-child {
+    max-width: 62px !important;
+  }
+
+  .catalog-content,
+  .category-page.app-shell {
+    padding-inline: 8px !important;
+  }
+
+  .sofa-collection-grid,
+  .catalog-collection-grid,
+  .category-product-grid,
+  .favorites-hits-grid {
+    gap: 6px !important;
+  }
+
+  .sofa-collection-card,
+  .catalog-collection-card {
+    min-height: 176px !important;
+    padding: 8px !important;
+  }
+
+  .sofa-collection-photo,
+  .catalog-collection-photo,
+  .sofa-collection-card .collection-image,
+  .catalog-collection-card .collection-image {
+    height: 78px !important;
+    min-height: 78px !important;
+  }
+
+  .sofa-collection-card h3,
+  .catalog-collection-card h3,
+  .sofa-collection-card strong,
+  .catalog-collection-card strong {
+    font-size: 15px !important;
+  }
+
+  .sofa-collection-card strong,
+  .catalog-collection-card strong,
+  .sofa-collection-card b,
+  .catalog-collection-card b,
+  .sofa-collection-card p,
+  .catalog-collection-card p,
+  .sofa-collection-card small,
+  .catalog-collection-card small {
+    font-size: 11.5px !important;
+  }
+
+  .category-product-grid .product-card,
+  .favorites-hits-grid .product-card {
+    min-height: 268px !important;
+    grid-template-rows: 100px minmax(0, 1fr) !important;
+    border-radius: 16px !important;
+  }
+
+  .category-product-grid .product-media,
+  .favorites-hits-grid .product-media {
+    height: 100px !important;
+    min-height: 100px !important;
+    padding: 7px !important;
+  }
+
+  .category-product-grid .product-placeholder,
+  .favorites-hits-grid .product-placeholder {
+    min-height: 86px !important;
+    height: 86px !important;
+  }
+
+  .category-product-grid .product-body,
+  .favorites-hits-grid .product-body {
+    padding: 7px !important;
+  }
+
+  .category-product-grid .product-title-row h3,
+  .category-product-grid .product-card h3,
+  .favorites-hits-grid .product-title-row h3,
+  .favorites-hits-grid .product-card h3 {
+    font-size: 12.2px !important;
+  }
+
+  .category-product-grid .price strong,
+  .favorites-hits-grid .price strong {
+    font-size: 15px !important;
+  }
+
+  .category-product-grid .primary-button,
+  .favorites-hits-grid .primary-button {
+    min-height: 33px !important;
+    font-size: 10.5px !important;
+  }
+}

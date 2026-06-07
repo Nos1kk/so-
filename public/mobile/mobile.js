@@ -53,6 +53,39 @@
     filterModal.remove();
   }
 
+  function hasOpenMobileFilters() {
+    return mobileQuery.matches
+      && filterModal.classList.contains("is-open")
+      && filterModal.getAttribute("aria-hidden") === "false";
+  }
+
+  function hasOpenProductModal() {
+    return Boolean(productModal?.classList.contains("is-open") && productModal.getAttribute("aria-hidden") === "false");
+  }
+
+  function hasOpenSupportChat() {
+    const panel = supportRoot?.querySelector(".sona-support-widget.is-open .sona-support-panel");
+    return Boolean(panel && panel.hidden === false && panel.getAttribute("aria-hidden") !== "true");
+  }
+
+  function releaseStaleScrollLocks() {
+    if (!mobileQuery.matches) {
+      body.classList.remove("mobile-filters-open", "mobile-overlay-open", "mobile-support-open");
+      return;
+    }
+
+    if (!hasOpenMobileFilters()) {
+      body.classList.remove("mobile-filters-open");
+    }
+    if (!hasOpenProductModal()) {
+      body.classList.remove("modal-lock");
+    }
+    if (!hasOpenSupportChat()) {
+      body.classList.remove("support-chat-open");
+    }
+    syncOverlayState();
+  }
+
   function syncMobileState() {
     const isMobile = mobileQuery.matches;
     body.classList.toggle("is-mobile-ux", isMobile);
@@ -63,6 +96,7 @@
     }
     filterBar?.setAttribute("aria-hidden", isMobile ? "true" : "false");
     if (!isMobile) closeMobileFilters();
+    releaseStaleScrollLocks();
   }
 
   function syncHeaderGlass() {
@@ -73,7 +107,7 @@
   }
 
   function syncOverlayState() {
-    const hasCatalogDrawer = catalogDrawer?.classList.contains("is-open");
+    const hasCatalogDrawer = catalogDrawer?.classList.contains("is-open") && catalogDrawer?.getAttribute("aria-hidden") !== "true";
     const hasProductModal = productModal?.getAttribute("aria-hidden") === "false";
     const hasProfileModal = Boolean(profileModal?.open);
     const hasSupport = Boolean(supportRoot?.querySelector(".sona-support-widget.is-open"));

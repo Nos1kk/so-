@@ -1,0 +1,74 @@
+/* Filter sheet, bottom navigation, support and footer rules extracted from the first remaining 99 cascade block.
+   Ordered patch layer: keep import order until these rules are fully absorbed. */
+@media (max-width: 760px) {
+  .listing-filter-bar {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 86vh;
+    padding: 16px 16px calc(18px + env(safe-area-inset-bottom));
+    border-radius: 24px 24px 0 0;
+    transform: translate3d(0, 105%, 0);
+  }
+
+  .mobile-filters-open .listing-filter-bar {
+    transform: translate3d(0, 0, 0);
+  }
+
+  .filter-pill,
+  .sale-switch,
+  .listing-filter-bar .sort-control {
+    min-height: 46px;
+    border-radius: 16px;
+  }
+
+  .mobile-filter-apply,
+  .reset-pill {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+  }
+
+  .mobile-bottom-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    height: 70px;
+    left: 8px;
+    right: 8px;
+    padding: 6px;
+  }
+
+  .mobile-bottom-nav button {
+    min-height: 54px;
+    gap: 2px;
+  }
+
+  .mobile-bottom-nav strong {
+    font-size: 9.5px;
+  }
+
+  .mobile-bottom-nav svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .support-chat-root {
+    display: none !important;
+  }
+
+  .site-footer {
+    width: 100%;
+    margin: 32px 0 0;
+    padding: 22px 16px calc(104px + env(safe-area-inset-bottom));
+    border-radius: 24px 24px 0 0;
+  }
+
+  .footer-brand-panel h2 {
+    display: none;
+  }
+
+  .footer-brand-panel p {
+    font-size: 13px;
+    -webkit-line-clamp: 3;
+  }
+}

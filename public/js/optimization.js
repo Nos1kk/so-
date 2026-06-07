@@ -32,15 +32,17 @@
     const style = document.createElement("style");
     style.id = "sona-optimization-style";
     style.textContent = `
-      .home-section,
-      .catalog-hub,
-      .promo-showcase,
-      .hits-showcase,
-      .site-footer,
-      .cart-page,
-      .account-page {
-        content-visibility: auto;
-        contain-intrinsic-size: 1px 720px;
+      @media (min-width: 761px) {
+        .home-section,
+        .catalog-hub,
+        .promo-showcase,
+        .hits-showcase,
+        .site-footer,
+        .cart-page,
+        .account-page {
+          content-visibility: auto;
+          contain-intrinsic-size: 1px 720px;
+        }
       }
 
       .product-card,

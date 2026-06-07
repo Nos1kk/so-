@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  const HIDDEN_KEY = "sona.support.hidden";
+
   function el(tag, className, text) {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -165,10 +167,13 @@
     if (!container) return;
 
     const wasOpen = Boolean(container.querySelector(".sona-support-widget.is-open"));
+    const wasHidden = localStorage.getItem(HIDDEN_KEY) === "true";
     const data = window.SonaStore.read();
     const canUseChat = isProfileActive(data);
     const root = el("div", "sona-support-widget");
     const launcher = el("button", "sona-support-launcher");
+    const hide = el("button", "sona-support-hide", "×");
+    const restore = el("button", "sona-support-restore");
     const panel = el("section", "sona-support-panel");
     const head = el("div", "", "");
     const headWrap = el("div", "sona-support-head");
@@ -202,12 +207,36 @@
       }
     }
 
+    function setHidden(hidden) {
+      root.classList.toggle("is-hidden", hidden);
+      if (hidden) {
+        localStorage.setItem(HIDDEN_KEY, "true");
+        setOpen(false);
+      } else {
+        localStorage.removeItem(HIDDEN_KEY);
+      }
+    }
+
     launcher.type = "button";
     launcher.setAttribute("aria-label", "Открыть чат поддержки");
     launcher.setAttribute("aria-expanded", "false");
     launcher.append(supportIcon(), el("strong", "", "Помощь"));
     launcher.addEventListener("click", () => {
       setOpen(!root.classList.contains("is-open"));
+    });
+
+    hide.type = "button";
+    hide.setAttribute("aria-label", "Скрыть кнопку помощи");
+    hide.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setHidden(true);
+    });
+
+    restore.type = "button";
+    restore.setAttribute("aria-label", "Показать кнопку помощи");
+    restore.append(supportIcon());
+    restore.addEventListener("click", () => {
+      setHidden(false);
     });
 
     close.type = "button";
@@ -286,8 +315,9 @@
     });
 
     panel.append(headWrap, renderMessages(data.supportMessages), form);
-    root.append(launcher, panel);
+    root.append(launcher, hide, restore, panel);
     container.replaceChildren(root);
+    setHidden(wasHidden);
     setOpen(wasOpen);
   }
 

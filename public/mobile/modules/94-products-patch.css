@@ -1,0 +1,152 @@
+/* Product grid and card rules extracted from the first remaining 99 cascade block.
+   Ordered patch layer: keep import order until these rules are fully absorbed. */
+@media (max-width: 760px) {
+  .product-grid,
+  .home-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .product-card,
+  .home-product-grid .product-card {
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    border: 1px solid rgba(216, 226, 238, 0.8);
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(19, 32, 51, 0.075);
+  }
+
+  .product-media {
+    min-height: 0;
+    padding: 8px;
+  }
+
+  .product-placeholder {
+    aspect-ratio: 1 / 1;
+    min-height: 0;
+    padding: 10px;
+    border: 0;
+    border-radius: 16px;
+    background: #f5f7fa;
+  }
+
+  .product-placeholder.has-image img {
+    object-fit: contain;
+  }
+
+  .placeholder-section,
+  .placeholder-line,
+  .product-placeholder i,
+  .bonus-note,
+  .swatches {
+    display: none;
+  }
+
+  .product-placeholder strong {
+    font-size: 13px;
+  }
+
+  .product-tags {
+    left: 10px;
+    top: 10px;
+    max-width: calc(100% - 50px);
+  }
+
+  .product-tags .tag:nth-child(n + 2) {
+    display: none;
+  }
+
+  .tag {
+    max-width: 76px;
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+
+  .favorite-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .product-body,
+  .product-info,
+  .product-card-content {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    padding: 0 10px 10px;
+  }
+
+  .product-top-line {
+    gap: 4px;
+  }
+
+  .product-brand {
+    max-width: 68%;
+    font-size: 11px;
+  }
+
+  .rating {
+    font-size: 10.5px;
+  }
+
+  .product-title-row h3,
+  .product-card h3 {
+    min-height: 34px;
+    font-size: 13.5px;
+    line-height: 1.22;
+  }
+
+  .product-meta {
+    max-height: 20px;
+    overflow: hidden;
+    font-size: 10.5px;
+  }
+
+  .product-meta span {
+    padding: 0;
+    background: transparent;
+  }
+
+  .product-meta span:nth-child(n + 2) {
+    display: none;
+  }
+
+  .product-footer {
+    gap: 5px;
+  }
+
+  .price {
+    display: grid;
+    gap: 2px;
+  }
+
+  .price strong,
+  .price-row strong,
+  .product-price strong {
+    font-size: 17px;
+  }
+
+  .price del {
+    font-size: 11px;
+  }
+
+  .economy {
+    display: none;
+  }
+
+  .delivery-note {
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
+
+  .primary-button {
+    width: 100%;
+    min-height: 38px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+}

@@ -1,0 +1,155 @@
+/* Late catalog hub and floating support bridge layer.
+
+   Consolidated from ordered 98* late patch modules; keep this import position until absorbed into base modules. */
+
+/* Source: 98j-catalog-support-floating-late-patch.css */
+/* Late catalog-hub and floating support corrections extracted from 99-cascade-patches.css.
+
+   This remains grouped because the original block mixed these concerns late in the cascade. */
+
+@media (max-width: 760px) {
+  .catalog-hub-grid {
+    align-items: stretch !important;
+  }
+
+  .catalog-hub-card:not(.catalog-hub-card--hero):not(.catalog-hub-card--service):not(.catalog-hub-card--sale) {
+    height: 206px;
+    min-height: 206px;
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+
+  .catalog-hub-card:not(.catalog-hub-card--hero):not(.catalog-hub-card--service):not(.catalog-hub-card--sale) .catalog-hub-photo {
+    flex: 0 0 108px;
+    height: 108px;
+    min-height: 108px;
+  }
+
+  .catalog-hub-card strong {
+    min-height: auto !important;
+    display: -webkit-box !important;
+    overflow: hidden !important;
+    color: var(--m-ink);
+    font-size: 19px;
+    line-height: 1.12 !important;
+    text-overflow: clip;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .catalog-hub-card small {
+    display: -webkit-box !important;
+    max-height: 40px;
+    overflow: hidden !important;
+    color: var(--m-muted);
+    font-size: 14px;
+    line-height: 1.35 !important;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .catalog-hub-card__label,
+  .catalog-hub-card b {
+    width: auto !important;
+    max-width: 100% !important;
+    min-height: 24px !important;
+    padding: 0 8px !important;
+    overflow: hidden !important;
+    border-radius: 999px;
+    font-size: 10px !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .catalog-hub-card--hero,
+  .catalog-hub-card--service,
+  .catalog-hub-card--sale {
+    min-height: 160px !important;
+  }
+
+  .catalog-hub-card--hero strong,
+  .catalog-hub-card--service strong,
+  .catalog-hub-card--sale strong {
+    font-size: 23px !important;
+  }
+
+  .support-chat-root {
+    display: block !important;
+    right: 14px;
+    bottom: calc(86px + env(safe-area-inset-bottom));
+    z-index: 96;
+    opacity: 1 !important;
+    transform: none;
+    pointer-events: auto !important;
+  }
+
+  .sona-support-launcher {
+    min-width: 48px;
+    width: 48px;
+    height: 48px;
+    border: 1px solid rgba(255, 255, 255, 0.36);
+    border-radius: 16px;
+    background: linear-gradient(135deg, #00b9bd, #087d91);
+    color: #fff;
+    box-shadow: 0 14px 30px rgba(0, 120, 140, 0.28), 0 0 0 6px rgba(0, 185, 189, 0.08);
+  }
+
+  .sona-support-launcher strong {
+    display: none;
+  }
+
+  .sona-support-launcher span {
+    width: 26px;
+    height: 26px;
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .sona-support-launcher svg {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.9;
+  }
+
+  .sona-support-panel {
+    right: 0;
+    bottom: 60px;
+    width: min(340px, calc(100vw - 28px));
+    max-height: min(560px, calc(100dvh - 160px));
+    border-radius: 22px !important;
+    box-shadow: 0 24px 70px rgba(13, 27, 45, 0.24);
+  }
+
+  body.mobile-overlay-open .support-chat-root,
+  body.mobile-filters-open .support-chat-root {
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 374px) {
+  .catalog-hub-card:not(.catalog-hub-card--hero):not(.catalog-hub-card--service):not(.catalog-hub-card--sale) {
+    height: 198px !important;
+    min-height: 198px !important;
+  }
+
+  .catalog-hub-card:not(.catalog-hub-card--hero):not(.catalog-hub-card--service):not(.catalog-hub-card--sale) .catalog-hub-photo {
+    flex-basis: 100px;
+    height: 100px !important;
+    min-height: 100px !important;
+  }
+
+  .catalog-hub-card strong {
+    font-size: 18px !important;
+  }
+
+  .catalog-hub-card small {
+    font-size: 13px !important;
+  }
+}

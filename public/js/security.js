@@ -23,7 +23,9 @@
   }
 
   function sanitizeEmail(value) {
-    return sanitizeText(value, 80).toLowerCase();
+    return sanitizeText(value, 120)
+      .replace(/[\s]+/g, "")
+      .toLowerCase();
   }
 
   function sanitizePhone(value) {
@@ -123,6 +125,25 @@
     };
   }
 
+  function isValidEmail(value) {
+    return emailPattern.test(sanitizeEmail(value));
+  }
+
+  function validateAuthEmail(value) {
+    const email = sanitizeEmail(value);
+    if (!email) {
+      return { ok: false, email, message: "Введите email" };
+    }
+    if (!isValidEmail(email)) {
+      return { ok: false, email, message: "Проверьте email" };
+    }
+    return { ok: true, email };
+  }
+
+  function sanitizeAuthCode(value) {
+    return String(value || "").replace(/\D/g, "").slice(0, 6);
+  }
+
   function safeProductId(value) {
     return sanitizeText(value, 48).replace(/[^a-z0-9-]/gi, "");
   }
@@ -131,6 +152,9 @@
     sanitizeText,
     sanitizeEmail,
     sanitizePhone,
+    sanitizeAuthCode,
+    isValidEmail,
+    validateAuthEmail,
     validateProfile,
     safeProductId
   };

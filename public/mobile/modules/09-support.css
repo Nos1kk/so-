@@ -1,0 +1,29 @@
+/* Mobile support launcher and panel
+   Source: public/mobile/mobile.css, first cascade pass. */
+@media (max-width: 760px) {
+  .support-chat-root {
+    right: 18px;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    z-index: 92;
+  }
+
+  .sona-support-launcher {
+    min-width: 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    box-shadow: 0 14px 34px rgba(16, 27, 45, 0.24);
+  }
+
+  .sona-support-launcher strong {
+    display: none;
+  }
+
+  .sona-support-panel {
+    right: 0;
+    bottom: 60px;
+    width: min(360px, calc(100% - 24px));
+    max-height: calc(100vh - 170px);
+    border-radius: 22px;
+  }
+}

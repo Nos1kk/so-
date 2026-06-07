@@ -1,0 +1,163 @@
+/* Product list/card layout extracted from 99.
+   Ordered patch layer: keep import order until these rules are fully absorbed. */
+@media (max-width: 760px) {
+  .product-grid,
+  .home-product-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .product-card,
+  .home-product-grid .product-card {
+    min-height: 0;
+    grid-template-columns: minmax(118px, 38%) minmax(0, 1fr);
+    grid-template-rows: auto;
+    align-items: stretch;
+    border-radius: 22px;
+    box-shadow: 0 14px 34px rgba(19, 32, 51, 0.085);
+  }
+
+  .product-media {
+    min-height: 178px;
+    padding: 8px;
+  }
+
+  .product-placeholder {
+    min-height: 162px;
+    padding: 12px;
+    border-radius: 17px;
+  }
+
+  .product-placeholder strong {
+    font-size: 14px;
+    line-height: 1.12;
+    -webkit-line-clamp: 2;
+  }
+
+  .placeholder-section,
+  .placeholder-line,
+  .product-placeholder i {
+    font-size: 10.5px;
+  }
+
+  .product-tags {
+    left: 10px;
+    top: 10px;
+    max-width: calc(100% - 52px);
+    gap: 4px;
+  }
+
+  .product-tags .tag:nth-child(n + 3) {
+    display: none;
+  }
+
+  .tag {
+    max-width: 88px;
+    padding: 4px 7px;
+    font-size: 10.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .favorite-button {
+    width: 32px;
+    height: 32px;
+    right: 9px;
+    top: 9px;
+  }
+
+  .favorite-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .product-body,
+  .product-info,
+  .product-card-content {
+    min-width: 0;
+    align-content: center;
+    gap: 6px;
+    padding: 12px 12px 12px 2px;
+  }
+
+  .product-top-line {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .product-brand {
+    max-width: 62%;
+    font-size: 11px;
+  }
+
+  .rating {
+    font-size: 11px;
+  }
+
+  .product-title-row h3,
+  .product-card h3 {
+    min-height: 0;
+    font-size: 15px;
+    line-height: 1.18;
+    -webkit-line-clamp: 2;
+  }
+
+  .product-meta {
+    max-height: 24px;
+    gap: 4px;
+    font-size: 10.5px;
+  }
+
+  .product-meta span {
+    padding: 3px 6px;
+  }
+
+  .product-meta span:nth-child(n + 3) {
+    display: none;
+  }
+
+  .swatches {
+    min-height: 16px;
+    gap: 4px;
+  }
+
+  .swatch {
+    width: 16px;
+    height: 16px;
+  }
+
+  .product-footer {
+    gap: 5px;
+    margin-top: 0;
+  }
+
+  .price {
+    gap: 6px;
+  }
+
+  .price strong,
+  .price-row strong,
+  .product-price strong {
+    font-size: 18px;
+    line-height: 1.05;
+  }
+
+  .price del {
+    font-size: 11px;
+  }
+
+  .economy,
+  .bonus-note,
+  .delivery-note {
+    max-width: 100%;
+    font-size: 10.5px;
+    line-height: 1.2;
+  }
+
+  .primary-button {
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 12.5px;
+  }
+}

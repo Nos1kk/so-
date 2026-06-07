@@ -1,0 +1,199 @@
+/* Catalog hub and mobile feature cards extracted from the first remaining 99 cascade block.
+   Ordered patch layer: keep import order until these rules are fully absorbed. */
+@media (max-width: 760px) {
+  .catalog-hub,
+  .mobile-service-sale,
+  .catalog-section {
+    margin-top: 28px;
+  }
+
+  .catalog-hub {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .catalog-hub-head {
+    margin-bottom: 14px;
+  }
+
+  .catalog-hub-head span {
+    display: none;
+  }
+
+  .catalog-hub-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .catalog-hub-card--service,
+  .catalog-hub-card--sale {
+    display: none !important;
+  }
+
+  .catalog-hub-card {
+    min-height: 158px;
+    display: grid;
+    align-content: space-between;
+    gap: 6px;
+    padding: 14px;
+    border: 1px solid rgba(216, 226, 238, 0.82);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 10px 26px rgba(19, 32, 51, 0.07);
+  }
+
+  .catalog-hub-card--hero {
+    grid-column: auto;
+    min-height: 158px;
+    color: var(--m-ink);
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  .catalog-hub-card--hero::after {
+    content: none;
+  }
+
+  .catalog-hub-card--hero > *:not(.catalog-hub-photo) {
+    max-width: 100%;
+  }
+
+  .catalog-hub-card__label,
+  .catalog-hub-card b {
+    display: none;
+  }
+
+  .catalog-hub-photo,
+  .catalog-hub-card--hero .catalog-hub-photo {
+    position: static;
+    width: 100%;
+    height: 78px;
+    margin: 0;
+    opacity: 1;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #f6f9fc, #edf3f8);
+  }
+
+  .catalog-hub-photo img {
+    object-fit: contain;
+    padding: 2px;
+  }
+
+  .catalog-hub-card strong,
+  .catalog-hub-card--hero strong {
+    font-size: 16px;
+    line-height: 1.12;
+  }
+
+  .catalog-hub-card small,
+  .catalog-hub-card--hero small {
+    color: var(--m-muted);
+    font-size: 12px;
+    line-height: 1.3;
+    -webkit-line-clamp: 2;
+  }
+
+  .mobile-service-sale {
+    display: grid;
+    padding-inline: 0;
+  }
+
+  .mobile-service-sale-grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .mobile-feature-card {
+    min-height: 172px;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    align-content: center;
+    gap: 7px 12px;
+    overflow: hidden;
+    padding: 16px;
+    border-radius: 24px;
+    background: linear-gradient(145deg, #ffffff, #f4f7fa);
+    box-shadow: 0 14px 34px rgba(19, 32, 51, 0.09);
+  }
+
+  .mobile-feature-card.is-sale {
+    background: linear-gradient(145deg, #18243a, #2b3e5a);
+    color: #fff;
+  }
+
+  .mobile-feature-visual {
+    grid-column: 2;
+    grid-row: 1 / span 5;
+    align-self: center;
+    width: 112px;
+    height: 126px;
+    display: grid;
+    place-items: center;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  .mobile-feature-visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .mobile-feature-label {
+    width: fit-content;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: rgba(16, 27, 45, 0.08);
+    color: var(--m-navy);
+    font-size: 11px;
+    font-weight: 950;
+  }
+
+  .is-sale .mobile-feature-label {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+  }
+
+  .mobile-feature-card strong {
+    font-size: 20px;
+    line-height: 1.08;
+  }
+
+  .mobile-feature-card small {
+    color: var(--m-muted);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .is-sale small {
+    color: rgba(255, 255, 255, 0.76);
+  }
+
+  .mobile-feature-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .mobile-feature-tags i,
+  .mobile-feature-card b {
+    width: fit-content;
+    padding: 6px 8px;
+    border-radius: 999px;
+    background: rgba(16, 27, 45, 0.08);
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 900;
+  }
+
+  .mobile-feature-card b {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .promo-showcase,
+  section[aria-label="Новинки и рекомендации"] {
+    display: none !important;
+  }
+}

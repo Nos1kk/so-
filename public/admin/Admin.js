@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const ADMIN_PHONE = "79056704413";
+  const ADMIN_EMAIL = "kcel046@gmail.com";
   let activeSection = "home";
 let productQuery = "";
 let orderQuery = "";
@@ -45,17 +45,49 @@ let reviewStatusFilter = "all";
   }
 
   function digits(value) {
-    return String(value || "").replace(/\D/g, "");
+    const clean = String(value || "").replace(/\D/g, "");
+    return clean.length === 11 && clean.startsWith("8") ? `7${clean.slice(1)}` : clean;
+  }
+
+  function cleanEmail(value) {
+    return window.SonaSecurity?.sanitizeEmail(value) || String(value || "").trim().toLowerCase();
+  }
+
+  function authApiUrl(path) {
+    return window.location.protocol === "file:" ? `http://127.0.0.1:8000${path}` : path;
+  }
+
+  async function requestEmailCode(email) {
+    const response = await fetch(authApiUrl("/api/auth/request-email"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    return response.json();
+  }
+
+  async function verifyEmailCode(email, code) {
+    const response = await fetch(authApiUrl("/api/auth/verify-email"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code })
+    });
+    return response.json();
   }
 
   function isAdmin(data) {
-    return Boolean(data?.admin?.isAuthenticated || data?.profile?.role === "admin" || digits(data?.profile?.phone).endsWith(ADMIN_PHONE.slice(1)));
+    const profileEmail = cleanEmail(data?.profile?.email);
+    const adminEmail = cleanEmail(data?.admin?.email);
+    return Boolean(
+      (data?.admin?.isAuthenticated && adminEmail === ADMIN_EMAIL) ||
+      (data?.profile?.role === "admin" && profileEmail === ADMIN_EMAIL)
+    );
   }
 
   function logoutAdmin(onChange) {
     window.SonaStore.update((state) => {
-      state.admin = { ...(state.admin || {}), isAuthenticated: false, phone: "" };
-      state.profile = { ...(state.profile || {}), role: "user", phone: "", isActive: false };
+      state.admin = { ...(state.admin || {}), isAuthenticated: false, email: "" };
+      state.profile = { ...(state.profile || {}), role: "user", isActive: false };
     });
     activeSection = "home";
     onChange?.();
@@ -142,29 +174,63 @@ let reviewStatusFilter = "all";
     const wrap = el("section", "sona-admin-login");
     const form = el("form", "");
     const input = el("input");
-    const button = el("button", "", "Войти в админ-панель");
-    const hint = el("p", "sona-admin-muted", "Доступ разрешён только администратору Soна.");
+    const codeInput = el("input");
+    const button = el("button", "", "Получить код");
+    const hint = el("p", "sona-admin-muted", `Доступ разрешён только администратору ${ADMIN_EMAIL}.`);
+    let codeSent = false;
+    let loginEmail = ADMIN_EMAIL;
 
-    input.type = "tel";
-    input.placeholder = "+7 905 670 44 13";
+    input.type = "email";
+    input.placeholder = ADMIN_EMAIL;
+    input.value = ADMIN_EMAIL;
+    input.autocomplete = "email";
+    codeInput.inputMode = "numeric";
+    codeInput.placeholder = "000000";
+    codeInput.maxLength = 6;
+    codeInput.hidden = true;
     button.type = "submit";
-    form.append(input, button);
-    form.addEventListener("submit", (event) => {
+    form.append(input, codeInput, button);
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      if (!digits(input.value).endsWith(ADMIN_PHONE.slice(1))) {
-        hint.textContent = "Этот номер не имеет прав администратора.";
+      const email = cleanEmail(input.value);
+      if (email !== ADMIN_EMAIL) {
+        hint.textContent = "Эта почта не имеет прав администратора.";
         input.focus();
         return;
       }
+
+      if (!codeSent) {
+        const result = await requestEmailCode(email).catch(() => null);
+        if (!result?.ok) {
+          hint.textContent = "Не удалось отправить письмо с кодом.";
+          return;
+        }
+        loginEmail = email;
+        codeSent = true;
+        codeInput.hidden = false;
+        button.textContent = "Войти";
+        hint.textContent = "Код отправлен на почту администратора.";
+        codeInput.focus();
+        return;
+      }
+
+      const code = window.SonaSecurity?.sanitizeAuthCode(codeInput.value) || codeInput.value.trim();
+      const result = await verifyEmailCode(loginEmail, code).catch(() => null);
+      if (!result?.ok || result.account?.role !== "admin") {
+        hint.textContent = "Неверный код администратора.";
+        codeInput.focus();
+        return;
+      }
+
       window.SonaStore.update((data) => {
-        data.admin = { ...(data.admin || {}), isAuthenticated: true, phone: "+7 905 670 44 13" };
+        data.admin = { ...(data.admin || {}), isAuthenticated: true, email: loginEmail };
         data.profile = {
           ...(data.profile || {}),
           isActive: true,
-          phone: "+7 905 670 44 13",
+          email: loginEmail,
           role: "admin",
-          name: data.profile?.name || "Администратор Soна",
-          registeredAt: data.profile?.registeredAt || new Date().toISOString()
+          name: data.profile?.name || "Администратор SONA",
+          registeredAt: result.account?.createdAt || data.profile?.registeredAt || new Date().toISOString()
         };
       });
       onChange?.();
@@ -826,6 +892,6 @@ let reviewStatusFilter = "all";
   window.SonaAdmin = {
     render,
     isAdmin,
-    ADMIN_PHONE
+    ADMIN_EMAIL
   };
 })();

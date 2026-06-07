@@ -1,0 +1,50 @@
+/* Mobile section rhythm and shared controls
+   Source: public/mobile/mobile.css, first cascade pass. */
+@media (max-width: 760px) {
+  .home-section {
+    gap: 14px;
+    margin: 0;
+    padding-top: 32px;
+  }
+
+  .section-head,
+  .catalog-toolbar {
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .section-head h2,
+  .catalog-toolbar h2,
+  .promo-editorial-copy h2 {
+    margin: 2px 0 0;
+    font-size: clamp(22px, 6.4vw, 28px);
+    line-height: 1.08;
+  }
+
+  .section-head span,
+  .catalog-hub-head span,
+  .promo-editorial-copy > span {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--m-muted);
+    font-size: 14px;
+    line-height: 1.45;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+
+  .soft-button,
+  .light-button {
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+}

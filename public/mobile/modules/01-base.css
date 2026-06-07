@@ -1,0 +1,37 @@
+/* Mobile base and document reset
+   Source: public/mobile/mobile.css, first cascade pass. */
+@media (max-width: 760px) {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, #f8f5ef 0%, #f4f7fa 42%, #ffffff 100%);
+    color: var(--m-ink);
+    font-size: 15px;
+  }
+
+  body.mobile-filters-open {
+    overflow: hidden;
+  }
+
+  .particle-field,
+  .hero-banner::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .app-shell {
+    width: 100%;
+    max-width: 100%;
+    padding-inline: 16px;
+  }
+}

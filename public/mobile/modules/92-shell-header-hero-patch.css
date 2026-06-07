@@ -1,0 +1,169 @@
+/* Shell, header and hero extracted from the first remaining 99 cascade block.
+   Ordered patch layer: keep import order until these rules are fully absorbed. */
+@media (max-width: 760px) {
+  html,
+  body,
+  .app-shell,
+  .marketplace,
+  .site-header,
+  .quick-nav,
+  .catalog-hub,
+  .mobile-service-sale,
+  .catalog-section,
+  .site-footer {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  body {
+    width: 100%;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+
+  .app-shell {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: 16px;
+  }
+
+  .top-promo {
+    height: calc(30px + env(safe-area-inset-top));
+    min-height: calc(30px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 14px 0;
+    line-height: 30px;
+    font-size: 11.5px;
+  }
+
+  .top-promo span:first-child {
+    font-size: 0;
+  }
+
+  .top-promo span:first-child::before {
+    content: "Промокод ВЕЗЕТ: скидка 15% до 50 000 ₽";
+    font-size: 11.5px;
+  }
+
+  .header-grid {
+    min-height: 58px;
+    grid-template-columns: auto 1fr auto auto;
+    padding-block: 6px;
+    column-gap: 8px;
+  }
+
+  #profileButton,
+  #favoritesButton {
+    display: none !important;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-name {
+    font-size: 1.28rem;
+  }
+
+  .top-actions {
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  .cart-trigger,
+  .catalog-button {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: 13px;
+  }
+
+  .catalog-button {
+    grid-column: 4;
+    justify-self: end;
+    margin-right: 0;
+  }
+
+  .burger-lines,
+  .burger-lines::before,
+  .burger-lines::after {
+    width: 18px;
+  }
+
+  .cart-trigger .action-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .cart-badge {
+    right: 0;
+    top: 0;
+  }
+
+  .search {
+    width: 100%;
+    min-height: 48px;
+    height: 48px;
+    margin-top: 0;
+  }
+
+  .search input {
+    height: 100%;
+    padding: 0 8px 0 16px;
+  }
+
+  .search-icon {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .quick-nav {
+    width: 100%;
+    min-height: 44px;
+    padding: 4px 16px 8px;
+    gap: 7px;
+  }
+
+  .quick-link {
+    min-height: 38px;
+    padding: 0 10px;
+    gap: 5px;
+    font-size: 13px;
+  }
+
+  .quick-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .quick-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .hero-carousel {
+    width: 100%;
+    height: clamp(360px, 96vw, 420px);
+    max-height: 420px;
+    margin: 0;
+    border-radius: 24px;
+  }
+
+  .mobile-hero-copy {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .mobile-hero-copy h1 {
+    max-width: 280px;
+    font-size: clamp(28px, 8vw, 32px);
+  }
+
+  .mobile-hero-copy p {
+    max-width: 270px;
+    font-size: 13px;
+  }
+}

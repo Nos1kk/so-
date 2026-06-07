@@ -1,0 +1,106 @@
+/* Mobile footer and account/cart pages
+   Source: public/mobile/mobile.css, first cascade pass. */
+@media (max-width: 760px) {
+  .site-footer {
+    width: calc(100% - 32px);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    margin: 36px 16px 18px;
+    padding: 22px 18px;
+    border-radius: 24px;
+    background: linear-gradient(145deg, #101b2d, #1b283d);
+    color: #fff;
+    box-shadow: 0 22px 58px rgba(11, 20, 34, 0.24);
+  }
+
+  .footer-brand-panel {
+    min-height: 0;
+    gap: 14px;
+  }
+
+  .footer-brand {
+    gap: 10px;
+    font-size: 22px;
+  }
+
+  .footer-brand img {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .footer-brand-panel h2 {
+    max-width: 100%;
+    font-family: inherit;
+    font-size: 24px;
+    line-height: 1.08;
+  }
+
+  .footer-brand-panel p {
+    max-width: 100%;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .footer-nav-panel {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .footer-nav-panel div {
+    gap: 8px;
+    padding: 14px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .footer-nav-panel span,
+  .footer-payment > span {
+    color: rgba(255, 255, 255, 0.56);
+    font-size: 11px;
+  }
+
+  .footer-nav-panel a {
+    min-height: 30px;
+    color: #fff;
+    font-size: 14px;
+  }
+
+  .footer-contact-panel {
+    gap: 10px;
+  }
+
+  .footer-contact-card,
+  .footer-payment {
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .footer-contact-card strong {
+    font-size: 15px;
+  }
+
+  .footer-payment {
+    grid-template-columns: 1fr repeat(3, auto);
+  }
+
+  .cart-page:not([hidden]),
+  .account-page:not([hidden]) {
+    width: 100%;
+    padding-inline: 16px;
+  }
+
+  .cart-page-layout,
+  .favorites-page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-summary,
+  .favorites-summary,
+  .favorite-card,
+  .cart-item {
+    border-radius: 20px;
+  }
+}

@@ -1,0 +1,213 @@
+/* Mobile header, search, quick navigation
+   Source: public/mobile/mobile.css, first cascade pass. */
+@media (max-width: 760px) {
+  .top-promo {
+    min-height: calc(30px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 16px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background: linear-gradient(90deg, #0f1a2c, #223754);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+
+  .top-promo span:first-child {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .top-promo span:nth-child(2) {
+    display: none !important;
+  }
+
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.58);
+    background: rgba(249, 251, 253, 0.9);
+    box-shadow: 0 10px 30px rgba(20, 35, 58, 0.08);
+    backdrop-filter: blur(20px) saturate(1.15);
+  }
+
+  .site-header.is-mobile-scrolled {
+    background: rgba(250, 252, 255, 0.78);
+    box-shadow: 0 16px 38px rgba(20, 35, 58, 0.13);
+  }
+
+  .header-grid {
+    min-height: 68px;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    align-items: center;
+    gap: 8px;
+    padding-block: 8px;
+  }
+
+  .brand {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .brand-name {
+    font-size: 1.45rem;
+    line-height: 1;
+  }
+
+  .catalog-button {
+    grid-column: 5;
+    grid-row: 1;
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 14px;
+    box-shadow: none;
+  }
+
+  .catalog-button span:last-child {
+    display: none;
+  }
+
+  .top-actions {
+    grid-column: 2 / 5;
+    grid-row: 1;
+    justify-self: end;
+    display: flex;
+    gap: 7px;
+  }
+
+  .nav-action {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.74);
+    box-shadow: inset 0 0 0 1px rgba(207, 220, 235, 0.72);
+  }
+
+  .nav-action strong {
+    display: none;
+  }
+
+  .action-icon {
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .cart-badge {
+    right: 0;
+    top: 0;
+    min-width: 18px;
+    height: 18px;
+    font-size: 10px;
+    background: var(--m-navy);
+  }
+
+  .search {
+    grid-column: 1 / -1;
+    order: 10;
+    min-height: 50px;
+    margin-top: 2px;
+    border: 1px solid var(--m-line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: inset 0 1px 3px rgba(17, 31, 51, 0.06);
+  }
+
+  .search-scope {
+    display: none;
+  }
+
+  .search input {
+    min-width: 0;
+    padding-left: 18px;
+    font-size: 15px;
+  }
+
+  .search-icon {
+    width: 42px;
+    height: 42px;
+    margin-right: 4px;
+    border-radius: 999px;
+    background: var(--m-navy);
+    color: #fff;
+  }
+
+  .search:focus-within {
+    border-color: rgba(29, 48, 77, 0.42);
+    box-shadow: 0 0 0 4px rgba(29, 48, 77, 0.08);
+  }
+
+  .quick-nav {
+    position: relative;
+    width: 100%;
+    min-height: 52px;
+    display: flex;
+    gap: 8px;
+    padding: 6px 16px 10px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .quick-nav::after {
+    content: "";
+    position: sticky;
+    right: 0;
+    width: 22px;
+    flex: 0 0 22px;
+    margin-left: 0;
+    background: linear-gradient(90deg, rgba(249, 251, 253, 0), rgba(249, 251, 253, 0.96));
+    pointer-events: none;
+  }
+
+  .quick-link,
+  .quick-phone {
+    min-height: 40px;
+    flex: 0 0 auto;
+    gap: 7px;
+    padding: 0 13px;
+    border: 1px solid var(--m-line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 18px rgba(20, 35, 58, 0.06);
+    color: var(--m-ink);
+    font-size: 13px;
+    scroll-snap-align: start;
+  }
+
+  .quick-link:active {
+    transform: scale(0.97);
+  }
+
+  .quick-link.is-sale {
+    color: var(--m-navy);
+    background: #fff8df;
+  }
+
+  .quick-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 10px;
+  }
+
+  .quick-phone {
+    display: none;
+  }
+}

@@ -1,0 +1,471 @@
+/* Late category, all-products, support panel and animation layer.
+
+   Consolidated from ordered 98* late patch modules; keep this import position until absorbed into base modules. */
+
+/* Source: 98k-category-products-support-late-patch.css */
+/* Late category, all-products, support panel and animation patches extracted from 99-cascade-patches.css.
+
+   Top-level blocks are grouped to keep keyframes adjacent to the rules that reference them. */
+
+@media (max-width: 760px) {
+  .category-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 14px 12px calc(104px + env(safe-area-inset-bottom)) !important;
+    overflow-x: hidden !important;
+  }
+
+  .category-page-inner {
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 14px !important;
+  }
+
+  .category-page-head {
+    width: 100% !important;
+    padding: 18px 16px !important;
+    border-radius: 22px !important;
+  }
+
+  .category-page-head h2 {
+    font-size: clamp(30px, 10vw, 44px) !important;
+    line-height: 1 !important;
+  }
+
+  .category-page-switcher {
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 7px !important;
+    padding: 8px !important;
+    overflow-x: auto !important;
+    border-radius: 18px !important;
+  }
+
+  .category-page-switcher button {
+    min-height: 38px !important;
+    padding: 0 12px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  .category-product-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    overflow: hidden !important;
+  }
+
+  .category-product-grid .product-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 294px !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 116px minmax(0, 1fr) !important;
+    border-radius: 18px !important;
+  }
+
+  .category-product-grid .product-media {
+    min-height: 116px !important;
+    padding: 7px !important;
+  }
+
+  .category-product-grid .product-placeholder {
+    aspect-ratio: 1 / 1 !important;
+    min-height: 0 !important;
+    padding: 9px !important;
+  }
+
+  .category-product-grid .product-body,
+  .category-product-grid .product-info,
+  .category-product-grid .product-card-content {
+    gap: 5px !important;
+    padding: 9px !important;
+  }
+
+  .category-product-grid .product-title-row h3,
+  .category-product-grid .product-card h3 {
+    min-height: 0 !important;
+    font-size: 13.5px !important;
+    line-height: 1.16 !important;
+    -webkit-line-clamp: 2;
+  }
+
+  .category-product-grid .product-brand {
+    max-width: 60% !important;
+    font-size: 10.5px !important;
+  }
+
+  .category-product-grid .rating {
+    font-size: 10px !important;
+  }
+
+  .category-product-grid .product-meta {
+    max-height: 18px !important;
+    font-size: 10px !important;
+  }
+
+  .category-product-grid .product-meta span:nth-child(n + 2),
+  .category-product-grid .bonus-note,
+  .category-product-grid .swatches {
+    display: none !important;
+  }
+
+  .category-product-grid .price strong,
+  .category-product-grid .price-row strong,
+  .category-product-grid .product-price strong {
+    font-size: 16px !important;
+  }
+
+  .category-product-grid .delivery-note {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    font-size: 10px !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .category-product-grid .primary-button {
+    min-height: 36px !important;
+    padding: 0 8px !important;
+    font-size: 11.5px !important;
+  }
+
+  .all-products-section {
+    width: min(430px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    margin-right: auto !important;
+    margin-left: auto !important;
+    padding: 14px 10px !important;
+    overflow: hidden !important;
+  }
+
+  .all-products-section .product-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    overflow: hidden !important;
+  }
+
+  .all-products-section .product-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 294px;
+    grid-template-rows: 116px minmax(0, 1fr);
+    border-radius: 18px !important;
+  }
+
+  .all-products-section .product-media {
+    min-height: 116px;
+    padding: 7px !important;
+  }
+
+  .all-products-section .product-body {
+    gap: 5px !important;
+    padding: 9px !important;
+  }
+
+  .all-products-section .product-title-row h3 {
+    min-height: 0 !important;
+    font-size: 13.5px !important;
+    line-height: 1.16 !important;
+    -webkit-line-clamp: 2;
+  }
+
+  .all-products-section .delivery-note {
+    font-size: 10px !important;
+  }
+
+  .all-products-section .primary-button {
+    min-height: 36px !important;
+    padding: 0 9px !important;
+    font-size: 11.5px !important;
+  }
+
+  .mobile-bottom-nav {
+    left: 50%;
+    right: auto;
+    width: min(340px, calc(100vw - 32px));
+    transform: translateX(-50%);
+  }
+
+  body.mobile-overlay-open .mobile-bottom-nav,
+  body.mobile-filters-open .mobile-bottom-nav {
+    transform: translate(-50%, 18px) !important;
+  }
+
+  .support-chat-root {
+    right: 0;
+    top: 58%;
+    bottom: auto;
+    transform: translateY(-50%);
+    z-index: 98 !important;
+  }
+
+  .sona-support-launcher {
+    min-width: 44px;
+    width: 44px;
+    height: 102px;
+    flex-direction: column;
+    gap: 6px;
+    border-radius: 16px 0 0 16px;
+    background: linear-gradient(180deg, #172844, #10203a);
+    box-shadow: 0 12px 28px rgba(13, 28, 48, 0.2);
+  }
+
+  .sona-support-launcher strong {
+    display: block;
+    color: #fff;
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0 !important;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  .sona-support-launcher span {
+    width: 25px;
+    height: 25px;
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  .sona-support-panel {
+    right: 52px;
+    top: 50%;
+    bottom: auto;
+    width: min(328px, calc(100vw - 72px));
+    max-height: min(520px, calc(100dvh - 120px));
+    transform: translateY(-50%);
+  }
+
+  .sona-support-widget.is-open .sona-support-panel {
+    animation: supportPanelSideIn 0.22s ease both;
+  }
+
+  body.mobile-overlay-open .support-chat-root,
+  body.mobile-filters-open .support-chat-root {
+    opacity: 0 !important;
+    transform: translate(10px, -50%) !important;
+    pointer-events: none !important;
+  }
+
+  body.mobile-support-open .support-chat-root {
+    opacity: 1 !important;
+    transform: translateY(-50%);
+    pointer-events: auto !important;
+  }
+}
+
+@keyframes supportPanelSideIn {
+  from {
+    opacity: 0;
+    transform: translate(8px, -50%) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, -50%) scale(1);
+  }
+}
+
+@media (max-width: 374px) {
+  .all-products-section {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    padding-inline: 8px !important;
+  }
+
+  .all-products-section .product-card {
+    min-height: 284px !important;
+    grid-template-rows: 108px minmax(0, 1fr) !important;
+  }
+
+  .all-products-section .product-media {
+    min-height: 108px !important;
+  }
+
+  .mobile-bottom-nav {
+    width: min(326px, calc(100vw - 28px));
+  }
+}
+
+@media (max-width: 760px) {
+  .support-chat-root {
+    right: 0;
+    top: 66%;
+    bottom: auto;
+    transform: translateY(-50%);
+  }
+
+  .sona-support-launcher {
+    min-width: 38px;
+    width: 38px;
+    height: 86px;
+    gap: 5px !important;
+    border-radius: 14px 0 0 14px;
+  }
+
+  .sona-support-launcher strong {
+    font-size: 9px !important;
+  }
+
+  .sona-support-launcher span {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .sona-support-launcher svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .sona-support-panel {
+    position: fixed !important;
+    left: 12px;
+    right: 12px;
+    top: calc(14px + env(safe-area-inset-top)) !important;
+    bottom: calc(14px + env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    grid-template-rows: auto minmax(220px, 1fr) auto !important;
+    transform: none !important;
+  }
+
+  .sona-support-widget.is-open .sona-support-panel {
+    animation: supportPanelMobileIn 0.22s ease both !important;
+  }
+
+  .sona-support-head {
+    padding: 18px !important;
+  }
+
+  .sona-support-messages {
+    padding: 18px !important;
+  }
+
+  .sona-support-form {
+    grid-template-columns: minmax(0, 1fr) minmax(110px, 0.48fr);
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .sona-support-form textarea {
+    min-width: 0 !important;
+    min-height: 74px;
+  }
+
+  .sona-support-form button {
+    min-width: 0 !important;
+    padding: 0 12px !important;
+    font-size: 14px !important;
+  }
+
+  body.mobile-support-open .support-chat-root {
+    transform: translateY(-50%) !important;
+  }
+
+  body.support-chat-open {
+    overflow: hidden;
+  }
+
+  body.support-chat-open .support-chat-root {
+    inset: 0;
+    width: auto;
+    height: auto;
+    transform: none;
+    z-index: 10010;
+  }
+
+  body.support-chat-open .sona-support-launcher {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .site-footer.app-shell {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    justify-self: center !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    padding: 16px 12px calc(86px + env(safe-area-inset-bottom)) !important;
+    gap: 10px !important;
+  }
+
+  .footer-brand-panel {
+    min-height: 0 !important;
+  }
+
+  .footer-contact-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 7px !important;
+    overflow: hidden !important;
+  }
+
+  .footer-contact-card,
+  .footer-payment {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px 11px !important;
+    border-radius: 14px !important;
+  }
+
+  .footer-contact-card strong {
+    font-size: 13px !important;
+  }
+
+  .footer-payment {
+    grid-template-columns: 54px repeat(3, minmax(0, 1fr));
+    gap: 5px !important;
+  }
+
+  .footer-payment i {
+    min-width: 0 !important;
+    padding: 6px 3px !important;
+    font-size: 9.5px !important;
+  }
+
+  .mobile-bottom-nav {
+    left: 50% !important;
+    right: auto !important;
+    width: min(336px, calc(100vw - 38px));
+    transform: translateX(-50%) !important;
+  }
+}
+
+@media (max-width: 374px) {
+  .sona-support-panel {
+    left: 8px !important;
+    right: 8px !important;
+  }
+
+  .sona-support-form {
+    grid-template-columns: 1fr;
+  }
+
+  .site-footer.app-shell {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  .footer-payment {
+    grid-template-columns: 48px repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .mobile-bottom-nav {
+    width: min(326px, calc(100vw - 32px));
+  }
+}
+
+@keyframes supportPanelMobileIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

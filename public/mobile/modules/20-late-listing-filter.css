@@ -1,0 +1,13 @@
+/* Late listing filter override.
+   Keep this late until the max-height override can be reconciled with 95-filters-nav-footer-patch.css. */
+@media (max-width: 760px) {
+  .listing-filter-bar {
+    z-index: 160;
+    max-height: min(78vh, 620px);
+    padding-top: 16px;
+  }
+
+  .mobile-filter-backdrop {
+    z-index: 155;
+  }
+}
