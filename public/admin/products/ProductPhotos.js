@@ -1,8 +1,9 @@
 (function () {
   "use strict";
 
-  const MAX_SIZE = 4 * 1024 * 1024;
-  const TYPES = ["image/png", "image/jpeg", "image/webp"];
+  const MAX_IMAGE_SIZE = 4 * 1024 * 1024;
+  const MAX_VIDEO_SIZE = 18 * 1024 * 1024;
+  const TYPES = ["image/png", "image/jpeg", "image/webp", "video/mp4", "video/webm"];
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -17,8 +18,9 @@
         onError("Поддерживаются PNG, JPG и WebP.");
         return;
       }
-      if (file.size > MAX_SIZE) {
-        onError("Фото должно быть до 4 МБ.");
+      const isVideo = file.type.startsWith("video/");
+      if (file.size > (isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE)) {
+        onError(isVideo ? "Видео должно быть до 18 МБ." : "Фото должно быть до 4 МБ.");
         return;
       }
       const reader = new FileReader();
@@ -27,7 +29,8 @@
           id: `IMG-${Date.now()}-${Math.random().toString(16).slice(2)}`,
           src: String(reader.result || ""),
           alt: file.name.replace(/\.[^.]+$/, ""),
-          main: false
+          main: false,
+          type: file.type
         });
       });
       reader.readAsDataURL(file);
@@ -44,13 +47,17 @@
     input.type = "file";
     input.accept = TYPES.join(",");
     input.multiple = true;
-    drop.append(input, el("strong", "", "Перетащите фото или выберите файлы"), el("span", "", "Главное фото, галерея, порядок и alt-текст."));
+    drop.append(input, el("strong", "", "Перетащите фото или видео либо выберите файлы"), el("span", "", "Несколько фото и видео, главное фото, порядок и alt-текст."));
 
-    const update = (next) => setPhotos(next.map((item, index) => ({ ...item, main: index === 0 ? true : Boolean(item.main && !next.some((p, i) => i < index && p.main)) })));
+    const update = (next) => {
+      const selectedMain = next.find((item) => item.main && !String(item.type || "").startsWith("video/"));
+      const fallbackMain = next.find((item) => !String(item.type || "").startsWith("video/"));
+      const mainId = selectedMain?.id || fallbackMain?.id || "";
+      setPhotos(next.map((item) => ({ ...item, main: item.id === mainId })));
+    };
     const addPhoto = (photo) => {
       const next = [...photos, photo];
-      if (!next.some((item) => item.main)) next[0].main = true;
-      setPhotos(next);
+      update(next);
     };
     const showError = (message) => { error.textContent = message; };
 
@@ -71,7 +78,8 @@
 
     photos.forEach((photo, index) => {
       const card = el("article", "sona-photo-card");
-      const image = document.createElement("img");
+      const isVideo = String(photo.type || "").startsWith("video/") || /^data:video\//i.test(photo.src || "");
+      const media = document.createElement(isVideo ? "video" : "img");
       const alt = el("input");
       const actions = el("div", "sona-photo-actions");
       const main = el("button", photo.main ? "is-active" : "", photo.main ? "Главное" : "Сделать главным");
@@ -79,12 +87,20 @@
       const down = el("button", "", "↓");
       const remove = el("button", "is-danger", "Удалить");
 
-      image.src = photo.src;
-      image.alt = photo.alt || "";
+      media.src = photo.src;
+      if (isVideo) {
+        media.controls = true;
+        media.muted = true;
+        media.preload = "metadata";
+      } else {
+        media.alt = photo.alt || "";
+      }
       alt.value = photo.alt || "";
       alt.placeholder = "Alt-текст";
       alt.addEventListener("input", () => update(photos.map((item) => item.id === photo.id ? { ...item, alt: alt.value } : item)));
       [main, up, down, remove].forEach((button) => { button.type = "button"; });
+      main.disabled = isVideo;
+      if (isVideo) main.textContent = "Видео";
       main.addEventListener("click", () => update(photos.map((item) => ({ ...item, main: item.id === photo.id }))));
       up.disabled = index === 0;
       down.disabled = index === photos.length - 1;
@@ -100,7 +116,7 @@
       });
       remove.addEventListener("click", () => update(photos.filter((item) => item.id !== photo.id)));
       actions.append(main, up, down, remove);
-      card.append(image, alt, actions);
+      card.append(media, alt, actions);
       list.append(card);
     });
 

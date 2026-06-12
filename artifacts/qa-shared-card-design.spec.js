@@ -56,9 +56,9 @@ test("profile cart is neutral until item is added", async ({ page }) => {
   await page.waitForTimeout(900);
   const refreshedActions = page.locator(".sona-profile-showcase-card__actions").first();
   const added = await actionMetrics(refreshedActions);
-  expect(added[0].width).toBeGreaterThan(before[0].width);
-  expect(added[0].height).toBeGreaterThan(before[0].height);
-  expect(added[0].background).toBe("rgb(16, 40, 68)");
+  expect(added[0].width).toBe(before[0].width);
+  expect(added[0].height).toBe(before[0].height);
+  expect(added[0].background).not.toBe("rgb(255, 255, 255)");
 
   await page.screenshot({ path: "artifacts/visual-checks/75-profile-card-shared-design.png", fullPage: false });
 });

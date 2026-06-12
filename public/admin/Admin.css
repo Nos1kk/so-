@@ -4,9 +4,28 @@
 
 .sona-admin {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
   align-items: start;
+}
+
+.sona-admin-topbar,
+.sona-admin-tabs-wrap {
+  width: 100%;
+}
+
+.sona-admin-logout svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sona-admin-main {
+  padding-top: 18px;
 }
 
 .sona-admin-sidebar,
@@ -244,6 +263,13 @@
   display: grid;
   gap: 6px;
   padding: 16px;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+
+button.sona-admin-stat {
+  cursor: pointer;
 }
 
 .sona-admin-stat strong {
@@ -323,6 +349,112 @@
   min-height: 10px;
   border-radius: 999px 999px 4px 4px;
   background: linear-gradient(180deg, var(--blue), var(--cyan));
+}
+
+.sona-admin-order-list,
+.sona-admin-ad-slots,
+.sona-admin-server {
+  display: grid;
+  gap: 12px;
+}
+
+.sona-admin-order-card,
+.sona-admin-ad-slot,
+.sona-admin-server {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.sona-admin-order-head,
+.sona-admin-order-controls,
+.sona-admin-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.sona-admin-order-head span,
+.sona-admin-order-customer span {
+  color: var(--muted);
+}
+
+.sona-admin-order-customer,
+.sona-admin-order-items {
+  display: grid;
+  gap: 5px;
+  padding-block: 10px;
+}
+
+.sona-admin-order-item {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+}
+
+.sona-admin-order-item img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #f3f7fb;
+}
+
+.sona-admin-pagination {
+  justify-content: center;
+}
+
+.sona-admin-pagination button,
+.sona-admin-ad-upload {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--blue-deep);
+  font-weight: 900;
+}
+
+.sona-admin-ad-slots {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sona-admin-ad-slot {
+  align-content: start;
+}
+
+.sona-admin-ad-slot img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.sona-admin-ad-upload {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.sona-admin-ad-upload input {
+  display: none;
+}
+
+.sona-admin-tab-badge {
+  min-width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #d92d20;
+  color: #fff;
+  font-size: 0.68rem;
+  font-style: normal;
 }
 
 .sona-admin-table-wrap {
@@ -507,5 +639,9 @@
 
   .sona-admin-chat-history {
     min-height: 260px;
+  }
+
+  .sona-admin-ad-slots {
+    grid-template-columns: 1fr;
   }
 }

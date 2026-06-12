@@ -74,6 +74,7 @@ function setSecurityHeaders(res) {
       "script-src 'self'",
       "style-src 'self'",
       "img-src 'self' data:",
+      "media-src 'self' data: blob:",
       "font-src 'self'",
       "connect-src 'self'",
       "form-action 'self'",
@@ -256,6 +257,43 @@ function upsertAccount(email, callback) {
   });
 }
 
+function handleAccountsUpdate(req, res) {
+  readJsonBody(req, (bodyError, body) => {
+    const identifier = String(body?.identifier || "").trim().toLowerCase();
+    if (bodyError || !identifier) {
+      sendJson(res, 400, { ok: false, error: "Invalid account payload" });
+      return;
+    }
+    readAccounts((readError, state) => {
+      if (readError) {
+        sendJson(res, 500, { ok: false, error: "Accounts unavailable" });
+        return;
+      }
+      let found = false;
+      state.accounts = state.accounts.map((account) => {
+        if (![account.id, account.email].map((value) => String(value || "").toLowerCase()).includes(identifier)) return account;
+        found = true;
+        return {
+          ...account,
+          role: ["admin", "user"].includes(body.role) ? body.role : account.role,
+          status: ["active", "blocked"].includes(body.status) ? body.status : account.status
+        };
+      });
+      if (!found) {
+        sendJson(res, 404, { ok: false, error: "Account not found" });
+        return;
+      }
+      writeAccounts(state, (writeError) => {
+        if (writeError) {
+          sendJson(res, 500, { ok: false, error: "Account update failed" });
+          return;
+        }
+        sendJson(res, 200, { ok: true });
+      });
+    });
+  });
+}
+
 function requestKey(req, email) {
   const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
   const ip = forwarded || req.socket.remoteAddress || "local";
@@ -339,7 +377,16 @@ function handleStoreGet(req, res) {
       return;
     }
 
-    sendJson(res, 200, { ok: true, state });
+    readAccounts((accountsError, accountsState) => {
+      const accounts = accountsError ? [] : accountsState.accounts.map(safeAccount);
+      sendJson(res, 200, {
+        ok: true,
+        state: {
+          ...state,
+          users: accounts
+        }
+      });
+    });
   });
 }
 
@@ -358,7 +405,7 @@ function handleStorePut(req, res) {
 
       sendJson(res, 200, { ok: true, state: body.state });
     });
-  }, { maxBytes: 12 * 1024 * 1024 });
+  }, { maxBytes: 40 * 1024 * 1024 });
 }
 
 function smtpRead(socket) {
@@ -647,6 +694,11 @@ function createServer() {
 
   if (req.method === "POST" && req.url === "/api/notifications/test") {
     handleTestNotification(req, res);
+    return;
+  }
+
+  if (req.method === "PUT" && req.url === "/api/accounts") {
+    handleAccountsUpdate(req, res);
     return;
   }
 

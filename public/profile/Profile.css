@@ -1114,6 +1114,24 @@
   opacity: 0.72;
 }
 
+.sona-admin-login-link {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #102844;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #102844;
+  font-weight: 900;
+  transition: background 0.22s ease, color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.sona-admin-login-link:is(:hover, :focus-visible) {
+  background: #102844;
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(16, 40, 68, 0.2);
+  transform: translateY(-1px);
+}
+
 .sona-login-demo-code,
 .sona-login-error {
   padding: 13px 14px;

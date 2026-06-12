@@ -38,6 +38,7 @@
       deliveryDays: product.deliveryDays ?? 3,
       rating: product.rating ?? 0,
       reviewsCount: product.reviewsCount ?? 0,
+      sleepingPlace: product.sleepingPlace || product.sleepingSize || "",
       ...product
     };
   }
@@ -113,7 +114,7 @@
     if (!customPriceAllowed && price <= 0) errors.price = "Укажите цену.";
     if (Number(product.stock) < 0) errors.stock = "Остаток не может быть отрицательным.";
     if (oldPrice && oldPrice < price) errors.oldPrice = "Старая цена не может быть меньше новой.";
-    if (!photos.length) errors.photos = "Добавьте главное фото.";
+    if (!photos.some((item) => !String(item.type || "").startsWith("video/"))) errors.photos = "Добавьте хотя бы одно главное фото.";
     if (sku && allProducts.some((item) => item.id !== product.id && String(item.sku || "").trim().toLowerCase() === sku)) {
       errors.sku = "Такой артикул уже есть.";
     }
@@ -121,7 +122,8 @@
   }
 
   function toProductPayload(product, photos, variants, status) {
-    const main = photos.find((item) => item.main) || photos[0];
+    const main = photos.find((item) => item.main && !String(item.type || "").startsWith("video/"))
+      || photos.find((item) => !String(item.type || "").startsWith("video/"));
     const price = Number(product.price) || 0;
     const oldPrice = Number(product.oldPrice) || 0;
     const discount = oldPrice > price && price > 0 ? Math.round((1 - price / oldPrice) * 100) : 0;
@@ -137,6 +139,8 @@
       deliveryDays: Math.max(1, Number(product.deliveryDays) || 1),
       rating: Math.max(0, Number(product.rating) || 0),
       reviewsCount: Math.max(0, Number(product.reviewsCount) || 0),
+      sleepingPlace: product.sleepingPlace || product.sleepingSize || "",
+      sleepingSize: product.sleepingPlace || product.sleepingSize || "",
       image: main?.src || product.image || "",
       gallery: photos,
       variants,
@@ -167,6 +171,7 @@
       tabs().forEach(([id, title]) => {
         const button = el("button", id === activeTab ? "is-active" : "", title);
         button.type = "button";
+        button.dataset.editorTab = id;
         button.addEventListener("click", () => { activeTab = id; rerender(); });
         tabbar.append(button);
       });
@@ -179,7 +184,6 @@
           draft.discount = old > price && price > 0 ? Math.round((1 - price / old) * 100) : 0;
         }
         errors = { ...errors, [key]: "" };
-        rerender();
       };
 
       if (["main", "specs", "price", "delivery", "seo"].includes(activeTab)) {
@@ -257,6 +261,11 @@
       main.append(tabbar, content, actions);
       shell.append(main, side);
       root.append(shell);
+      root.dataset.activeEditorTab = activeTab;
+      window.requestAnimationFrame(() => {
+        tabbar.querySelector(`[data-editor-tab="${activeTab}"]`)
+          ?.scrollIntoView({ block: "nearest", inline: "center", behavior: "auto" });
+      });
     };
 
     rerender();

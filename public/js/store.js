@@ -109,6 +109,14 @@
     return cache;
   }
 
+  async function refresh() {
+    const response = await fetch(API_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
+    if (!response.ok) throw new Error("Store refresh failed");
+    const payload = await response.json();
+    if (payload?.state) cache = normalize(payload.state);
+    return read();
+  }
+
   function scheduleSync() {
     window.clearTimeout(syncTimer);
     syncTimer = window.setTimeout(() => {
@@ -163,6 +171,7 @@
   window.SonaStore = {
     init,
     read,
+    refresh,
     write,
     syncNow,
     update,

@@ -485,6 +485,21 @@
       activeSection = "home";
       context.onAuthChange?.();
     });
+    const adminLogin = button("sona-admin-login-link", "Войти в аккаунт администратора", () => {
+      window.SonaStore.update((data) => {
+        const email = window.SonaAdmin?.ADMIN_EMAIL || "admin@sona.local";
+        data.admin = { ...(data.admin || {}), isAuthenticated: true, email };
+        data.profile = {
+          ...(data.profile || {}),
+          isActive: true,
+          name: "Администратор SONA",
+          email,
+          role: "admin",
+          registeredAt: data.profile?.registeredAt || new Date().toISOString()
+        };
+      });
+      context.openAdmin?.();
+    });
 
     emailInput.type = "email";
     emailInput.placeholder = "name@example.com";
@@ -612,7 +627,8 @@
       el("h1", "", "Войти в SONA"),
       el("p", "sona-profile-muted", "Введите email. После подтверждения кода из письма откроется личный кабинет."),
       form,
-      temporaryLogin
+      temporaryLogin,
+      adminLogin
     );
     if (loginError) {
       card.append(el("p", "sona-login-error", loginError));
@@ -740,11 +756,6 @@
       context.toggleFavorite?.(product.id);
     }, "favorites");
     const cart = button(`sona-profile-showcase-card__cart product-cart-button${isInCart ? " is-in-cart" : ""}`, "", () => {
-      const willAdd = !cart.classList.contains("is-in-cart");
-      cart.classList.toggle("is-in-cart", willAdd);
-      cart.classList.remove("is-added", "is-removed");
-      void cart.offsetWidth;
-      cart.classList.add(willAdd ? "is-added" : "is-removed");
       context.toggleCart?.(product.id, cart);
     }, "cart");
     const price = el("div", "sona-profile-showcase-card__price");
@@ -753,6 +764,7 @@
     mediaButton.append(productThumb(product));
     favorite.dataset.favoriteProductId = product.id;
     cart.dataset.cartProductId = product.id;
+    cart.querySelector("svg")?.classList.add("product-cart-icon");
     actions.append(cart, favorite);
     price.append(el("strong", "", money(product.price)));
     if (discount) price.append(el("em", "", `−${discount}%`), el("del", "", money(product.oldPrice)));

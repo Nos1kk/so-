@@ -69,7 +69,7 @@
       ["mechanism", "Механизм трансформации", "text"],
       ["seats", "Количество мест", "number"],
       ["hasSleepingPlace", "Спальное место", "boolean"],
-      ["sleepingSize", "Размер спального места", "text"],
+      ["sleepingPlace", "Размер спального места", "text"],
       ["dimensions", "Габариты: ширина / глубина / высота", "text"],
       ["frameMaterial", "Материал каркаса", "text"],
       ["upholstery", "Материал обивки", "text"],
@@ -84,7 +84,7 @@
     ],
     bed: [
       ["bedType", "Тип кровати", "select", false, [["single", "Односпальная"], ["double", "Двуспальная"], ["kids", "Детская"], ["lift", "С подъёмным механизмом"]]],
-      ["sleepingSize", "Размер спального места", "text"],
+      ["sleepingPlace", "Размер спального места", "text"],
       ["dimensions", "Габариты кровати", "text"],
       ["frameMaterial", "Материал каркаса", "text"],
       ["headboardMaterial", "Материал изголовья", "text"],

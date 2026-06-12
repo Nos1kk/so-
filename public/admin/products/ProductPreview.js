@@ -56,11 +56,22 @@
   function render(product, photos) {
     const wrap = el("div", "sona-preview-pane");
     const detail = el("section", "sona-preview-detail");
+    const characteristics = el("div", "sona-preview-characteristics");
+    [
+      ["Габаритные размеры", product.dimensions],
+      ["Спальное место", product.sleepingPlace || product.sleepingSize],
+      ["Механизм", product.mechanism],
+      ["Материалы", Array.isArray(product.materials) ? product.materials.join(", ") : product.materials]
+    ].filter(([, value]) => value).forEach(([label, value]) => {
+      const item = el("div", "sona-preview-characteristic");
+      item.append(el("span", "", label), el("strong", "", value));
+      characteristics.append(item);
+    });
     detail.append(
       el("h3", "", product.name || "Страница товара"),
       el("p", "", product.description || product.shortDescription || "Полное описание появится здесь."),
       el("strong", "", priceLabel(product)),
-      el("span", "", `Материалы: ${product.materials || product.upholstery || product.frontMaterial || "не указаны"}`)
+      characteristics
     );
     wrap.append(renderCard(product, photos), detail);
     return wrap;

@@ -5,6 +5,7 @@
   let selectedType = "";
   let editingId = "";
   let filters = { query: "", category: "all", status: "all", stock: "all", price: "", sort: "updated" };
+  let searchTimer = 0;
 
   const money = (value) => new Intl.NumberFormat("ru-RU", {
     style: "currency",
@@ -62,7 +63,11 @@
     query.type = "search";
     query.placeholder = "Поиск по названию или артикулу";
     query.value = filters.query;
-    query.addEventListener("input", () => { filters.query = query.value; rerender(); });
+    query.addEventListener("input", () => {
+      filters.query = query.value;
+      window.clearTimeout(searchTimer);
+      searchTimer = window.setTimeout(() => rerender({ focusSearch: true }), 180);
+    });
     [
       [category, [["all", "Все категории"], ...window.SonaProductSchemas.categories.map(([id, title]) => [id, title])], "category"],
       [status, [["all", "Все статусы"], ["active", "Активен"], ["hidden", "Скрыт"], ["draft", "Черновик"]], "status"],
@@ -91,7 +96,8 @@
     const head = document.createElement("thead");
     const body = document.createElement("tbody");
     const headRow = document.createElement("tr");
-    ["Фото", "Название", "Категория", "Цена", "Склад", "Рейтинг", "Отзывы", "Статус", "Обновлено", "Действия"].forEach((title) => headRow.append(el("th", "", title)));
+    const headings = ["Фото", "Название", "Категория", "Цена", "Склад", "Рейтинг", "Отзывы", "Статус", "Обновлено", "Действия"];
+    headings.forEach((title) => headRow.append(el("th", "", title)));
     head.append(headRow);
 
     filteredProducts(context).forEach((product) => {
@@ -107,8 +113,13 @@
       const preview = el("button", "", "Предпросмотр");
       const remove = el("button", "is-danger", "Удалить");
 
-      image.src = product.image || "assets/sona-logo.png";
+      const galleryImage = (product.gallery || []).find((item) => item.main && !String(item.type || "").startsWith("video/"))
+        || (product.gallery || []).find((item) => !String(item.type || "").startsWith("video/"));
+      image.src = product.image || galleryImage?.src || "assets/sona-logo.png";
       image.alt = product.name || "";
+      image.addEventListener("error", () => {
+        image.src = galleryImage?.src && image.src !== galleryImage.src ? galleryImage.src : "assets/sona-logo.png";
+      }, { once: true });
       imageCell.append(image);
       priceInput.type = "number";
       priceInput.value = product.price || 0;
@@ -135,6 +146,9 @@
         el("td", "", product.updatedAt ? new Date(product.updatedAt).toLocaleDateString("ru-RU") : "—"),
         (() => { const td = el("td"); td.append(priceInput, actions); return td; })()
       );
+      [...tr.children].forEach((cell, index) => {
+        cell.dataset.label = headings[index];
+      });
       body.append(tr);
     });
 
@@ -145,9 +159,16 @@
 
   function render(context) {
     const root = el("section", "sona-products-page");
-    const rerender = () => {
+    const rerender = (options = {}) => {
       const fresh = { ...context, products: context.products };
       root.replaceChildren(render(fresh));
+      if (options.focusSearch) {
+        window.requestAnimationFrame(() => {
+          const input = root.querySelector('.sona-products-toolbar input[type="search"]');
+          input?.focus({ preventScroll: true });
+          input?.setSelectionRange(input.value.length, input.value.length);
+        });
+      }
     };
 
     if (mode === "category") {
@@ -181,7 +202,7 @@
 
     const head = el("div", "sona-products-head");
     head.append(el("p", "eyebrow", "Каталог"), el("h2", "", "Товары и услуги SONA"), el("span", "", "Фильтры, быстрые действия, цены, остатки и полноценный редактор по категориям."));
-    root.append(head, renderToolbar(context, () => root.replaceChildren(render(context))), renderTable(context, () => root.replaceChildren(render(context))));
+    root.append(head, renderToolbar(context, rerender), renderTable(context, rerender));
     return root;
   }
 

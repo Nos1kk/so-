@@ -2680,6 +2680,113 @@
   }
 }
 
+/* Catalog cards are the single visual source for the likes page. */
+@media (max-width: 760px) {
+  body .favorites-grid.category-product-grid {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    scroll-snap-type: none !important;
+  }
+
+  body .favorites-grid.category-product-grid .product-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex: none !important;
+    scroll-snap-align: none !important;
+  }
+
+  body.profile-view .sona-profile-showcase-card__cart {
+    border-color: rgba(200, 216, 231, 0.8) !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+    color: #102844 !important;
+    box-shadow: 0 8px 18px rgba(20, 45, 78, 0.1) !important;
+  }
+
+  body.profile-view .sona-profile-showcase-card__cart .product-cart-icon {
+    width: 19px !important;
+    height: 19px !important;
+    display: block !important;
+    margin: 0 !important;
+    place-self: center !important;
+  }
+
+  body.profile-view .sona-profile-showcase-card__cart.is-in-cart {
+    overflow: visible !important;
+    border-color: rgba(75, 145, 180, 0.52) !important;
+    background: linear-gradient(145deg, #eaf7fb, #dceff7) !important;
+    color: #123b59 !important;
+    box-shadow: 0 9px 22px rgba(40, 108, 143, 0.2) !important;
+  }
+
+  body .cart-item {
+    animation: none !important;
+    transition:
+      transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.32s ease,
+      box-shadow 0.38s ease,
+      background 0.38s ease !important;
+  }
+
+  body .cart-item:is(:hover, :focus-within) {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 15px 30px rgba(16, 40, 68, 0.13) !important;
+  }
+
+  body .cart-item:active {
+    transform: none !important;
+  }
+
+  body .quantity-control button {
+    transition: background 0.22s ease, color 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
+  body .quantity-control button:is(:hover, :focus-visible) {
+    background: #eaf7fb !important;
+    color: #123b59 !important;
+  }
+
+  body .quantity-control button.is-quantity-pressed {
+    animation: quantityButtonPress 0.42s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+  }
+
+  body .cart-item.is-quantity-up [data-cart-quantity],
+  body .cart-item.is-quantity-up [data-cart-item-price] {
+    animation: quantityValueUp 0.42s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+  }
+
+  body .cart-item.is-quantity-down [data-cart-quantity],
+  body .cart-item.is-quantity-down [data-cart-item-price] {
+    animation: quantityValueDown 0.42s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+  }
+
+  @keyframes quantityButtonPress {
+    0% { transform: scale(1); }
+    42% { transform: scale(0.78); }
+    72% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes quantityValueUp {
+    0% { opacity: 1; transform: translateY(0); }
+    42% { opacity: 0; transform: translateY(-8px); }
+    43% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes quantityValueDown {
+    0% { opacity: 1; transform: translateY(0); }
+    42% { opacity: 0; transform: translateY(8px); }
+    43% { opacity: 0; transform: translateY(-8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+}
+
 @media (min-width: 400px) and (max-width: 760px) {
   body .catalog-hub-card--bed {
     --category-photo-shift-y: 16px;
@@ -2941,5 +3048,483 @@
   body.profile-view + .site-footer,
   body.profile-view .site-footer {
     margin-top: 8px !important;
+  }
+}
+
+/* Final mobile card fixes: stable cart controls, larger cart photos and free profile scrolling. */
+@media (max-width: 760px) {
+  body .cart-item {
+    grid-template-columns: 132px minmax(0, 1fr) !important;
+    min-height: 156px !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+
+  body .cart-item .cart-placeholder,
+  body .cart-item .cart-placeholder.has-image {
+    width: 132px !important;
+    height: 132px !important;
+    min-height: 132px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body .cart-item .cart-placeholder.has-image img,
+  body .cart-item .cart-placeholder.is-sofa-image img {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    transform: scale(1.08) !important;
+  }
+
+  body :is(.favorite-actions, .cart-recommendation-actions) {
+    width: 83px !important;
+    height: 38px !important;
+    display: block !important;
+  }
+
+  body :is(.favorite-actions, .cart-recommendation-actions) :is(.product-cart-button, .favorite-button),
+  body .favorite-card-media .favorite-remove-arrow,
+  body.profile-view :is(.sona-profile-showcase-card__favorite, .sona-profile-showcase-card__cart),
+  body.profile-view .sona-profile-showcase-card__cart:is(.is-in-cart, :not(.is-in-cart)) {
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 0 !important;
+    transform-origin: center !important;
+    box-sizing: border-box !important;
+    flex: 0 0 38px !important;
+  }
+
+  body :is(.favorite-actions, .cart-recommendation-actions) .product-cart-button {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+  }
+
+  body :is(.favorite-actions, .cart-recommendation-actions) .favorite-button,
+  body .favorite-actions .favorite-remove-arrow {
+    position: absolute !important;
+    inset: 0 0 auto auto !important;
+  }
+
+  body .favorite-actions .favorite-button.is-active,
+  body.profile-view .sona-profile-showcase-card__favorite.is-active {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  body :is(.favorite-actions, .cart-recommendation-actions) .product-cart-button.is-in-cart,
+  body.profile-view .sona-profile-showcase-card__cart.is-in-cart {
+    border-color: rgba(75, 145, 180, 0.52) !important;
+    background: linear-gradient(145deg, #eaf7fb, #dceff7) !important;
+    color: #123b59 !important;
+    box-shadow: 0 9px 22px rgba(40, 108, 143, 0.2) !important;
+  }
+
+  body :is(.favorite-actions, .cart-recommendation-actions) .product-cart-icon,
+  body.profile-view .sona-profile-showcase-card__cart .sona-profile-svg:not(.product-cart-icon) {
+    width: 19px !important;
+    height: 19px !important;
+    display: block !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  body.profile-view .sona-profile-showcase__rail {
+    overscroll-behavior: auto !important;
+    touch-action: pan-x pan-y pinch-zoom !important;
+    scroll-snap-type: x proximity !important;
+  }
+
+  body.profile-view .sona-profile-showcase-card {
+    scroll-snap-align: start !important;
+    scroll-snap-stop: normal !important;
+  }
+}
+
+@media (max-width: 374px) {
+  body .cart-item {
+    grid-template-columns: 112px minmax(0, 1fr) !important;
+    min-height: 140px !important;
+  }
+
+  body .cart-item .cart-placeholder,
+  body .cart-item .cart-placeholder.has-image {
+    width: 112px !important;
+    height: 112px !important;
+    min-height: 112px !important;
+  }
+}
+
+/* Mobile admin: profile-like layout, reliable tabs and a dedicated support workspace. */
+@media (max-width: 760px) {
+  body.admin-view {
+    overflow-x: hidden !important;
+  }
+
+  body.admin-view .admin-page {
+    width: 100% !important;
+    max-width: 100vw !important;
+    padding: 10px 12px calc(112px + env(safe-area-inset-bottom)) !important;
+    overflow: visible !important;
+  }
+
+  body.admin-view .sona-admin {
+    width: 100% !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+    overflow: visible !important;
+  }
+
+  body.admin-view .sona-admin-sidebar {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 30 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    display: grid !important;
+    gap: 10px !important;
+    padding: 12px !important;
+    border-radius: 22px !important;
+    overflow: visible !important;
+  }
+
+  body.admin-view .sona-admin-logo {
+    min-height: 68px !important;
+    padding: 12px 14px !important;
+    border-radius: 18px !important;
+    font-size: 1.08rem !important;
+  }
+
+  body.admin-view .sona-admin-menu {
+    position: relative !important;
+    z-index: 31 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    display: flex !important;
+    gap: 8px !important;
+    padding: 2px 2px 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+    scroll-snap-type: x proximity !important;
+    overscroll-behavior-x: contain !important;
+    touch-action: pan-x pan-y !important;
+    pointer-events: auto !important;
+  }
+
+  body.admin-view .sona-admin-menu::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  body.admin-view .sona-admin-menu button {
+    position: relative !important;
+    z-index: 32 !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: max-content !important;
+    min-height: 52px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 0 15px !important;
+    border-radius: 16px !important;
+    background: #f7f9fc !important;
+    scroll-snap-align: start !important;
+    touch-action: manipulation !important;
+    pointer-events: auto !important;
+  }
+
+  body.admin-view .sona-admin-menu button.is-active {
+    background: #e7f1fb !important;
+    color: var(--blue-deep) !important;
+    box-shadow: inset 0 0 0 1px rgba(56, 113, 154, 0.12) !important;
+  }
+
+  body.admin-view .sona-admin-main,
+  body.admin-view .sona-admin-section {
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 12px !important;
+    overflow: visible !important;
+  }
+
+  body.admin-view .sona-admin-head,
+  body.admin-view .sona-admin-panel,
+  body.admin-view .sona-admin-stat {
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 20px !important;
+  }
+
+  body.admin-view .sona-admin-head {
+    padding: 20px !important;
+  }
+
+  body.admin-view .sona-admin-head h1 {
+    font-size: clamp(1.75rem, 9vw, 2.35rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  body.admin-view .sona-admin-stats,
+  body.admin-view .sona-admin-dashboard-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  body.admin-view .sona-admin-dashboard-grid .sona-admin-panel:first-child {
+    grid-row: auto !important;
+  }
+
+  body.admin-view .sona-admin-chat {
+    width: 100% !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0 !important;
+    min-height: 0 !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+  }
+
+  body.admin-view .sona-admin-dialogs {
+    width: 100% !important;
+    max-height: 250px !important;
+    overflow-y: auto !important;
+  }
+
+  body.admin-view .sona-admin-chat-main {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 420px !important;
+  }
+
+  body.admin-view .sona-admin-chat-history {
+    min-height: 260px !important;
+    max-height: 430px !important;
+    overflow-y: auto !important;
+  }
+
+  body.admin-view .sona-admin-table-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+  body.admin-view .support-chat-root {
+    display: none !important;
+  }
+}
+
+/* Admin account follows the same compact mobile shell as the customer profile. */
+@media (max-width: 760px) {
+  body.admin-view .top-promo,
+  body.admin-view .site-header {
+    display: none !important;
+  }
+
+  body.admin-view .admin-page {
+    width: 100% !important;
+    max-width: 100vw !important;
+    padding: 0 0 calc(102px + env(safe-area-inset-bottom)) !important;
+    background: #f4f4f4 !important;
+  }
+
+  body.admin-view #adminPageContent,
+  body.admin-view .sona-admin.sona-profile {
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 0 !important;
+    background: #f4f4f4 !important;
+  }
+
+  body.admin-view .sona-admin-topbar {
+    min-height: 76px !important;
+    padding: 24px 18px 16px !important;
+    background: #fff !important;
+  }
+
+  body.admin-view .sona-admin-topbar h1 {
+    margin: 0 !important;
+    font-size: 1.55rem !important;
+    line-height: 1 !important;
+  }
+
+  body.admin-view .sona-admin-logout {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    color: #68717a !important;
+  }
+
+  body.admin-view .sona-admin-tabs-wrap {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 80 !important;
+    width: 100% !important;
+    margin: 0 0 12px !important;
+    border-bottom: 1px solid #e2e6e9 !important;
+    background: #fff !important;
+  }
+
+  body.admin-view .sona-admin-menu {
+    z-index: auto !important;
+    width: 100% !important;
+    display: flex !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    overflow-x: auto !important;
+    background: #fff !important;
+    scroll-snap-type: x proximity !important;
+  }
+
+  body.admin-view .sona-admin-menu button {
+    z-index: auto !important;
+    min-width: max-content !important;
+    min-height: 48px !important;
+    display: block !important;
+    padding: 15px 18px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: #85888c !important;
+    font-size: 0.8rem !important;
+    text-transform: uppercase !important;
+    box-shadow: none !important;
+  }
+
+  body.admin-view .sona-admin-menu button svg {
+    display: none !important;
+  }
+
+  body.admin-view .sona-admin-menu button.is-active {
+    position: relative !important;
+    background: transparent !important;
+    color: #102844 !important;
+    box-shadow: none !important;
+  }
+
+  body.admin-view .sona-admin-menu button.is-active::after {
+    content: "" !important;
+    position: absolute !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    height: 3px !important;
+    background: #102844 !important;
+  }
+
+  body.admin-view .sona-admin-main {
+    width: 100% !important;
+    padding: 0 12px !important;
+  }
+
+  body.admin-view .sona-admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  body.admin-view .sona-admin-stat {
+    min-height: 112px !important;
+    gap: 5px !important;
+    padding: 12px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 20px rgba(23, 51, 82, 0.07) !important;
+  }
+
+  body.admin-view .sona-admin-stat strong {
+    font-size: 1.3rem !important;
+  }
+
+  body.admin-view .sona-admin-stat small {
+    font-size: 0.7rem !important;
+  }
+
+  body.admin-view .sona-admin-panel {
+    gap: 10px !important;
+    padding: 12px !important;
+    border-radius: 18px !important;
+    box-shadow: 0 8px 20px rgba(23, 51, 82, 0.07) !important;
+  }
+
+  body.admin-view .sona-admin-panel h2 {
+    font-size: 1.25rem !important;
+  }
+
+  body.admin-view .sona-admin-chart {
+    height: 150px !important;
+    gap: 6px !important;
+    padding: 12px !important;
+  }
+
+  body.admin-view .sona-admin-info-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 4px !important;
+    padding: 10px !important;
+  }
+
+  body.admin-view .sona-admin-order-card {
+    padding: 11px !important;
+    border-radius: 16px !important;
+  }
+
+  body.admin-view .sona-admin-order-head {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 3px 8px !important;
+  }
+
+  body.admin-view .sona-admin-order-head span {
+    grid-column: 1 / -1 !important;
+  }
+
+  body.admin-view .sona-admin-order-controls,
+  body.admin-view .sona-admin-order-controls > *,
+  body.admin-view .sona-admin-order-controls select {
+    width: 100% !important;
+  }
+
+  body.admin-view .sona-admin-filter-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  body.admin-view .sona-admin-filter-row > * {
+    width: 100% !important;
+  }
+
+  body.admin-view .sona-admin-dialogs {
+    max-height: 180px !important;
+  }
+
+  body.admin-view .sona-admin-chat-main {
+    min-height: 320px !important;
+  }
+
+  body.admin-view .sona-admin-chat-history {
+    min-height: 180px !important;
+    max-height: 300px !important;
+  }
+
+  body.admin-view .sona-admin-head,
+  body.admin-view .sona-admin-sidebar,
+  body.admin-view .sona-admin-logo {
+    display: none !important;
   }
 }

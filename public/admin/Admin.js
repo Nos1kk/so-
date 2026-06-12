@@ -6,8 +6,12 @@
 let productQuery = "";
 let orderQuery = "";
 let orderStatusFilter = "all";
+let orderDateFilter = "";
+let orderPage = 1;
+let statsPeriod = "month";
 let reviewQuery = "";
 let reviewStatusFilter = "all";
+let adminSearchTimer = 0;
   let supportDialog = "";
   let editingProductId = "";
   let editingAdId = "";
@@ -123,7 +127,8 @@ let reviewStatusFilter = "all";
   function buildUsers(data, orders) {
     const map = new Map();
     (data.users || []).forEach((user) => {
-      if (user.phone || user.email || user.id) map.set(user.phone || user.email || user.id, { ...user });
+      const realAccount = user.email && !String(user.email).endsWith("@sona.local") && !String(user.id || "").includes("TEMPORARY");
+      if (realAccount) map.set(user.phone || user.email || user.id, { ...user });
     });
     if (data.profile?.phone || data.profile?.email) {
       const key = data.profile.phone || data.profile.email;
@@ -158,8 +163,12 @@ let reviewStatusFilter = "all";
     return [...map.values()];
   }
 
-  function stat(title, value, text, tone = "") {
-    const card = el("article", `sona-admin-stat ${tone ? `is-${tone}` : ""}`);
+  function stat(title, value, text, tone = "", action) {
+    const card = el(action ? "button" : "article", `sona-admin-stat ${tone ? `is-${tone}` : ""}`);
+    if (action) {
+      card.type = "button";
+      card.addEventListener("click", action);
+    }
     card.append(el("span", "", title), el("strong", "", value), el("small", "", text));
     return card;
   }
@@ -252,14 +261,14 @@ let reviewStatusFilter = "all";
     const page = el("div", "sona-admin-section");
     const stats = el("section", "sona-admin-stats");
     stats.append(
-      stat("Всего заказов", orders.length, `${newOrders} новых`, "blue"),
-      stat("В обработке", orders.filter((order) => ["processing", "paid", "assembling", "delivering"].includes(order.status)).length, "активные статусы"),
-      stat("Завершено", completedOrders.length, `${canceled} отмен/возвратов`, "green"),
-      stat("Товары", products.length, `${stockOut} без остатка`),
-      stat("Пользователи", users.length, "зарегистрированные"),
-      stat("Отзывы", reviews.length, `${hiddenReviews} скрыто`),
-      stat("Поддержка", support.length, `${unread} непрочитано`, "blue"),
-      stat("Выручка", money(revenue), `средний чек ${money(avg)}`, "green")
+      stat("Всего заказов", orders.length, `${newOrders} новых`, "blue", () => { orderStatusFilter = "all"; activeSection = "orders"; context.render(); }),
+      stat("В обработке", orders.filter((order) => ["processing", "paid", "assembling", "delivering"].includes(order.status)).length, "активные статусы", "", () => { orderStatusFilter = "processing"; activeSection = "orders"; context.render(); }),
+      stat("Завершено", completedOrders.length, `${canceled} отмен/возвратов`, "green", () => { orderStatusFilter = "completed"; activeSection = "orders"; context.render(); }),
+      stat("Товары", products.length, `${stockOut} без остатка`, "", () => { activeSection = "products"; context.render(); }),
+      stat("Пользователи", users.length, "зарегистрированные", "", () => { activeSection = "users"; context.render(); }),
+      stat("Отзывы", reviews.length, `${hiddenReviews} скрыто`, "", () => { activeSection = "reviews"; context.render(); }),
+      stat("Поддержка", support.length, `${unread} непрочитано`, "blue", () => { activeSection = "support"; context.render(); }),
+      stat("Выручка", money(revenue), `средний чек ${money(avg)}`, "green", () => { activeSection = "stats"; context.render(); })
     );
     page.append(stats, dashboardPreview(context));
     return page;
@@ -269,7 +278,6 @@ let reviewStatusFilter = "all";
     const grid = el("section", "sona-admin-dashboard-grid");
     grid.append(
       ordersTable(context, { compact: true }),
-      supportView(context, { compact: true }),
       reviewsView(context, { compact: true })
     );
     return grid;
@@ -278,14 +286,29 @@ let reviewStatusFilter = "all";
   function statsView(context) {
     const page = el("section", "sona-admin-panel sona-admin-wide");
     const filters = el("div", "sona-admin-filters");
-    ["Сегодня", "Неделя", "Месяц", "Год", "Период"].forEach((item, index) => {
-      const button = el("button", index === 2 ? "is-active" : "", item);
+    [["today", "Сегодня"], ["week", "Неделя"], ["month", "Месяц"], ["year", "Год"]].forEach(([id, item]) => {
+      const button = el("button", statsPeriod === id ? "is-active" : "", item);
       button.type = "button";
+      button.addEventListener("click", () => { statsPeriod = id; context.render(); });
       filters.append(button);
     });
 
+    const now = Date.now();
+    const periodDays = { today: 1, week: 7, month: 31, year: 366 }[statsPeriod] || 31;
+    const periodOrders = context.orders.filter((order) => {
+      const time = Number(order.createdAt) || Date.parse(order.date || "");
+      return !time || now - time <= periodDays * 86400000;
+    });
+    const periodRevenue = periodOrders.filter((order) => window.SonaOrders?.isCompleted(order)).reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+    const summary = el("div", "sona-admin-stats sona-admin-stats-compact");
+    summary.append(
+      stat("Заказы", periodOrders.length, `за ${periodDays === 1 ? "сегодня" : `${periodDays} дней`}`, "blue"),
+      stat("Выручка", money(periodRevenue), "по завершённым заказам", "green"),
+      stat("Средний чек", money(periodOrders.length ? periodOrders.reduce((sum, order) => sum + (Number(order.total) || 0), 0) / periodOrders.length : 0), "по всем заказам"),
+      stat("Новые клиенты", new Set(periodOrders.map((order) => order.profile?.email || order.profile?.phone).filter(Boolean)).size, "уникальные контакты")
+    );
     const chart = el("div", "sona-admin-chart");
-    const ordersByDay = context.orders.slice(-8);
+    const ordersByDay = periodOrders.slice(-8);
     const max = Math.max(1, ...ordersByDay.map((order) => Number(order.total) || 0));
     ordersByDay.forEach((order) => {
       const bar = el("span");
@@ -304,7 +327,7 @@ let reviewStatusFilter = "all";
       return acc;
     }, {})).map(([name, count]) => infoRow(name, `${count} товаров`));
 
-    page.append(el("h2", "", "Статистика"), filters, chart, el("h3", "", "Популярные товары"), ...popular, el("h3", "", "Категории"), ...categories);
+    page.append(el("h2", "", "Статистика"), filters, summary, el("h3", "", "Динамика заказов"), chart, el("h3", "", "Популярные товары"), ...popular.slice(0, 4), el("h3", "", "Категории"), ...categories.slice(0, 5));
     return page;
   }
 
@@ -316,22 +339,36 @@ let reviewStatusFilter = "all";
 
   function ordersTable(context, options = {}) {
     const panel = el("section", `sona-admin-panel ${options.compact ? "" : "sona-admin-wide"}`);
-    const rows = context.orders
+    const filtered = context.orders
       .filter((order) => {
         const q = orderQuery.toLowerCase();
-        const matchesStatus = orderStatusFilter === "all" || order.status === orderStatusFilter;
-        const matchesQuery = !q || [order.id, order.profile?.name, order.profile?.phone, order.profile?.email].join(" ").toLowerCase().includes(q);
-        return matchesStatus && matchesQuery;
+        const productNames = (order.items || []).map((item) => context.byId?.(item.id)?.name || item.id).join(" ");
+        const activeStatuses = ["processing", "paid", "assembling", "delivering"];
+        const matchesStatus = orderStatusFilter === "all"
+          || order.status === orderStatusFilter
+          || (orderStatusFilter === "processing" && activeStatuses.includes(order.status));
+        const matchesQuery = !q || [order.id, order.profile?.name, order.profile?.phone, order.profile?.email, productNames, order.date].join(" ").toLowerCase().includes(q);
+        const orderDate = order.createdAt ? new Date(order.createdAt).toISOString().slice(0, 10) : "";
+        return matchesStatus && matchesQuery && (!orderDateFilter || orderDate === orderDateFilter);
       })
       .slice()
-      .reverse()
-      .slice(0, options.compact ? 5 : 100);
+      .reverse();
+    const pageSize = options.compact ? 3 : 8;
+    const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+    orderPage = Math.min(orderPage, pageCount);
+    const rows = filtered.slice((orderPage - 1) * pageSize, orderPage * pageSize);
 
     panel.append(el("h2", "", "Заказы"));
     if (!options.compact) {
+      const date = el("input", "sona-admin-search");
+      date.type = "date";
+      date.value = orderDateFilter;
+      date.setAttribute("aria-label", "Фильтр заказов по дате");
+      date.addEventListener("change", () => { orderDateFilter = date.value; orderPage = 1; context.render(); });
       panel.append(filterBar([
-        searchInput("Поиск заказа", orderQuery, (value) => { orderQuery = value; context.render(); }),
-        select([["all", "Все статусы"], ...Object.entries(window.SonaOrders?.STATUS || {})], orderStatusFilter, (value) => { orderStatusFilter = value; context.render(); })
+        searchInput("Диван, номер заказа, телефон или почта", orderQuery, (value) => { orderQuery = value; orderPage = 1; context.render(); }),
+        date,
+        select([["all", "Все статусы"], ...Object.entries(window.SonaOrders?.STATUS || {})], orderStatusFilter, (value) => { orderStatusFilter = value; orderPage = 1; context.render(); })
       ]));
     }
     if (!rows.length) {
@@ -339,25 +376,50 @@ let reviewStatusFilter = "all";
       return panel;
     }
 
-    const table = tableWrap(["Номер", "Клиент", "Товары", "Сумма", "Статус", "Действия"]);
+    const list = el("div", "sona-admin-order-list");
     rows.forEach((order) => {
-      const tr = document.createElement("tr");
+      const card = el("article", "sona-admin-order-card");
+      const head = el("div", "sona-admin-order-head");
+      const customer = el("div", "sona-admin-order-customer");
+      const items = el("div", "sona-admin-order-items");
       const status = select(Object.entries(window.SonaOrders?.STATUS || {}), order.status || "new", (value) => {
         context.actions.updateOrder(order.id, { status: value });
       });
-      tr.append(
-        td(order.id || "Заказ"),
-        td(`${order.date || ""}\n${order.profile?.phone || order.profile?.email || "Без контакта"}`),
-        td((order.items || []).map((item) => `${context.byId?.(item.id)?.name || item.id} × ${item.quantity || 1}`).join(", ")),
-        td(money(order.total)),
-        td(status),
-        td(actionButtons([
-          ["Удалить тестовый", () => context.actions.deleteOrder(order.id), "danger"]
-        ]))
+      head.append(el("strong", "", order.id || "Заказ"), el("span", "", order.date || shortDate(order.createdAt)), el("b", "", money(order.total)));
+      customer.append(
+        el("strong", "", order.profile?.name || "Покупатель"),
+        el("span", "", order.profile?.phone || "Телефон не указан"),
+        el("span", "", order.profile?.email || "Почта не указана")
       );
-      table.querySelector("tbody").append(tr);
+      (order.items || []).forEach((item) => {
+        const product = context.byId?.(item.id);
+        const row = el("div", "sona-admin-order-item");
+        const image = document.createElement("img");
+        image.src = product?.image || product?.gallery?.find((photo) => photo.main)?.src || "assets/sona-logo.png";
+        image.alt = "";
+        row.append(image, el("span", "", `${product?.name || item.id} × ${item.quantity || 1}`));
+        items.append(row);
+      });
+      const controls = el("div", "sona-admin-order-controls");
+      controls.append(status);
+      if (!options.compact) controls.append(actionButtons([["Удалить заказ", () => context.actions.deleteOrder(order.id), "danger"]]));
+      card.append(head, customer, items, controls);
+      list.append(card);
     });
-    panel.append(table);
+    panel.append(list);
+    if (!options.compact && pageCount > 1) {
+      const pager = el("div", "sona-admin-pagination");
+      const previous = el("button", "", "Назад");
+      const next = el("button", "", "Дальше");
+      previous.type = "button";
+      next.type = "button";
+      previous.disabled = orderPage === 1;
+      next.disabled = orderPage === pageCount;
+      previous.addEventListener("click", () => { orderPage -= 1; context.render(); });
+      next.addEventListener("click", () => { orderPage += 1; context.render(); });
+      pager.append(previous, el("strong", "", `${orderPage} из ${pageCount}`), next);
+      panel.append(pager);
+    }
     return panel;
   }
 
@@ -489,8 +551,9 @@ let reviewStatusFilter = "all";
     panel.append(el("h2", "", "Пользователи"));
     const table = tableWrap(["ID", "Имя", "Контакты", "Заказы", "Покупки", "Статус", "Роль"]);
     context.users.forEach((user) => {
-      const role = select([["user", "user"], ["admin", "admin"]], user.role || "user", (value) => context.actions.updateUser(user.phone, { role: value }));
-      const status = select([["active", "Активен"], ["blocked", "Заблокирован"]], user.status || "active", (value) => context.actions.updateUser(user.phone, { status: value }));
+      const userKey = user.phone || user.email || user.id;
+      const role = select([["user", "user"], ["admin", "admin"]], user.role || "user", (value) => context.actions.updateUser(userKey, { role: value }));
+      const status = select([["active", "Активен"], ["blocked", "Заблокирован"]], user.status || "active", (value) => context.actions.updateUser(userKey, { status: value }));
       const tr = document.createElement("tr");
       tr.append(
         td(user.id || "USER"),
@@ -562,67 +625,39 @@ let reviewStatusFilter = "all";
   function adsView(context) {
     const data = context.data;
     const panel = el("section", "sona-admin-panel sona-admin-wide");
-    const ad = (data.customAds || []).find((item) => item.id === editingAdId) || {};
-    const form = el("form", "sona-admin-editor");
-    const fields = [
-      ["title", "Заголовок", ad.title || ""],
-      ["eyebrow", "Метка", ad.eyebrow || "Реклама Soна"],
-      ["badge", "Акцент", ad.badge || ""],
-      ["cta", "Кнопка", ad.cta || "Смотреть"],
-      ["link", "Ссылка", ad.link || "#catalog"],
-      ["startAt", "Дата начала", ad.startAt || ""],
-      ["endAt", "Дата окончания", ad.endAt || ""]
-    ];
-    fields.forEach(([name, label, value]) => {
-      const input = el("input");
-      input.name = name;
-      input.placeholder = label;
-      input.value = value;
-      form.append(input);
-    });
-    const file = el("input");
-    file.type = "file";
-    file.accept = "image/png,image/jpeg,image/webp";
-    file.name = "visualFile";
-    const active = el("label", "sona-admin-check");
-    const checkbox = el("input");
-    checkbox.type = "checkbox";
-    checkbox.name = "active";
-    checkbox.checked = ad.active !== false;
-    active.append(checkbox, el("span", "", "Активен"));
-    const save = el("button", "", editingAdId ? "Сохранить баннер" : "Добавить баннер");
-    save.type = "submit";
-    const fileWrap = el("label", "sona-admin-field sona-admin-field-wide");
-    fileWrap.append(el("span", "", "Фото рекламы с компьютера"), file);
-    const actions = el("div", "sona-admin-editor-actions");
-    actions.append(active, save);
-    form.append(fileWrap, actions);
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const body = Object.fromEntries(new FormData(form).entries());
-      const persist = (visual) => {
-        context.actions.saveAd({ ...ad, ...body, id: ad.id, active: checkbox.checked, uploaded: Boolean(visual || ad.uploaded), visual: visual || ad.visual || "" });
-        editingAdId = "";
-      };
-      const upload = file.files?.[0];
-      if (upload) {
+    const slots = el("div", "sona-admin-ad-slots");
+    panel.append(el("h2", "", "Реклама на главной"), el("p", "sona-admin-muted", "Три фотографии автоматически листаются в самом верху главной страницы."));
+    [0, 1, 2].forEach((index) => {
+      const ad = (data.customAds || [])[index];
+      const slot = el("article", "sona-admin-ad-slot");
+      const image = document.createElement("img");
+      const upload = el("input");
+      const label = el("label", "sona-admin-ad-upload", ad ? "Заменить фото" : "Загрузить фото");
+      image.src = ad?.visual || `assets/ads/sona-${index === 0 ? "living-01" : index === 1 ? "living-02" : "bedroom-03"}.png`;
+      image.alt = `Рекламный слайд ${index + 1}`;
+      upload.type = "file";
+      upload.accept = "image/png,image/jpeg,image/webp";
+      upload.addEventListener("change", () => {
+        const file = upload.files?.[0];
+        if (!file) return;
         const reader = new FileReader();
-        reader.addEventListener("load", () => persist(String(reader.result || "")));
-        reader.readAsDataURL(upload);
-      } else {
-        persist("");
-      }
+        reader.addEventListener("load", () => context.actions.saveAd({
+          id: ad?.id || `AD-SLOT-${index + 1}`,
+          visual: String(reader.result || ""),
+          title: "",
+          fullBleed: true,
+          uploaded: true,
+          active: true,
+          slot: index
+        }));
+        reader.readAsDataURL(file);
+      });
+      label.append(upload);
+      slot.append(el("strong", "", `Слайд ${index + 1}`), image, label);
+      if (ad) slot.append(actionButtons([["Удалить фото", () => context.actions.deleteAd(ad.id), "danger"]]));
+      slots.append(slot);
     });
-
-    panel.append(el("h2", "", "Реклама"), form);
-    (data.customAds || []).forEach((item) => {
-      const row = el("article", "sona-admin-info-row");
-      row.append(el("strong", "", item.title || item.eyebrow || "Баннер"), el("span", "", item.active === false ? "Выключен" : "Активен"), actionButtons([
-        ["Редактировать", () => { editingAdId = item.id; context.render(); }],
-        ["Удалить", () => context.actions.deleteAd(item.id), "danger"]
-      ]));
-      panel.append(row);
-    });
+    panel.append(slots);
     return panel;
   }
 
@@ -703,7 +738,7 @@ let reviewStatusFilter = "all";
       if (window.SonaSupport?.addAdminReply(input.value, { phone: target?.phone, email: target?.email })) {
         window.SonaStore.update((data) => {
           data.supportMessages = (data.supportMessages || []).map((message) => (
-            message.role === "user" ? { ...message, status: "read" } : message
+            messages.some((item) => item.id === message.id) && message.role === "user" ? { ...message, status: "read" } : message
           ));
         });
         input.value = "";
@@ -726,7 +761,8 @@ let reviewStatusFilter = "all";
       dialog.last = message;
       map.set(id, dialog);
     });
-    return [...map.values()].sort((a, b) => Number(b.last?.createdAt || 0) - Number(a.last?.createdAt || 0));
+    const time = (value) => Number(value) || Date.parse(value || "") || 0;
+    return [...map.values()].sort((a, b) => time(b.last?.createdAt) - time(a.last?.createdAt));
   }
 
   function settingsView(context) {
@@ -755,6 +791,24 @@ let reviewStatusFilter = "all";
       context.actions.saveSettings(Object.fromEntries(new FormData(form).entries()));
     });
     panel.append(el("h2", "", "Настройки магазина"), form);
+    const server = el("section", "sona-admin-server");
+    const status = el("p", "sona-admin-muted", "Состояние сервера ещё не проверено.");
+    const health = el("button", "sona-admin-soft", "Проверить сервер");
+    const sync = el("button", "sona-admin-soft", "Синхронизировать данные");
+    health.type = "button";
+    sync.type = "button";
+    health.addEventListener("click", async () => {
+      status.textContent = "Проверяем сервер...";
+      const response = await fetch("/health", { cache: "no-store" }).catch(() => null);
+      status.textContent = response?.ok ? "Сервер работает. Подключение активно." : "Сервер сейчас недоступен.";
+    });
+    sync.addEventListener("click", async () => {
+      status.textContent = "Синхронизируем данные...";
+      await window.SonaStore.syncNow().catch(() => null);
+      status.textContent = "Данные отправлены на сервер.";
+    });
+    server.append(el("h3", "", "Работа сервера"), status, health, sync);
+    panel.append(server);
     return panel;
   }
 
@@ -763,7 +817,18 @@ let reviewStatusFilter = "all";
     input.type = "search";
     input.placeholder = placeholder;
     input.value = value;
-    input.addEventListener("input", () => onInput(input.value));
+    input.addEventListener("input", () => {
+      const next = input.value;
+      window.clearTimeout(adminSearchTimer);
+      adminSearchTimer = window.setTimeout(() => {
+        onInput(next);
+        window.requestAnimationFrame(() => {
+          const fresh = [...document.querySelectorAll(".sona-admin-search")].find((item) => item.placeholder === placeholder);
+          fresh?.focus({ preventScroll: true });
+          fresh?.setSelectionRange?.(fresh.value.length, fresh.value.length);
+        });
+      }, 180);
+    });
     input.addEventListener("keydown", (event) => {
       if (event.key === "Enter") event.preventDefault();
     });
@@ -847,26 +912,46 @@ let reviewStatusFilter = "all";
       byId: (id) => (options.products || []).find((product) => product.id === id),
       render: () => render(options)
     };
-    const root = el("div", "sona-admin");
-    const sidebar = el("aside", "sona-admin-sidebar");
-    const nav = el("nav", "sona-admin-menu");
+    const root = el("div", "sona-admin sona-profile");
+    const topbar = el("section", "sona-profile-topbar sona-admin-topbar");
+    const tabsWrap = el("div", "sona-profile-tabs-wrap sona-admin-tabs-wrap");
+    const nav = el("nav", "sona-profile-tabs sona-admin-menu");
+    nav.setAttribute("aria-label", "Разделы администратора");
     const main = el("main", "sona-admin-main");
-    const head = el("section", "sona-admin-head");
-    const logout = el("button", "sona-admin-soft", "Выйти");
+    const logout = el("button", "sona-profile-topbar__logout sona-admin-logout");
+    logout.setAttribute("aria-label", "Выйти из аккаунта администратора");
+    logout.append(icon("M9 5H5v14h4 M13 8l4 4-4 4 M8 12h9"));
 
-    menu.forEach(([id, title, path]) => {
+    menu.filter(([id]) => id !== "logout").forEach(([id, title, path]) => {
       const item = el("button", activeSection === id ? "is-active" : "");
       item.type = "button";
+      item.dataset.adminSection = id;
+      item.setAttribute("aria-current", activeSection === id ? "page" : "false");
       item.append(icon(path), el("span", "", title));
+      if (id === "support") {
+        const unread = context.support.filter((message) => message.role === "user" && message.status === "new").length;
+        if (unread) item.append(el("em", "sona-admin-tab-badge", String(unread)));
+      }
       item.addEventListener("click", () => {
         if (id === "logout") {
           logoutAdmin(onChange);
           return;
         }
         activeSection = id;
-        const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
         render(options);
-        window.requestAnimationFrame(() => window.scrollTo({ top: scrollTop, behavior: "auto" }));
+        window.requestAnimationFrame(() => {
+          const selector = window.matchMedia("(max-width: 760px)").matches
+            ? ".sona-admin-tabs-wrap"
+            : ".sona-admin-main";
+          document.querySelector(selector)?.scrollIntoView({ block: "start", behavior: "auto" });
+          const activeItem = document.querySelector(`.sona-admin-menu [data-admin-section="${id}"]`);
+          const activeNav = activeItem?.closest(".sona-admin-menu");
+          if (activeItem && activeNav) {
+            activeNav.style.scrollBehavior = "auto";
+            activeNav.scrollLeft = activeItem.offsetLeft - (activeNav.clientWidth - activeItem.offsetWidth) / 2;
+            window.requestAnimationFrame(() => activeNav.style.removeProperty("scroll-behavior"));
+          }
+        });
       });
       nav.append(item);
     });
@@ -876,17 +961,29 @@ let reviewStatusFilter = "all";
       logoutAdmin(onChange);
     });
 
-    const adminLogo = el("strong", "sona-admin-logo");
-    const logoImg = document.createElement("img");
-    logoImg.src = "assets/sona-logo.png";
-    logoImg.alt = "";
-    adminLogo.append(logoImg, el("span", "", "Soна Admin"));
-    sidebar.append(adminLogo, nav);
-    head.append(el("div", "", ""), logout);
-    head.firstChild.append(el("p", "eyebrow", "Админ-панель"), el("h1", "", "Управление магазином"), el("span", "", "Заказы, товары, пользователи, отзывы, реклама и поддержка."));
-    main.append(head, renderContent(context));
-    root.append(sidebar, main);
+    const scrollTabs = (direction) => nav.scrollBy({ left: direction * Math.max(150, nav.clientWidth * 0.72), behavior: "smooth" });
+    const left = el("button", "sona-profile-tabs-arrow", "←");
+    const right = el("button", "sona-profile-tabs-arrow", "→");
+    left.type = "button";
+    right.type = "button";
+    left.setAttribute("aria-label", "Предыдущие разделы");
+    right.setAttribute("aria-label", "Следующие разделы");
+    left.addEventListener("click", () => scrollTabs(-1));
+    right.addEventListener("click", () => scrollTabs(1));
+
+    topbar.append(el("h1", "", "Личный кабинет"), logout);
+    tabsWrap.append(left, nav, right);
+    main.append(renderContent(context));
+    root.append(topbar, tabsWrap, main);
     container.replaceChildren(root);
+    window.requestAnimationFrame(() => {
+      const activeItem = nav.querySelector(`[data-admin-section="${activeSection}"]`);
+      if (activeItem) {
+        nav.style.scrollBehavior = "auto";
+        nav.scrollLeft = activeItem.offsetLeft - (nav.clientWidth - activeItem.offsetWidth) / 2;
+        window.requestAnimationFrame(() => nav.style.removeProperty("scroll-behavior"));
+      }
+    });
   }
 
   window.SonaAdmin = {

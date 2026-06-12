@@ -460,12 +460,17 @@
     render();
   }
 
-  function updateAdminUser(phone, patch) {
+  async function updateAdminUser(identifier, patch) {
+    await fetch("/api/accounts", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier, ...patch })
+    }).catch(() => null);
     store.update((data) => {
       data.users = (data.users || []).map((user) => (
-        user.phone === phone ? { ...user, ...patch } : user
+        [user.phone, user.email, user.id].includes(identifier) ? { ...user, ...patch } : user
       ));
-      if (data.profile?.phone === phone) {
+      if ([data.profile?.phone, data.profile?.email].includes(identifier)) {
         data.profile = { ...data.profile, ...patch };
       }
     });
@@ -489,7 +494,9 @@
         active: ad.active !== false,
         uploaded: Boolean(ad.uploaded || (ad.visual && !ad.title))
       });
-      data.customAds = rows;
+      data.customAds = rows
+        .sort((a, b) => Number(a.slot ?? 99) - Number(b.slot ?? 99))
+        .slice(0, 3);
     });
     renderAds();
     renderAdminPage();
@@ -582,6 +589,12 @@
     return rows
       .filter((item) => item.src)
       .sort((a, b) => Number(Boolean(b.main)) - Number(Boolean(a.main)));
+  }
+
+  function isGalleryVideo(item) {
+    return String(item?.type || "").startsWith("video/")
+      || /^data:video\//i.test(String(item?.src || ""))
+      || /\.(?:mp4|webm)(?:[?#].*)?$/i.test(String(item?.src || ""));
   }
 
   function safeImageSrc(value) {
@@ -757,17 +770,8 @@
 
   function getAds() {
     const data = store.read();
-    const customAds = (data.customAds || []).filter((ad) => {
-      const title = String(ad.title || "").toLowerCase();
-      const eyebrow = String(ad.eyebrow || "").toLowerCase();
-      const visual = String(ad.visual || "");
-      return ad.active !== false
-        && !ad.uploaded
-        && !visual.startsWith("data:")
-        && !title.includes("новый баннер")
-        && !eyebrow.includes("ваша реклама");
-    });
-    return [...DEFAULT_ADS, ...customAds].filter((ad) => ad.active !== false);
+    const customAds = (data.customAds || []).filter((ad) => ad.active !== false && ad.visual).slice(0, 3);
+    return customAds.length ? customAds : DEFAULT_ADS;
   }
 
   function createAdSlide(ad, index) {
@@ -1045,10 +1049,14 @@
       .slice(0, 4);
     const popular = visible
       .slice()
-      .sort((a, b) => (Number(b.reviews || b.reviewsCount) || 0) - (Number(a.reviews || a.reviewsCount) || 0))
+      .sort((a, b) => {
+        const aHit = (a.tags || []).some((tag) => displayText(tag).toLowerCase() === "хит") ? 1 : 0;
+        const bHit = (b.tags || []).some((tag) => displayText(tag).toLowerCase() === "хит") ? 1 : 0;
+        return bHit - aHit || (Number(b.reviews || b.reviewsCount) || 0) - (Number(a.reviews || a.reviewsCount) || 0);
+      })
       .slice(0, 2);
     const newItems = visible
-      .filter((product) => (product.tags || []).includes("новинка") || ["Диваны", "Услуги"].includes(product.marketSection))
+      .filter((product) => (product.tags || []).some((tag) => displayText(tag).toLowerCase() === "новинка") || ["Диваны", "Услуги"].includes(product.marketSection))
       .slice(0, 2);
 
     if (els.saleProductGrid) {
@@ -1646,11 +1654,18 @@
       const item = fallbackGallery[index];
       if (item?.src) {
         const holder = createElement("div", "product-placeholder has-image");
-        const image = document.createElement("img");
+        const image = document.createElement(isGalleryVideo(item) ? "video" : "img");
         image.src = safeImageSrc(item.src);
-        image.alt = displayText(item.alt || product.name || "");
-        image.loading = "eager";
-        image.decoding = "async";
+        if (image.tagName === "VIDEO") {
+          image.controls = true;
+          image.playsInline = true;
+          image.preload = "metadata";
+          holder.classList.add("is-video-media");
+        } else {
+          image.alt = displayText(item.alt || product.name || "");
+          image.loading = "eager";
+          image.decoding = "async";
+        }
         if (isSofaProduct(product)) {
           holder.classList.add("is-sofa-image");
         }
@@ -1674,9 +1689,15 @@
       const thumb = createElement("button", "detail-thumb");
       thumb.type = "button";
       if (item?.src) {
-        const thumbImage = document.createElement("img");
+        const thumbImage = document.createElement(isGalleryVideo(item) ? "video" : "img");
         thumbImage.src = safeImageSrc(item.src);
-        thumbImage.alt = "";
+        if (thumbImage.tagName === "VIDEO") {
+          thumbImage.muted = true;
+          thumbImage.preload = "metadata";
+          thumb.classList.add("is-video-thumb");
+        } else {
+          thumbImage.alt = "";
+        }
         if (isAttachedSofaPhoto(item.src)) {
           thumb.classList.add("is-attached-sofa-photo");
         }
@@ -2062,8 +2083,36 @@
     });
   }
 
-  function setQuantity(productId, quantity) {
+  function updateCartTotalsView() {
+    const totals = cartTotals();
+    els.cartBadge.textContent = String(totals.count);
+    if (els.mobileCartBadge) {
+      els.mobileCartBadge.textContent = String(totals.count);
+      els.mobileCartBadge.hidden = totals.count === 0;
+    }
+    if (els.cartCountLabel) els.cartCountLabel.textContent = `Товары: ${totals.count}`;
+    els.cartSubtotal.textContent = money(totals.subtotal);
+    els.deliveryPrice.textContent = totals.delivery ? money(totals.delivery) : "0 ₽";
+    els.cartTotal.textContent = money(totals.total);
+    els.checkoutButton.disabled = !totals.rows.length;
+  }
+
+  function animateQuantityChange(item, triggerButton, direction) {
+    if (!item || reduceMotion) return;
+    item.classList.remove("is-quantity-up", "is-quantity-down");
+    triggerButton?.classList.remove("is-quantity-pressed");
+    void item.offsetWidth;
+    item.classList.add(direction > 0 ? "is-quantity-up" : "is-quantity-down");
+    triggerButton?.classList.add("is-quantity-pressed");
+    window.setTimeout(() => {
+      item.classList.remove("is-quantity-up", "is-quantity-down");
+      triggerButton?.classList.remove("is-quantity-pressed");
+    }, 460);
+  }
+
+  function setQuantity(productId, quantity, triggerButton = null) {
     const id = security.safeProductId(productId);
+    const previousQuantity = Number(store.read().cart?.[id]) || 0;
     const nextQuantity = Math.max(0, Math.min(Number(quantity) || 0, 20));
 
     store.update((data) => {
@@ -2074,9 +2123,27 @@
       }
     });
 
-    renderCart();
-    renderProfilePage();
-    renderFavoritesPage();
+    if (nextQuantity === 0) {
+      renderCart();
+      refreshProfileAfterMotion();
+      if (state.route === "favorites") renderFavoritesPage();
+      return;
+    }
+
+    const item = els.cartItems?.querySelector(`[data-cart-item-id="${id}"]`);
+    if (!item) {
+      renderCart();
+      return;
+    }
+
+    const amount = item.querySelector("[data-cart-quantity]");
+    const price = item.querySelector("[data-cart-item-price]");
+    if (amount) amount.textContent = String(nextQuantity);
+    if (price) price.textContent = money((byId(id)?.price || 0) * nextQuantity);
+    item.querySelector("[data-quantity-minus]")?.setAttribute("aria-label", "Уменьшить количество");
+    item.querySelector("[data-quantity-plus]")?.setAttribute("aria-label", "Увеличить количество");
+    updateCartTotalsView();
+    animateQuantityChange(item, triggerButton, nextQuantity - previousQuantity);
   }
 
   function cartRows() {
@@ -2112,7 +2179,9 @@
       els.profileButtonLabel.textContent = window.SonaAdmin?.isAdmin(store.read()) ? "Админ" : (isProfileActive() ? "Профиль" : "Войти");
     }
     const mobileProfileLabel = document.querySelector('[data-mobile-action="profile"] strong');
-    if (mobileProfileLabel) mobileProfileLabel.textContent = isProfileActive() ? "Профиль" : "Войти";
+    if (mobileProfileLabel) {
+      mobileProfileLabel.textContent = window.SonaAdmin?.isAdmin(store.read()) ? "Админ" : (isProfileActive() ? "Профиль" : "Войти");
+    }
 
     if (!rows.length) {
       const empty = createElement("div", "cart-empty cart-empty-page");
@@ -2203,7 +2272,10 @@
     const plus = createElement("button", "", "+");
     const price = createElement("span", "cart-item-price", money(product.price * quantity));
 
+    item.dataset.cartItemId = product.id;
     thumb.classList.add("cart-placeholder");
+    amount.dataset.cartQuantity = "";
+    price.dataset.cartItemPrice = "";
 
     remove.type = "button";
     remove.setAttribute("aria-label", "Удалить товар");
@@ -2211,11 +2283,19 @@
 
     minus.type = "button";
     minus.setAttribute("aria-label", "Уменьшить количество");
-    minus.addEventListener("click", () => setQuantity(product.id, quantity - 1));
+    minus.dataset.quantityMinus = "";
+    minus.addEventListener("click", () => {
+      const current = Number(store.read().cart?.[product.id]) || 0;
+      setQuantity(product.id, current - 1, minus);
+    });
 
     plus.type = "button";
     plus.setAttribute("aria-label", "Увеличить количество");
-    plus.addEventListener("click", () => setQuantity(product.id, quantity + 1));
+    plus.dataset.quantityPlus = "";
+    plus.addEventListener("click", () => {
+      const current = Number(store.read().cart?.[product.id]) || 0;
+      setQuantity(product.id, current + 1, plus);
+    });
 
     titleRow.append(title, remove);
     control.append(minus, amount, plus);
@@ -2415,6 +2495,7 @@
       checkout,
       openCart: () => navigateTo("cart"),
       openFavorites: () => navigateTo("favorites"),
+      openAdmin: () => navigateTo("admin"),
       openCatalog: goToCatalog,
       openProduct,
       openEdit: () => {
@@ -2497,7 +2578,7 @@
     const summary = createElement("div", "favorites-summary");
     const countBadge = createElement("span", "favorites-count", `${favorites.length} ${favorites.length === 1 ? "товар" : "товаров"}`);
     const catalogButton = createElement("button", "soft-button", "Продолжить покупки");
-    const list = createElement("div", "favorites-grid");
+    const list = createElement("div", "favorites-grid category-product-grid");
 
     catalogButton.type = "button";
     catalogButton.addEventListener("click", goToCatalog);
@@ -2512,41 +2593,7 @@
       return;
     }
 
-    favorites.forEach((product) => {
-      const card = createElement("article", "favorite-card");
-      const media = createElement("div", "favorite-card-media");
-      const thumb = createProductPlaceholder(product);
-      const body = createElement("div", "favorite-card-body");
-      const top = createElement("div", "favorite-card-top");
-      const title = createElement("h3", "", product.name);
-      const rating = createElement("span", "rating", `★ ${reviewLabel(product.id, data)}`);
-      const meta = createElement("div", "favorite-meta");
-      const price = createElement("strong", "", money(product.price));
-      const actions = createElement("div", "favorite-actions");
-      const cart = createElement("button", "primary-button", "");
-      const remove = createElement("button", "favorite-button favorite-remove-arrow", "");
-
-      cart.type = "button";
-      cart.classList.add("product-cart-button");
-      cart.dataset.cartProductId = product.id;
-      cart.dataset.cartDefaultLabel = "В корзину";
-      cart.setAttribute("aria-label", `Добавить ${product.name} в корзину`);
-      cart.append(createSvgIcon("cart", "product-cart-icon"));
-      setCartButtonState(cart, Number(data.cart?.[product.id]) > 0);
-      remove.type = "button";
-      remove.setAttribute("aria-label", `Удалить ${product.name} из избранного`);
-      remove.append(createSvgIcon("heart", "favorite-icon"));
-      remove.classList.add("is-active");
-      cart.addEventListener("click", () => toggleCart(product.id, cart));
-      remove.addEventListener("click", () => removeFavorite(product.id));
-      top.append(rating);
-      meta.append(price);
-      actions.append(cart, remove);
-      media.append(thumb, actions);
-      body.append(title, top, meta);
-      card.append(media, body);
-      list.append(card);
-    });
+    favorites.forEach((product) => list.append(createProductCard(product, data)));
 
     page.append(head, list, createFavoritesHitsSection(data));
     els.favoritesPageContent.replaceChildren(page);
@@ -2921,6 +2968,7 @@
     document.body.classList.toggle("cart-view", isCart);
     document.body.classList.toggle("account-view", isProfile || isFavorites || isAdmin || isCategory);
     document.body.classList.toggle("profile-view", isProfile);
+    document.body.classList.toggle("admin-view", isAdmin);
 
     renderCart();
     renderCategoryPage();
@@ -3540,6 +3588,19 @@
       refreshProductsFromAdmin();
       state.route = routeFromLocation();
       render();
+      window.setInterval(async () => {
+        if (document.hidden || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+        await store.refresh?.().catch(() => null);
+        refreshProductsFromAdmin();
+        if (state.route === "admin") {
+          renderAdminPage();
+          renderAds();
+          return;
+        }
+        if (state.route === "profile" || state.route === "product" || state.route === "home" || state.route === "category") {
+          render();
+        }
+      }, 4000);
     } catch (error) {
       els.emptyState.hidden = false;
       els.emptyState.textContent = "Каталог временно недоступен.";

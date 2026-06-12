@@ -7501,3 +7501,40 @@ img {
   background: #fff;
   background-image: none;
 }
+
+.detail-stage .product-placeholder.is-video-media video {
+  width: 100%;
+  height: 100%;
+  max-height: min(620px, 72vh);
+  display: block;
+  border-radius: inherit;
+  background: #0b1727;
+  object-fit: contain;
+}
+
+.detail-thumb.is-video-thumb {
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-thumb.is-video-thumb::after {
+  content: "▶";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(16, 40, 68, 0.82);
+  color: #fff;
+  font-size: 10px;
+  transform: translate(-50%, -50%);
+}
+
+.detail-thumb.is-video-thumb video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
