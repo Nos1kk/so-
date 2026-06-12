@@ -50,9 +50,9 @@
     if (name) return name;
 
     const email = String(profile?.email || "").trim();
-    if (email) return email.split("@")[0] || "Покупатель Soна";
+    if (email) return email.split("@")[0] || "Пользователь";
 
-    return "Покупатель Soна";
+    return "Пользователь";
   }
 
   function create({ orderId, productId, rating, text, profile }) {

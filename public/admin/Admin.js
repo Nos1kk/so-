@@ -129,7 +129,7 @@ let reviewStatusFilter = "all";
       const key = data.profile.phone || data.profile.email;
       map.set(key, {
         id: `USER-${digits(data.profile.phone) || "local"}`,
-        name: data.profile.name || "Покупатель Soна",
+        name: data.profile.name || "Пользователь",
         email: data.profile.email || "",
         phone: data.profile.phone || "",
         role: data.profile.role || "user",
@@ -144,7 +144,7 @@ let reviewStatusFilter = "all";
       const key = phone || email || order.profile?.userId || "guest";
       const current = map.get(key) || {
         id: order.profile?.userId || `USER-${digits(phone) || key}`,
-        name: order.profile?.name || "Покупатель Soна",
+        name: order.profile?.name || "Пользователь",
         email,
         phone,
         role: "user",

@@ -467,6 +467,27 @@ function sendEmailCode(email, code, callback) {
     .catch(callback);
 }
 
+function handleTestNotification(req, res) {
+  readJsonBody(req, (error, body) => {
+    if (error) {
+      sendJson(res, 400, { ok: false, error: "Invalid JSON" });
+      return;
+    }
+    const email = normalizeEmail(body.email);
+    if (!isValidEmail(email)) {
+      sendJson(res, 400, { ok: false, error: "Invalid email" });
+      return;
+    }
+    sendSmtpMail({
+      to: email,
+      subject: "Тестовое уведомление SONA",
+      text: "Уведомления SONA на почту успешно подключены."
+    })
+      .then(() => sendJson(res, 200, { ok: true }))
+      .catch(() => sendJson(res, 502, { ok: false, error: "Email provider failed" }));
+  });
+}
+
 function handleAuthRequest(req, res) {
   readJsonBody(req, (error, body) => {
     if (error) {
@@ -621,6 +642,11 @@ function createServer() {
 
   if (req.method === "POST" && req.url === "/api/auth/verify-email") {
     handleAuthVerify(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/notifications/test") {
+    handleTestNotification(req, res);
     return;
   }
 

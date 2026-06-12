@@ -5,6 +5,34 @@
   const store = window.SonaStore;
   const ALL_VALUE = "все";
   const REMOVED_PRODUCT_IDS = new Set(["breeze-mini", "compact-nova-sofa"]);
+  const SOFA_IMAGE_BY_NAME = {
+    "аляска мд": "assets/фотографии диванов/Аляска МД.png",
+    "аляска": "assets/фотографии диванов/Аляска.png",
+    "андреас": "assets/фотографии диванов/Андреас.png",
+    "бостон": "assets/фотографии диванов/Бостон.png",
+    "валенсия": "assets/фотографии диванов/Валенсия.jpeg",
+    "виктория": "assets/фотографии диванов/Виктория.png",
+    "гудзон": "assets/фотографии диванов/Гудзон.png",
+    "дублин": "assets/фотографии диванов/Дублин.png",
+    "инфинити": "assets/фотографии диванов/Инфинити.jpeg",
+    "канзас 8 мд": "assets/фотографии диванов/Канзас 8 Мд.png",
+    "мальта к": "assets/фотографии диванов/мальта К.png",
+    "марк": "assets/фотографии диванов/Марк.png",
+    "милан": "assets/фотографии диванов/Милан.png",
+    "монтана": "assets/фотографии диванов/Монтана 1.jpeg",
+    "неаполь мд": "assets/фотографии диванов/Неаполь Мд.png",
+    "неаполь мд белый": "assets/фотографии диванов/Неаполь Мд белый.png",
+    "ницца": "assets/фотографии диванов/Ницца.png",
+    "нумо": "assets/фотографии диванов/Нумо.png",
+    "паула": "assets/фотографии диванов/Паула.jpeg",
+    "рейн": "assets/фотографии диванов/Рейн.png",
+    "сиэтл м": "assets/фотографии диванов/Сиэтл М.png",
+    "томас": "assets/фотографии диванов/Томас.png"
+  };
+  const SOFA_IMAGE_BY_ID = {
+    "sona-mark-large": "assets/фотографии диванов/Марк.png",
+    "sona-mark-compact": "assets/фотографии диванов/Марк маленький.png"
+  };
   const PERMANENT_SOFA_PRODUCTS = [
     { id: "sona-numo", name: "Нумо", category: "прямой", dimensions: "2200 × 1000 × 960", price: 0 },
     { id: "sona-paula", name: "Паула", category: "диван-кровать", dimensions: "2300 × 950 × 1000", sleepingPlace: "1950 × 1400", mechanism: "Книжка", oldPrice: 47500, price: 37900, discountPercent: 20, benefit: 9600 },
@@ -18,11 +46,14 @@
     { id: "sona-seattle-m", name: "Сиэтл М", category: "угловой", dimensions: "2530 × 1590 × 930", sleepingPlace: "2000 × 1450", mechanism: "Дельфин", oldPrice: 95000, price: 79900, discountPercent: 15, benefit: 15000 },
     { id: "sona-nice", name: "Ницца", category: "угловой", dimensions: "2800 × 1800 × 940", sleepingPlace: "2410 × 1600", mechanism: "Дельфин", oldPrice: 112000, price: 89600, discountPercent: 20, benefit: 22400 },
     { id: "sona-boston", name: "Бостон", category: "угловой", dimensions: "3050 × 1750 × 950", sleepingPlace: "1500 × 2500", mechanism: "Тик-так", oldPrice: 115000, price: 97750, discountPercent: 15, benefit: 17250 },
-    { id: "sona-mark-large", name: "Марк", category: "угловой", dimensions: "3400 × 1500 × 990", sleepingPlace: "1450 × 3000", oldPrice: 92000, price: 59800, discountPercent: 35, benefit: 32200 },
+    { id: "sona-mark-large", name: "Марк", category: "угловой", dimensions: "3400 × 1500 × 990", sleepingPlace: "1450 × 3000", oldPrice: 92200, price: 59800, discountPercent: 35, benefit: 32400 },
     { id: "sona-victoria", name: "Виктория", category: "угловой", dimensions: "2700 × 1700 × 1000", sleepingPlace: "1500 × 2080", oldPrice: 98000, price: 78400, discountPercent: 20, benefit: 19600 },
     { id: "sona-rhine", name: "Рейн", category: "диван-кровать", dimensions: "2030 × 1000 × 920", sleepingPlace: "2030 × 1350", price: 65344, priceMode: "from" },
     { id: "sona-thomas", name: "Томас", category: "угловой", dimensions: "2300 × 1600 × 950", sleepingPlace: "1450 × 2000", oldPrice: 62200, price: 49800, discountPercent: 20, benefit: 12600 },
-    { id: "sona-naples-md", name: "Неаполь Мд", category: "диван-кровать", dimensions: "2500 × 1180 × 860", sleepingPlace: "1600 × 2000", price: 78650, priceMode: "from" },
+    { id: "sona-naples-md", name: "Неаполь МД", category: "диван-кровать", dimensions: "2500 × 1180 × 860", sleepingPlace: "1600 × 2000", oldPrice: 97500, price: 78650, discountPercent: 20, benefit: 18850 },
+    { id: "sona-naples-md-white", name: "Неаполь МД Белый", category: "угловой", dimensions: "3160 × 1700 × 860", sleepingPlace: "1600 × 3000", price: 123882 },
+    { id: "sona-broadway-2", name: "Бродвей 2", category: "прямой", dimensions: "1660 × 950 × 930", price: 35224 },
+    { id: "sona-andreas", name: "Андреас", category: "диван-кровать", dimensions: "1840 × 1130 × 900", sleepingPlace: "2000 × 1500", mechanism: "Аккордеон", price: 46900, image: "assets/sofas/andreas.png", tags: ["новинка"] },
     { id: "sona-kansas-8-md", name: "Канзас 8 Мд", category: "угловой", dimensions: "3980 × 1700 × 1000", sleepingPlace: "1500 × 2000", price: 138700, priceMode: "from" },
     { id: "sona-dublin", name: "Дублин", category: "прямой", oldPrice: 112000, price: 89600, discountPercent: 20, benefit: 22400 },
     { id: "sona-mark-compact", name: "Марк", category: "диван-кровать", dimensions: "2430 × 1050 × 1000", sleepingPlace: "1450 × 2000", oldPrice: 60000, price: 41900, discountPercent: 30, benefit: 18000 },
@@ -46,7 +77,11 @@
       product.sleepingPlace ? `Спальное место: ${product.sleepingPlace}` : "",
       product.mechanism ? `Механизм: ${product.mechanism}` : ""
     ].filter(Boolean),
-    ...product
+    ...product,
+    image: SOFA_IMAGE_BY_ID[product.id]
+      || SOFA_IMAGE_BY_NAME[String(product.name || "").trim().toLowerCase()]
+      || product.image
+      || ""
   }));
 
   const state = {
@@ -279,21 +314,6 @@
     productDetail: document.getElementById("productDetail"),
     profileButton: document.getElementById("profileButton"),
     profileButtonLabel: document.getElementById("profileButtonLabel"),
-    profileModal: document.getElementById("profileModal"),
-    profileForm: document.getElementById("profileForm"),
-    profileDisplayName: document.getElementById("profileDisplayName"),
-    profileNameInput: document.getElementById("profileNameInput"),
-    profileEmailInput: document.getElementById("profileEmailInput"),
-    profilePhoneInput: document.getElementById("profilePhoneInput"),
-    profileAddressInput: document.getElementById("profileAddressInput"),
-    profileCartCount: document.getElementById("profileCartCount"),
-    profileFavoriteCount: document.getElementById("profileFavoriteCount"),
-    profileOrderCount: document.getElementById("profileOrderCount"),
-    profileCloseButton: document.getElementById("profileCloseButton"),
-    profileDoneButton: document.getElementById("profileDoneButton"),
-    favoriteList: document.getElementById("favoriteList"),
-    orderList: document.getElementById("orderList"),
-    clearProfile: document.getElementById("clearProfile"),
     toast: document.getElementById("toast")
   };
 
@@ -572,6 +592,10 @@
     return new URL(encodeURI(source.replace(/^(?:\.{1,2}\/)+/, "")), document.baseURI).href;
   }
 
+  function isAttachedSofaPhoto(value) {
+    return decodeURI(String(value || "")).includes("assets/фотографии диванов/");
+  }
+
   function isSofaProduct(product) {
     return ["прямой", "угловой", "модульный", "диван-кровать"].includes(product.category)
       || displayText(`${product.name || ""} ${product.category || ""}`).toLowerCase().includes("диван");
@@ -583,6 +607,12 @@
     if (product.category === "кресло") return "Кресла";
     if (product.category === "услуга" || product.marketSection === "Услуги") return "Услуги";
     return product.marketSection || product.category || "Каталог";
+  }
+
+  function usesWhiteProductMedia(product) {
+    return isSofaProduct(product)
+      || ["кровать", "кресло", "услуга"].includes(product.category)
+      || product.marketSection === "Услуги";
   }
 
   function defaultProductImage(product) {
@@ -628,6 +658,10 @@
 
   function setCartButtonState(button, isInCart) {
     if (!button) return;
+    if (!button.dataset.cartFocusGuard) {
+      button.dataset.cartFocusGuard = "true";
+      button.addEventListener("mousedown", (event) => event.preventDefault());
+    }
     button.classList.toggle("is-in-cart", isInCart);
     button.setAttribute("aria-pressed", String(isInCart));
     const label = isInCart ? "В корзине" : (button.dataset.cartDefaultLabel || "В корзину");
@@ -688,6 +722,7 @@
 
   function navigateTo(route, syncUrl = true, options = {}) {
     const nextRoute = ["home", "profile", "cart", "favorites", "admin", "category", "product"].includes(route) ? route : "home";
+    const nextPath = syncUrl ? routePath(nextRoute) : "";
 
     state.route = nextRoute;
     state.mobileAction = nextRoute === "admin" ? "profile" : (nextRoute === "category" ? "catalog" : nextRoute);
@@ -697,7 +732,6 @@
     renderRoute();
 
     if (syncUrl) {
-      const nextPath = routePath(nextRoute);
       const currentPath = `${window.location.pathname}${window.location.search}`;
       if (currentPath !== nextPath || window.location.hash) {
         window.history.pushState({ route: nextRoute }, "", nextPath);
@@ -1073,8 +1107,12 @@
 
     details.type = "button";
     cart.type = "button";
+    cart.classList.add("product-cart-button");
+    cart.dataset.cartProductId = product.id;
+    cart.dataset.cartDefaultLabel = product.category === "услуга" ? "Заказать" : "В корзину";
+    setCartButtonState(cart, Number(data.cart?.[product.id]) > 0);
     details.addEventListener("click", () => openProduct(product.id));
-    cart.addEventListener("click", () => addToCart(product.id, cart));
+    cart.addEventListener("click", () => toggleCart(product.id, cart));
     actions.append(details, cart);
     copy.append(top, title, price, meta, actions);
     card.append(media, favorite, copy);
@@ -1085,7 +1123,7 @@
     let title = "Все товары";
 
     if (state.filters.favoritesOnly) {
-      title = "Избранное SONA";
+      title = "Лайки SONA";
     } else if (state.filters.saleOnly) {
       title = "Распродажа SONA";
     } else if (state.filters.group === "sofas") {
@@ -1377,6 +1415,7 @@
     const isInCart = Number(data.cart?.[product.id]) > 0;
     const card = createElement("article", "product-card");
     card.classList.toggle("is-sofa-card", isSofaProduct(product));
+    card.classList.toggle("is-white-media-card", usesWhiteProductMedia(product));
     card.tabIndex = 0;
     card.setAttribute("role", "button");
     card.setAttribute("aria-label", `Открыть ${product.name}`);
@@ -1501,6 +1540,9 @@
       if (isSofaProduct(product)) {
         placeholder.classList.add("is-sofa-image");
       }
+      if (usesWhiteProductMedia(product)) {
+        placeholder.classList.add("is-white-media-image");
+      }
       placeholder.append(image);
       return placeholder;
     }
@@ -1521,6 +1563,12 @@
   function openProduct(productId) {
     const product = byId(productId);
     if (!product) return;
+    store.update((data) => {
+      data.viewedProductIds = [
+        product.id,
+        ...(data.viewedProductIds || []).filter((id) => id !== product.id)
+      ].slice(0, 12);
+    });
     state.activeProductId = product.id;
     const currentPath = `${window.location.pathname}${window.location.search}`;
     if (routeFromLocation() !== "product") {
@@ -1536,6 +1584,7 @@
       if (hadSearch) renderProducts();
     }
     renderProductDetail(product);
+    els.productDetail.scrollTo({ top: 0, left: 0, behavior: "instant" });
     els.productModal.classList.add("is-open");
     els.productModal.setAttribute("aria-hidden", "false");
     document.body.classList.add("modal-lock");
@@ -1549,7 +1598,9 @@
     els.productModal.classList.remove("is-open");
     els.productModal.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-lock");
-    if (routeFromLocation() === "product") {
+    const currentPath = window.location.pathname.replace(/\/+$/, "") || "/";
+    const currentQueryRoute = new URLSearchParams(window.location.search).get("route");
+    if (currentPath === "/product" || currentQueryRoute === "product") {
       const returnPath = state.productReturnPath || routePath("home");
       window.history.pushState({ route: "home" }, "", returnPath);
       state.route = routeFromLocation();
@@ -1603,6 +1654,12 @@
         if (isSofaProduct(product)) {
           holder.classList.add("is-sofa-image");
         }
+        if (usesWhiteProductMedia(product)) {
+          holder.classList.add("is-white-media-image");
+        }
+        if (isAttachedSofaPhoto(item.src)) {
+          holder.classList.add("is-attached-sofa-photo");
+        }
         holder.append(image);
         stage.replaceChildren(holder);
       } else {
@@ -1620,6 +1677,9 @@
         const thumbImage = document.createElement("img");
         thumbImage.src = safeImageSrc(item.src);
         thumbImage.alt = "";
+        if (isAttachedSofaPhoto(item.src)) {
+          thumb.classList.add("is-attached-sofa-photo");
+        }
         thumb.append(thumbImage);
       } else {
         thumb.textContent = item?.label || (index === 0 ? "Фото" : `Вид ${index + 1}`);
@@ -1658,9 +1718,16 @@
     });
 
     buyButton.type = "button";
+    buyButton.setAttribute("aria-expanded", "false");
     buyButton.addEventListener("click", () => {
-      sellerCall.hidden = !sellerCall.hidden;
-      buyButton.classList.toggle("is-open", !sellerCall.hidden);
+      const opening = sellerCall.hidden;
+      sellerCall.hidden = !opening;
+      buyButton.classList.toggle("is-open", opening);
+      buyButton.classList.remove("is-opening", "is-closing");
+      void buyButton.offsetWidth;
+      buyButton.classList.add(opening ? "is-opening" : "is-closing");
+      buyButton.setAttribute("aria-expanded", String(opening));
+      window.setTimeout(() => buyButton.classList.remove("is-opening", "is-closing"), 620);
     });
     actions.append(addButton, buyButton);
 
@@ -1854,7 +1921,12 @@
     const price = createElement("span", "", money(product.price));
 
     card.type = "button";
-    card.addEventListener("click", () => openProduct(product.id));
+    card.dataset.similarProductId = product.id;
+    card.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openProduct(product.id);
+    });
     body.append(title, meta, price);
     card.append(media, body);
     return card;
@@ -1864,6 +1936,11 @@
     const item = createElement("div", "detail-option");
     item.append(createElement("span", "", label), createElement("strong", "", value || "уточняется"));
     return item;
+  }
+
+  function refreshProfileAfterMotion() {
+    if (state.route === "profile") return;
+    renderProfilePage();
   }
 
   function toggleFavorite(productId) {
@@ -1877,7 +1954,7 @@
         : data.favorites.filter((item) => item !== id);
     });
     syncFavoriteButtons(id);
-    renderProfilePage();
+    refreshProfileAfterMotion();
     if (state.route === "favorites") {
       renderFavoritesPage();
     }
@@ -1897,17 +1974,20 @@
     showToast("Товар удалён из избранного");
   }
 
-  function playCartMotion(triggerButton) {
+  function playCartMotion(triggerButton, added = true) {
     if (triggerButton && !reduceMotion) {
-      triggerButton.classList.add("is-added");
+      const motionClass = added ? "is-added" : "is-removed";
+      triggerButton.classList.remove("is-added", "is-removed");
+      void triggerButton.offsetWidth;
+      triggerButton.classList.add(motionClass);
 
       window.clearTimeout(triggerButton.motionTimer);
       triggerButton.motionTimer = window.setTimeout(() => {
-        triggerButton.classList.remove("is-added");
-      }, 1100);
+        triggerButton.classList.remove(motionClass);
+      }, 720);
     }
 
-    if (reduceMotion) return;
+    if (reduceMotion || !added) return;
 
     els.cartBadge?.classList.add("is-bouncing");
     els.mobileCartBadge?.classList.add("is-bouncing");
@@ -1941,15 +2021,16 @@
       state.route === "cart" ? els.cartRecommendations : null,
       renderCart
     );
-    renderProfilePage();
+    refreshProfileAfterMotion();
     syncCartButtons(id);
     setCartButtonState(triggerButton, true);
-    playCartMotion(triggerButton);
+    playCartMotion(triggerButton, true);
     showToast("В корзине");
   }
 
   function toggleCart(productId, triggerButton) {
     const id = security.safeProductId(productId);
+    const stableScrollY = state.route === "favorites" ? window.scrollY : null;
     let added = false;
     store.update((data) => {
       added = !(Number(data.cart[id]) > 0);
@@ -1963,13 +2044,12 @@
       state.route === "cart" ? els.cartRecommendations : null,
       renderCart
     );
-    renderProfilePage();
+    refreshProfileAfterMotion();
     syncCartButtons(id);
-    if (added) {
-      playCartMotion(triggerButton);
-    } else if (triggerButton) {
-      window.clearTimeout(triggerButton.motionTimer);
-      triggerButton.classList.remove("is-added");
+    playCartMotion(triggerButton, added);
+    triggerButton?.blur();
+    if (stableScrollY !== null) {
+      window.requestAnimationFrame(() => window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" }));
     }
     showToast(added ? "В корзине" : "Удалено из корзины");
   }
@@ -2031,6 +2111,8 @@
     if (els.profileButtonLabel) {
       els.profileButtonLabel.textContent = window.SonaAdmin?.isAdmin(store.read()) ? "Админ" : (isProfileActive() ? "Профиль" : "Войти");
     }
+    const mobileProfileLabel = document.querySelector('[data-mobile-action="profile"] strong');
+    if (mobileProfileLabel) mobileProfileLabel.textContent = isProfileActive() ? "Профиль" : "Войти";
 
     if (!rows.length) {
       const empty = createElement("div", "cart-empty cart-empty-page");
@@ -2079,16 +2161,31 @@
     const card = createElement("article", "cart-recommendation-card");
     const thumb = createProductPlaceholder(product, "Хит SONA");
     const body = createElement("div", "cart-recommendation-body");
-    const category = createElement("span", "cart-recommendation-category", product.category || product.section || "Товар");
+    const actions = createElement("div", "cart-recommendation-actions");
     const title = createElement("strong", "", product.name);
-    const meta = createElement("span", "", `${money(product.price)} · рейтинг ${Number(product.rating || 4.8).toFixed(1)}`);
-    const button = createElement("button", "soft-button", "В корзину");
+    const rating = createElement("span", "cart-recommendation-rating", `★ ${reviewLabel(product.id)}`);
+    const price = createElement("span", "cart-recommendation-price", money(product.price));
+    const button = createElement("button", "soft-button", "");
+    const favorite = createElement("button", "favorite-button", "");
 
     thumb.classList.add("cart-recommendation-photo");
     button.type = "button";
-    button.addEventListener("click", () => addToCart(product.id, button));
-    body.append(category, title, meta, button);
-    card.append(thumb, body);
+    button.classList.add("product-cart-button");
+    button.dataset.cartProductId = product.id;
+    button.dataset.cartDefaultLabel = "В корзину";
+    button.setAttribute("aria-label", `Добавить ${product.name} в корзину`);
+    button.append(createSvgIcon("cart", "product-cart-icon"));
+    setCartButtonState(button, Number(store.read().cart?.[product.id]) > 0);
+    button.addEventListener("click", () => toggleCart(product.id, button));
+    favorite.type = "button";
+    favorite.dataset.favoriteProductId = product.id;
+    favorite.setAttribute("aria-label", `Добавить ${product.name} в избранное`);
+    favorite.classList.toggle("is-active", store.read().favorites.includes(product.id));
+    favorite.append(createSvgIcon("heart", "favorite-icon"));
+    favorite.addEventListener("click", () => toggleFavorite(product.id));
+    actions.append(button, favorite);
+    body.append(title, rating, price);
+    card.append(thumb, actions, body);
     return card;
   }
 
@@ -2311,14 +2408,22 @@
       products: state.products,
       byId,
       addToCart,
+      toggleCart,
+      toggleFavorite,
       removeFavorite,
       removeFromCart: (productId) => setQuantity(productId, 0),
       checkout,
       openCart: () => navigateTo("cart"),
       openFavorites: () => navigateTo("favorites"),
       openCatalog: goToCatalog,
-      openEdit: openProfileModal,
+      openProduct,
+      openEdit: () => {
+        window.SonaProfile?.setSection("settings");
+        render();
+      },
       openSupportChat,
+      saveProfile: saveInlineProfile,
+      sendTestNotification,
       onAuthChange: () => {
         render();
         showToast("Вход выполнен");
@@ -2388,7 +2493,7 @@
     const data = store.read();
     const favorites = data.favorites.map(byId).filter(Boolean);
     const page = createElement("div", "favorites-page-grid");
-    const head = createPageHead("подборка", "Избранное", "Сохранённые товары можно удалить или сразу добавить в корзину.");
+    const head = createPageHead("подборка", "Лайки", "Товары с лайком можно удалить или сразу добавить в корзину.");
     const summary = createElement("div", "favorites-summary");
     const countBadge = createElement("span", "favorites-count", `${favorites.length} ${favorites.length === 1 ? "товар" : "товаров"}`);
     const catalogButton = createElement("button", "soft-button", "Продолжить покупки");
@@ -2401,7 +2506,7 @@
 
     if (!favorites.length) {
       const empty = createElement("div", "favorites-empty favorites-empty-simple");
-      empty.append(createElement("strong", "", "Избранные пока пустые"));
+      empty.append(createElement("strong", "", "Лайков пока нет"));
       page.append(head, empty, createFavoritesHitsSection(data));
       els.favoritesPageContent.replaceChildren(page);
       return;
@@ -2413,34 +2518,32 @@
       const thumb = createProductPlaceholder(product);
       const body = createElement("div", "favorite-card-body");
       const top = createElement("div", "favorite-card-top");
-      const brand = createElement("span", "product-brand", product.brand || "Soна");
       const title = createElement("h3", "", product.name);
       const rating = createElement("span", "rating", `★ ${reviewLabel(product.id, data)}`);
       const meta = createElement("div", "favorite-meta");
       const price = createElement("strong", "", money(product.price));
-      const category = createElement(
-        "span",
-        "favorite-category",
-        isSofaProduct(product) ? "Диваны" : (product.marketSection || product.category || "Каталог")
-      );
       const actions = createElement("div", "favorite-actions");
-      const cart = createElement("button", "primary-button", "В корзину");
-      const remove = createElement("button", "soft-button favorite-remove-arrow", "×");
+      const cart = createElement("button", "primary-button", "");
+      const remove = createElement("button", "favorite-button favorite-remove-arrow", "");
 
       cart.type = "button";
       cart.classList.add("product-cart-button");
       cart.dataset.cartProductId = product.id;
       cart.dataset.cartDefaultLabel = "В корзину";
+      cart.setAttribute("aria-label", `Добавить ${product.name} в корзину`);
+      cart.append(createSvgIcon("cart", "product-cart-icon"));
       setCartButtonState(cart, Number(data.cart?.[product.id]) > 0);
       remove.type = "button";
       remove.setAttribute("aria-label", `Удалить ${product.name} из избранного`);
+      remove.append(createSvgIcon("heart", "favorite-icon"));
+      remove.classList.add("is-active");
       cart.addEventListener("click", () => toggleCart(product.id, cart));
       remove.addEventListener("click", () => removeFavorite(product.id));
-      top.append(brand, rating);
-      meta.append(category, price);
-      actions.append(cart);
-      media.append(thumb, remove);
-      body.append(top, title, meta, actions);
+      top.append(rating);
+      meta.append(price);
+      actions.append(cart, remove);
+      media.append(thumb, actions);
+      body.append(title, top, meta);
       card.append(media, body);
       list.append(card);
     });
@@ -2817,6 +2920,7 @@
     if (els.adminPage) els.adminPage.hidden = !isAdmin;
     document.body.classList.toggle("cart-view", isCart);
     document.body.classList.toggle("account-view", isProfile || isFavorites || isAdmin || isCategory);
+    document.body.classList.toggle("profile-view", isProfile);
 
     renderCart();
     renderCategoryPage();
@@ -2966,108 +3070,57 @@
     });
   }
 
-  function openProfileModal() {
+  function saveInlineProfile(payload) {
+    const stableScrollY = state.route === "profile" ? window.scrollY : null;
     store.update((data) => {
-      data.profile = {
-        ...data.profile,
-        isActive: true
-      };
-    });
-    renderProfile();
-    renderCart();
-    renderProducts();
-    els.profileModal.showModal();
-    window.requestAnimationFrame(() => {
-      els.profileCloseButton?.focus({ preventScroll: true });
-    });
-  }
-
-  function renderProfile() {
-    const data = store.read();
-    const cartCount = cartRows().reduce((sum, row) => sum + row.quantity, 0);
-
-    if (els.profileDisplayName) {
-      els.profileDisplayName.textContent = displayText(security.sanitizeText(data.profile.name, 40) || "Гость Soна");
-    }
-    if (els.profileNameInput) {
-      els.profileNameInput.value = security.sanitizeText(data.profile.name, 40);
-    }
-    if (els.profileEmailInput) {
-      els.profileEmailInput.value = security.sanitizeEmail(data.profile.email);
-    }
-    if (els.profilePhoneInput) {
-      els.profilePhoneInput.value = security.sanitizePhone(data.profile.phone);
-    }
-    if (els.profileAddressInput) {
-      els.profileAddressInput.value = security.sanitizeText(data.profile.address, 120);
-    }
-    if (els.profileCartCount) {
-      els.profileCartCount.textContent = String(cartCount);
-    }
-    if (els.profileFavoriteCount) {
-      els.profileFavoriteCount.textContent = String(data.favorites.length);
-    }
-    if (els.profileOrderCount) {
-      els.profileOrderCount.textContent = String(data.orders.length);
-    }
-
-    const favoriteItems = data.favorites
-      .map(byId)
-      .filter(Boolean)
-      .map((product) => {
-        const row = createElement("div");
-        row.append(createElement("span", "", product.name), createElement("strong", "", money(product.price)));
-        return row;
-      });
-
-    els.favoriteList.replaceChildren(...(favoriteItems.length ? favoriteItems : [createElement("p", "", "Нет избранных товаров")]));
-
-    const orderItems = data.orders.slice(-3).reverse().map((order) => {
-      const row = createElement("div");
-      row.append(createElement("span", "", order.date), createElement("strong", "", money(order.total)));
-      return row;
-    });
-
-    els.orderList.replaceChildren(...(orderItems.length ? orderItems : [createElement("p", "", "Заказов пока нет")]));
-  }
-
-  function saveProfile(event) {
-    event.preventDefault();
-    store.update((data) => {
-      const phone = security.sanitizePhone(els.profilePhoneInput?.value || "");
-      const email = security.sanitizeEmail(els.profileEmailInput?.value || "");
-      const isAdminEmail = Boolean(window.SonaAdmin?.ADMIN_EMAIL && email === window.SonaAdmin.ADMIN_EMAIL);
-      const role = isAdminEmail ? "admin" : "user";
       data.profile = {
         ...data.profile,
         isActive: true,
-        name: security.sanitizeText(els.profileNameInput?.value || "", 40),
-        email,
-        phone,
-        address: security.sanitizeText(els.profileAddressInput?.value || "", 120),
-        role,
+        name: security.sanitizeText(payload.name || "", 40),
+        email: security.sanitizeEmail(payload.email || ""),
+        phone: security.sanitizePhone(payload.phone || ""),
+        address: security.sanitizeText(payload.address || "", 120),
+        notifications: {
+          site: payload.notifications?.site !== false,
+          email: payload.notifications?.email !== false
+        },
         registeredAt: data.profile?.registeredAt || new Date().toISOString()
       };
-      if (!isAdminEmail) {
-        data.admin = { ...(data.admin || {}), isAuthenticated: false, email: "" };
-      }
-      data.users = [
-        ...(data.users || []).filter((user) => user.email !== data.profile.email),
-        {
-          id: `USER-${data.profile.email.replace(/[^a-z0-9]/gi, "-") || Date.now()}`,
-          name: data.profile.name || "Покупатель Soна",
-          email: data.profile.email || "",
-          phone,
-          role,
-          status: data.profile.status || "active",
-          registeredAt: data.profile.registeredAt
-        }
-      ];
     });
+    if (state.route === "profile") {
+      renderCart();
+    } else {
+      render();
+    }
+    if (stableScrollY !== null) {
+      window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" });
+      window.requestAnimationFrame(() => window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" }));
+    }
+    showToast("Изменения профиля сохранены");
+  }
 
-    els.profileModal.close();
-    render();
-    showToast("Профиль сохранён");
+  async function sendTestNotification({ site, email, emailAddress }) {
+    const channels = [];
+    if (site) {
+      showToast("Тестовое уведомление SONA");
+      channels.push("на сайте");
+    }
+    if (email) {
+      const target = security.sanitizeEmail(emailAddress || "");
+      if (!target) return { message: "Укажите email для отправки уведомления." };
+      try {
+        const response = await fetch("/api/notifications/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: target })
+        });
+        if (!response.ok) return { message: "Уведомление на сайте отправлено, но почта сейчас недоступна." };
+        channels.push("на почту");
+      } catch (error) {
+        return { message: "Уведомление на сайте отправлено, но почта сейчас недоступна." };
+      }
+    }
+    return { message: channels.length ? `Уведомление отправлено ${channels.join(" и ")}.` : "Сначала включите хотя бы один способ уведомлений." };
   }
 
   function checkout() {
@@ -3452,25 +3505,6 @@
     els.checkoutButton.addEventListener("click", checkout);
 
     els.profileButton.addEventListener("click", () => navigateTo(window.SonaAdmin?.isAdmin(store.read()) ? "admin" : "profile"));
-    els.profileCloseButton?.addEventListener("click", () => els.profileModal.close());
-
-    els.profileForm.addEventListener("submit", saveProfile);
-    els.clearProfile.addEventListener("click", () => {
-      const currentId = window.SonaProfile?.currentDeviceId?.();
-      window.SonaProfile?.clearLocalAuth?.();
-      store.update((data) => {
-        data.accountSessions = (data.accountSessions || []).filter((session) => session.id !== currentId);
-      });
-      store.clearProfile();
-      state.filters.favoritesOnly = false;
-      renderProfile();
-      renderCart();
-      renderProducts();
-      closeCart();
-      els.profileModal.close();
-      showToast("Вы вышли из профиля");
-    });
-
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         closeMobileConsultMenu();

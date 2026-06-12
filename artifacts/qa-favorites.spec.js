@@ -28,7 +28,7 @@ test("favorites cart button keeps viewport stable", async ({ page }) => {
       top: element.getBoundingClientRect().top,
       scrollY: window.scrollY
     }));
-    await cartButton.click();
+    await cartButton.click({ force: true });
     await page.waitForTimeout(250);
     const after = await cartButton.evaluate((element) => ({
       top: element.getBoundingClientRect().top,

@@ -1402,3 +1402,572 @@
     height: 38px;
   }
 }
+
+.sona-profile-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 4px 10px;
+}
+
+.sona-profile-topbar h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.sona-profile-topbar__logout {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #68717a;
+}
+
+.sona-profile-tabs-wrap {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: stretch;
+  border-bottom: 1px solid #e2e6e9;
+  background: #fff;
+}
+
+.sona-profile-tabs {
+  display: flex;
+  overflow-x: auto;
+  background: #fff;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.sona-profile-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.sona-profile-tabs button {
+  position: relative;
+  min-width: max-content;
+  padding: 15px 22px;
+  border: 0;
+  background: transparent;
+  color: #85888c;
+  font-size: 0.88rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  scroll-snap-align: center;
+}
+
+.sona-profile-tabs button.is-active {
+  color: #102844;
+}
+
+.sona-profile-tabs button.is-active::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: #102844;
+}
+
+.sona-profile-tabs-arrow {
+  position: relative;
+  z-index: 2;
+  border: 0;
+  background: #fff;
+  color: #102844;
+  font-size: 1.15rem;
+  font-weight: 1000;
+}
+
+.sona-profile-dashboard,
+.sona-profile-dashboard-quick {
+  display: grid;
+  gap: 12px;
+}
+
+.sona-profile-dashboard {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sona-profile-dashboard-quick {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sona-profile-dashboard-tile {
+  position: relative;
+  min-height: 150px;
+  display: grid;
+  align-content: end;
+  justify-items: start;
+  gap: 4px;
+  overflow: hidden;
+  padding: 16px;
+  border: 0;
+  border-radius: 20px;
+  background: #fff;
+  color: #111820;
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(20, 45, 70, 0.06);
+}
+
+.sona-profile-dashboard-tile.is-reviews {
+  color: #fff;
+  background: #102844;
+}
+
+.sona-profile-dashboard-tile.is-orders::after {
+  content: "▰";
+  position: absolute;
+  right: 12px;
+  bottom: -16px;
+  color: #244d78;
+  font-size: 7rem;
+  transform: rotate(18deg);
+  opacity: 0.2;
+}
+
+.sona-profile-dashboard-tile__icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  margin-bottom: auto;
+}
+
+.sona-profile-dashboard-tile strong {
+  position: relative;
+  z-index: 1;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.sona-profile-dashboard-tile h3 {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.sona-profile-dashboard-tile small {
+  position: relative;
+  z-index: 1;
+  color: inherit;
+  opacity: 0.68;
+}
+
+.sona-profile-dashboard-quick .sona-profile-dashboard-tile {
+  min-height: 122px;
+}
+
+.sona-profile-dashboard-quick .sona-profile-dashboard-tile strong {
+  font-size: 1rem;
+}
+
+.sona-profile-details,
+.sona-profile-showcase {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #fff;
+}
+
+.sona-profile-details h2,
+.sona-profile-showcase h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.15;
+}
+
+.sona-profile-details button {
+  min-height: 44px;
+  border: 1px solid #102844;
+  border-radius: 999px;
+  background: #fff;
+  color: #102844;
+  font-weight: 800;
+}
+
+.sona-profile-showcase {
+  padding-inline: 0;
+}
+
+.sona-profile-showcase h2 {
+  padding-inline: 18px;
+}
+
+.sona-profile-showcase__rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(210px, 42%);
+  gap: 10px;
+  overflow-x: auto;
+  padding: 0 18px 8px;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.sona-profile-showcase-card {
+  position: relative;
+  display: grid;
+  grid-template-rows: 190px auto auto auto;
+  gap: 8px;
+  min-width: 0;
+  padding-bottom: 12px;
+  scroll-snap-align: start;
+}
+
+.sona-profile-showcase-card__media {
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: #f5f6f6;
+}
+
+.sona-profile-showcase-card__media .sona-profile-thumb {
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.sona-profile-showcase-card__media .sona-profile-thumb img {
+  object-fit: contain;
+}
+
+.sona-profile-showcase-card__actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  gap: 7px;
+}
+
+.sona-profile-showcase-card__favorite,
+.sona-profile-showcase-card__cart {
+  position: static;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #102844;
+  transition: transform 0.22s ease, background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.sona-profile-showcase-card__cart {
+  border: 1px solid #d8e1ea;
+  background: #fff;
+  color: #102844;
+  font-size: 0;
+  box-shadow: 0 6px 16px rgba(16, 40, 68, 0.08);
+}
+
+.sona-profile-showcase-card__cart .sona-profile-svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sona-profile-showcase-card__favorite {
+  background: #fff;
+}
+
+.sona-profile-showcase-card__favorite:active,
+.sona-profile-showcase-card__cart:active {
+  transform: scale(0.88);
+}
+
+.sona-profile-showcase-card__favorite.is-favorite-added {
+  animation: favoritePop 0.42s cubic-bezier(0.22, 1.6, 0.36, 1);
+}
+
+.sona-profile-showcase-card__favorite.is-favorite-removed {
+  animation: profileFavoriteRemove 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes profileFavoriteRemove {
+  0% { transform: scale(1); }
+  42% { transform: scale(0.78) rotate(-8deg); }
+  72% { transform: scale(1.08) rotate(3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.sona-profile-showcase-card__cart.is-in-cart {
+  width: 46px;
+  height: 46px;
+  margin: 0;
+  border-color: #102844;
+  background: #102844;
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(16, 40, 68, 0.24);
+}
+
+.sona-profile-dashboard-tile strong:empty {
+  display: none;
+}
+
+.sona-profile-settings-form {
+  display: grid;
+  gap: 18px;
+}
+
+.sona-profile-settings-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sona-profile-settings-fields label {
+  display: grid;
+  gap: 7px;
+  color: #102844;
+  font-weight: 900;
+}
+
+.sona-profile-settings-fields input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid #b9cbe0;
+  border-radius: 12px;
+  background: #fff;
+  color: #102844;
+  font: inherit;
+}
+
+.sona-profile-notifications {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #c9d7e5;
+  border-radius: 16px;
+  background: #f7faff;
+}
+
+.sona-profile-notifications h3,
+.sona-profile-notification-status {
+  margin: 0;
+}
+
+.sona-profile-notification-toggle {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+  color: #102844;
+  font-weight: 900;
+}
+
+.sona-profile-notification-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: #102844;
+}
+
+.sona-profile-notification-status {
+  color: #60738a;
+  line-height: 1.4;
+}
+
+.sona-profile-showcase-card__price {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding-top: 0;
+}
+
+.sona-profile-showcase-card__price strong {
+  font-size: 1rem;
+}
+
+.sona-profile-showcase-card__price em {
+  color: #e50053;
+  font-style: normal;
+}
+
+.sona-profile-showcase-card__price del {
+  color: #a0a4a7;
+  font-size: 0.75rem;
+}
+
+.sona-profile-showcase-card__title {
+  min-height: 38px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #111820;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.sona-profile-showcase-card__meta {
+  color: #41484e;
+  font-size: 0.76rem;
+}
+
+@media (max-width: 760px) {
+  body.profile-view .top-promo,
+  body.profile-view .site-header {
+    display: none !important;
+  }
+
+  body.profile-view .account-page {
+    padding-top: 0;
+  }
+
+  body.profile-view #profilePage {
+    padding-inline: 0;
+  }
+
+  body.profile-view .sona-profile {
+    gap: 0;
+    background: #f4f4f4;
+  }
+
+  body.profile-view .sona-profile-topbar {
+    padding: 24px 18px 16px;
+    background: #fff;
+  }
+
+  body.profile-view .sona-profile-tabs-wrap {
+    margin-bottom: 16px;
+  }
+
+  body.profile-view .sona-profile-header {
+    grid-template-columns: 56px minmax(0, 1fr) 42px;
+    gap: 12px;
+    margin: 0 18px 16px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  body.profile-view .sona-profile-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #e6e6e6;
+    color: #c7c7c7;
+    font-size: 1.6rem;
+    box-shadow: none;
+    animation: none;
+  }
+
+  body.profile-view .sona-profile-identity {
+    gap: 2px;
+  }
+
+  body.profile-view .sona-profile-identity h1 {
+    font-size: 1.25rem;
+  }
+
+  body.profile-view .sona-profile-identity p,
+  body.profile-view .sona-profile-identity small {
+    font-size: 0.9rem;
+  }
+
+  body.profile-view .sona-profile-header__actions {
+    display: block;
+  }
+
+  body.profile-view .sona-profile-header__actions .sona-profile-icon {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  body.profile-view .sona-profile-layout {
+    display: block;
+  }
+
+  body.profile-view .sona-profile-sidebar {
+    display: none;
+  }
+
+  body.profile-view .sona-profile-main {
+    gap: 16px;
+    padding: 0 18px 24px;
+  }
+
+  body.profile-view .sona-profile-dashboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.profile-view .sona-profile-dashboard-quick {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body.profile-view .sona-profile-dashboard-quick .sona-profile-dashboard-tile {
+    min-height: 122px;
+    padding: 12px;
+  }
+
+  body.profile-view .sona-profile-dashboard-quick .sona-profile-dashboard-tile small {
+    font-size: 0.7rem;
+  }
+
+  body.profile-view .sona-profile-showcase {
+    margin-inline: -18px;
+    border-radius: 18px;
+  }
+
+  body.profile-view .sona-profile-showcase__rail {
+    grid-auto-columns: 74%;
+  }
+
+  body.profile-view .sona-profile-settings-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 360px) {
+  body.profile-view .sona-profile-tabs button {
+    padding-inline: 15px;
+  }
+
+  body.profile-view .sona-profile-main {
+    padding-inline: 12px;
+  }
+
+  body.profile-view .sona-profile-dashboard-tile {
+    min-height: 138px;
+    padding: 12px;
+  }
+
+  body.profile-view .sona-profile-dashboard-quick {
+    gap: 7px;
+  }
+
+  body.profile-view .sona-profile-dashboard-quick .sona-profile-dashboard-tile {
+    min-height: 112px;
+    padding: 9px;
+  }
+
+  body.profile-view .sona-profile-dashboard-quick .sona-profile-dashboard-tile h3 {
+    font-size: 0.8rem;
+  }
+
+  body.profile-view .sona-profile-showcase {
+    margin-inline: -12px;
+  }
+}

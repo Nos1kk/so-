@@ -6,6 +6,7 @@
   const fallbackState = {
     cart: {},
     favorites: [],
+    viewedProductIds: [],
     profile: {
       isActive: false,
       name: "",
@@ -13,7 +14,11 @@
       phone: "",
       address: "",
       role: "user",
-      registeredAt: ""
+      registeredAt: "",
+      notifications: {
+        site: true,
+        email: true
+      }
     },
     orders: [],
     reviews: [],
@@ -48,6 +53,7 @@
     return {
       cart: parsed.cart && typeof parsed.cart === "object" ? parsed.cart : {},
       favorites: Array.isArray(parsed.favorites) ? parsed.favorites : [],
+      viewedProductIds: Array.isArray(parsed.viewedProductIds) ? parsed.viewedProductIds : [],
       profile: parsed.profile && typeof parsed.profile === "object"
         ? { ...clone(fallbackState.profile), ...parsed.profile }
         : clone(fallbackState.profile),

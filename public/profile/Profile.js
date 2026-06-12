@@ -13,7 +13,7 @@
     {
       title: "Покупки",
       items: [
-        { id: "favorites", title: "Избранное", icon: "favorites", badge: (ctx) => ctx.favorites.length },
+        { id: "favorites", title: "Лайки", icon: "favorites", badge: (ctx) => ctx.favorites.length },
         { id: "cart", title: "Корзина", icon: "cart", badge: (ctx) => ctx.totals.count },
         { id: "reviews", title: "Отзывы и вопросы", icon: "reviews", badge: (ctx) => ctx.reviewableItems.length },
         { id: "returns", title: "Возвраты", icon: "returns" }
@@ -315,6 +315,7 @@
     if (icon) {
       control.prepend(iconSvg(icon));
     }
+    control.addEventListener("mousedown", (event) => event.preventDefault());
     control.addEventListener("click", action);
     return control;
   }
@@ -441,6 +442,49 @@
     const codeLabel = el("label", "", "Код из письма");
     const codeInput = el("input");
     const submit = button("sona-profile-primary", loginBusy ? "Подождите..." : (loginCodeSent ? "Войти" : "Получить код"), () => {});
+    const temporaryLogin = button("", "Войти без почты (временно)", () => {
+      const email = "demo@sona.local";
+      const account = {
+        id: "USER-TEMPORARY",
+        email,
+        role: "user",
+        status: "active",
+        createdAt: new Date().toISOString()
+      };
+
+      window.SonaStore.update((data) => {
+        data.profile = {
+          ...(data.profile || {}),
+          isActive: true,
+          name: data.profile?.name || "Пользователь",
+          email,
+          role: "user",
+          registeredAt: data.profile?.registeredAt || account.createdAt
+        };
+        data.admin = { ...(data.admin || {}), isAuthenticated: false, email: "" };
+        upsertCurrentSession(data, account);
+        data.users = [
+          ...(data.users || []).filter((user) => user.email !== email),
+          {
+            id: account.id,
+            name: data.profile.name,
+            email,
+            phone: data.profile.phone || "",
+            role: "user",
+            status: "active",
+            registeredAt: data.profile.registeredAt
+          }
+        ];
+        writeLocalAuth(data.profile);
+      });
+
+      loginCodeSent = false;
+      loginBusy = false;
+      loginEmail = "";
+      loginError = "";
+      activeSection = "home";
+      context.onAuthChange?.();
+    });
 
     emailInput.type = "email";
     emailInput.placeholder = "name@example.com";
@@ -535,7 +579,7 @@
         upsertCurrentSession(data, account);
         const userRow = {
           id: account?.id || `USER-${loginEmail.replace(/[^a-z0-9]/gi, "-")}`,
-          name: data.profile.name || "Покупатель SONA",
+          name: data.profile.name || "Пользователь",
           email: account?.email || loginEmail,
           phone: data.profile.phone || "",
           role,
@@ -567,7 +611,8 @@
       el("p", "sona-profile-kicker", "Вход в аккаунт"),
       el("h1", "", "Войти в SONA"),
       el("p", "sona-profile-muted", "Введите email. После подтверждения кода из письма откроется личный кабинет."),
-      form
+      form,
+      temporaryLogin
     );
     if (loginError) {
       card.append(el("p", "sona-login-error", loginError));
@@ -578,44 +623,52 @@
 
   function renderShell(context, content) {
     const data = context.data;
-    const totals = context.totals;
-    const name = safeText(data.profile?.name, "Имя не указано");
+    const storedName = safeText(data.profile?.name, "Пользователь");
+    const name = /^Покупатель(?:\s+SONA|\s+Soна)?$/i.test(storedName) ? "Пользователь" : storedName;
     const email = safeText(data.profile?.email, "user@gmail.com");
     const phone = safeText(data.profile?.phone, "+7 900 000-00-00");
-    const address = safeText(data.profile?.address, "Адрес не указан");
     const root = el("div", "sona-profile");
+    const topbar = el("section", "sona-profile-topbar");
+    const tabsWrap = el("div", "sona-profile-tabs-wrap");
+    const tabs = el("nav", "sona-profile-tabs");
     const header = el("section", "sona-profile-header");
     const avatar = el("div", "sona-profile-avatar", name.slice(0, 1).toUpperCase());
     const identity = el("div", "sona-profile-identity");
     const actions = el("div", "sona-profile-header__actions");
-    const summary = el("aside", "sona-profile-summary");
-    const progress = el("div", "sona-profile-completion");
-    const progressBar = el("i");
     const layout = el("div", "sona-profile-layout");
     const side = el("aside", "sona-profile-sidebar");
     const nav = el("nav", "sona-profile-menu");
     const main = el("main", "sona-profile-content");
 
-    progressBar.style.width = `${totals.completion.percent}%`;
-    progress.append(progressBar);
+    topbar.append(
+      el("h1", "", "Личный кабинет"),
+      button("sona-profile-topbar__logout", "", context.logout, "logout")
+    );
+    let activeTab = null;
+    [
+      ["home", "Профиль"],
+      ["orders", "Заказы"],
+      ["addresses", "Доставка"],
+      ["reviews", "Отзывы"],
+      ["support", "Поддержка"]
+    ].forEach(([id, label]) => {
+      const tab = button(activeSection === id ? "is-active" : "", label, () => setSection(id, context));
+      if (activeSection === id) activeTab = tab;
+      tabs.append(tab);
+    });
+    const scrollTabs = (direction) => tabs.scrollBy({ left: direction * Math.max(150, tabs.clientWidth * 0.72), behavior: "smooth" });
+    tabsWrap.append(
+      button("sona-profile-tabs-arrow", "←", () => scrollTabs(-1)),
+      tabs,
+      button("sona-profile-tabs-arrow", "→", () => scrollTabs(1))
+    );
     identity.append(
-      el("span", "sona-profile-label", "Профиль покупателя"),
       el("h1", "", name),
-      el("p", "", `${email} · ${phone}`),
-      el("small", "", address)
+      el("p", "", phone),
+      el("small", "", email)
     );
-    actions.append(
-      button("sona-profile-icon", "", () => setSection("support", context), "bell"),
-      button("sona-profile-soft", "Редактировать", context.openEdit, "edit"),
-      button("sona-profile-primary", "Каталог", context.openCatalog, "catalog")
-    );
-    summary.append(
-      el("span", "sona-profile-kicker", "Готовность профиля"),
-      el("strong", "", `${totals.completion.percent}%`),
-      progress,
-      el("small", "", totals.completion.missing.length ? `Добавьте: ${totals.completion.missing.join(", ")}` : "Данные готовы для быстрого заказа")
-    );
-    header.append(avatar, identity, actions, summary);
+    actions.append(button("sona-profile-icon", "", context.openEdit, "edit"));
+    header.append(avatar, identity, actions);
 
     navGroups.forEach((group) => {
       const block = el("div", "sona-profile-menu__group");
@@ -647,8 +700,94 @@
     side.append(nav);
     main.append(content);
     layout.append(side, main);
-    root.append(header, layout);
+    root.append(topbar, tabsWrap, header, layout);
+    window.requestAnimationFrame(() => {
+      if (activeTab) {
+        tabs.scrollTo({
+          left: activeTab.offsetLeft - (tabs.clientWidth - activeTab.offsetWidth) / 2,
+          behavior: "smooth"
+        });
+      }
+    });
     return root;
+  }
+
+  function dashboardTile(className, title, value, text, action, icon) {
+    const tile = el("button", `sona-profile-dashboard-tile ${className}`.trim());
+    tile.type = "button";
+    if (icon) {
+      const mark = el("span", "sona-profile-dashboard-tile__icon");
+      mark.append(iconSvg(icon));
+      tile.append(mark);
+    }
+    tile.append(el("strong", "", value), el("h3", "", title), el("small", "", text));
+    tile.addEventListener("click", action);
+    return tile;
+  }
+
+  function profileProductCard(product, context) {
+    const card = el("article", "sona-profile-showcase-card");
+    const mediaButton = button("sona-profile-showcase-card__media", "", () => context.openProduct?.(product.id));
+    const actions = el("div", "sona-profile-showcase-card__actions");
+    const isFavorite = context.favorites.some((item) => item.id === product.id);
+    const isInCart = context.cartRows.some((item) => item.product.id === product.id);
+    const favorite = button(`sona-profile-showcase-card__favorite favorite-button${isFavorite ? " is-active" : ""}`, "", () => {
+      const willAdd = !favorite.classList.contains("is-active");
+      favorite.classList.toggle("is-active", willAdd);
+      favorite.classList.remove("is-favorite-added", "is-favorite-removed");
+      void favorite.offsetWidth;
+      favorite.classList.add(willAdd ? "is-favorite-added" : "is-favorite-removed");
+      context.toggleFavorite?.(product.id);
+    }, "favorites");
+    const cart = button(`sona-profile-showcase-card__cart product-cart-button${isInCart ? " is-in-cart" : ""}`, "", () => {
+      const willAdd = !cart.classList.contains("is-in-cart");
+      cart.classList.toggle("is-in-cart", willAdd);
+      cart.classList.remove("is-added", "is-removed");
+      void cart.offsetWidth;
+      cart.classList.add(willAdd ? "is-added" : "is-removed");
+      context.toggleCart?.(product.id, cart);
+    }, "cart");
+    const price = el("div", "sona-profile-showcase-card__price");
+    const discount = product.oldPrice ? Math.max(0, Math.round((1 - product.price / product.oldPrice) * 100)) : 0;
+
+    mediaButton.append(productThumb(product));
+    favorite.dataset.favoriteProductId = product.id;
+    cart.dataset.cartProductId = product.id;
+    actions.append(cart, favorite);
+    price.append(el("strong", "", money(product.price)));
+    if (discount) price.append(el("em", "", `−${discount}%`), el("del", "", money(product.oldPrice)));
+    card.append(
+      mediaButton,
+      actions,
+      button("sona-profile-showcase-card__title", product.name, () => context.openProduct?.(product.id)),
+      el("span", "sona-profile-showcase-card__meta", `★ ${Number(product.rating || 4.8).toFixed(1)} · ${product.reviewCount || 0} отзывов`),
+      price
+    );
+    return card;
+  }
+
+  function profileProductRail(title, products, context) {
+    const panel = el("section", "sona-profile-showcase");
+    const rail = el("div", "sona-profile-showcase__rail");
+    panel.append(el("h2", "", title));
+    products.forEach((product) => rail.append(profileProductCard(product, context)));
+    if (!products.length) {
+      rail.append(emptyState("Здесь пока пусто", title === "Вы смотрели"
+        ? "Откройте товары в каталоге, и они появятся здесь."
+        : "Поставьте лайк понравившемуся товару, чтобы получить персональную подборку.", "Открыть каталог", context.openCatalog, "catalog"));
+    }
+    panel.append(rail);
+    return panel;
+  }
+
+  function profileDetails(context) {
+    const panel = el("section", "sona-profile-details");
+    panel.append(
+      el("h2", "", "Мои данные"),
+      button("", "Адреса доставки", () => setSection("addresses", context)),
+      button("", "Настройки профиля", () => setSection("settings", context))
+    );
+    return panel;
   }
 
   function summaryCard(icon, title, value, text, action, tone = "") {
@@ -706,67 +845,60 @@
     return rail;
   }
 
+  function recommendationProducts(context) {
+    const liked = context.favorites;
+    const candidates = context.products.filter((product) => product.available !== false && !liked.some((item) => item.id === product.id));
+    if (!liked.length) {
+      return candidates.slice().sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0)).slice(0, 6);
+    }
+    const likedWords = new Set(liked.flatMap((product) => [
+      product.category,
+      product.marketSection,
+      product.size,
+      ...(product.tags || []),
+      ...(product.specs || [])
+    ].map((value) => String(value || "").toLowerCase()).filter(Boolean)));
+    return candidates
+      .map((product) => {
+        const words = [
+          product.category,
+          product.marketSection,
+          product.size,
+          ...(product.tags || []),
+          ...(product.specs || [])
+        ].map((value) => String(value || "").toLowerCase()).filter(Boolean);
+        const affinity = words.reduce((score, word) => score + (likedWords.has(word) ? 10 : 0), 0);
+        return { product, score: affinity + (Number(product.rating) || 0) };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+      .map((entry) => entry.product);
+  }
+
   function renderHome(context) {
-    const { favorites, cartRows, orders, products, totals, reviewableItems, activeOrders } = context;
+    const { favorites, orders, products, reviews, activeOrders } = context;
     const wrap = el("div", "sona-profile-main");
-    const quick = el("section", "sona-profile-quick-grid");
-    const recent = products.slice(0, 4);
-    const favoritePreview = el("section", "sona-profile-panel");
-    const ordersPreview = el("section", "sona-profile-panel");
-    const cartPreview = el("section", "sona-profile-panel");
-    const support = el("section", "sona-profile-panel sona-profile-support");
+    const dashboard = el("section", "sona-profile-dashboard");
+    const quick = el("section", "sona-profile-dashboard-quick");
+    const recommendations = recommendationProducts(context);
+    const recent = (context.data.viewedProductIds || []).map(context.byId).filter(Boolean).slice(0, 6);
 
-    [
-      ["orders", "Заказы", String(orders.length), activeOrders.length ? `${activeOrders.length} активных` : "История заказов", () => setSection("orders", context), "is-blue"],
-      ["purchases", "Покупки", money(totals.spent), `${totals.completedOrders.length} завершено`, () => setSection("purchases", context), ""],
-      ["favorites", "Избранное", String(favorites.length), "Сохранённые товары", context.openFavorites, ""],
-      ["cart", "Корзина", String(totals.count), money(totals.subtotal), context.openCart, "is-green"],
-      ["reviews", "Ждут оценки", String(reviewableItems.length), "Отзывы и вопросы", () => setSection("reviews", context), ""],
-      ["addresses", "Доставка", totals.completion.missing.includes("адрес") ? "Нужен адрес" : "Готово", "Адреса и контакты", () => setSection("addresses", context), ""]
-    ].forEach((item) => quick.append(summaryCard(...item)));
-
-    ordersPreview.append(sectionHeader("Активные заказы", "Самые важные статусы и действия по текущим заказам."));
-    if (activeOrders.length) {
-      activeOrders.slice(0, 3).forEach((order) => ordersPreview.append(orderCard(order, context)));
-    } else {
-      ordersPreview.append(emptyState("Активных заказов нет", "Когда заказ будет оформлен, его статус появится здесь.", "Открыть каталог", context.openCatalog, "orders"));
-    }
-
-    favoritePreview.append(sectionHeader("Избранное", "Сохранённые товары для быстрого сравнения."));
-    if (favorites.length) {
-      favorites.slice(0, 4).forEach((product) => {
-        favoritePreview.append(productMiniCard(product, money(product.price), "В корзину", () => context.addToCart(product.id), "Удалить", () => context.removeFavorite?.(product.id)));
-      });
-    } else {
-      favoritePreview.append(emptyState("В избранном пока пусто", "Сохраняйте товары сердечком в каталоге.", "Перейти к товарам", context.openCatalog, "favorites"));
-    }
-    favoritePreview.append(actionRow("Смотреть все избранные", context.openFavorites, "favorites"));
-
-    cartPreview.append(sectionHeader("Корзина", "Проверьте товары перед оформлением."));
-    if (cartRows.length) {
-      cartRows.slice(0, 3).forEach(({ product, quantity }) => {
-        cartPreview.append(productMiniCard(product, `${quantity} шт. · ${money(product.price * quantity)}`, "Изменить", context.openCart, "Удалить", () => context.removeFromCart?.(product.id)));
-      });
-      cartPreview.append(el("strong", "sona-profile-total", `Итого: ${money(totals.subtotal)}`), dualActions("Перейти в корзину", context.openCart, "Оформить заказ", context.checkout));
-    } else {
-      cartPreview.append(emptyState("Корзина пока пустая", "Добавьте товары из каталога, чтобы оформить заказ.", "Перейти к товарам", context.openCatalog, "cart"));
-    }
-
-    support.append(
-      sectionHeader("Поддержка", "Связь с Soна по заказам, доставке и подбору мебели."),
-      el("p", "", "Чат подхватит контекст профиля, а по телефону можно быстро уточнить детали заказа."),
-      dualActions("Написать", context.openSupportChat || (() => setSection("support", context)), "Позвонить", () => window.location.href = "tel:88002004090")
+    dashboard.append(
+      dashboardTile("is-reviews", "Мои отзывы", String(reviews.length), "Все опубликованные отзывы", () => setSection("reviews", context), "reviews"),
+      dashboardTile("is-orders", "Мои заказы", String(orders.length), activeOrders.length ? `${activeOrders.length} активных` : "Нет заказов", () => setSection("orders", context), "orders")
+    );
+    quick.append(
+      dashboardTile("", "Лайки", String(favorites.length), `${favorites.length} товаров`, context.openFavorites, "favorites"),
+      dashboardTile("", "Доставка", "", "Адреса и контакты", () => setSection("addresses", context), "addresses"),
+      dashboardTile("", "Обращения", "0", "Поддержка", context.openSupportChat || (() => setSection("support", context)), "support")
     );
 
     wrap.append(
-      nextStepCard(context),
-      taskRail(context),
+      dashboard,
       quick,
-      ordersPreview,
-      cartPreview,
-      favoritePreview,
-      panelWithProducts("Недавно смотрели", recent, context),
-      support
+      profileDetails(context),
+      profileProductRail("Эти товары могут вас заинтересовать", recommendations, context),
+      profileProductRail("Вы смотрели", recent, context)
     );
     return wrap;
   }
@@ -897,12 +1029,76 @@
   function renderSettingsSection(context) {
     const { data, sessions } = context;
     const panel = el("section", "sona-profile-panel sona-profile-wide");
-    const profileRows = [
-      infoRow("Имя", safeText(data.profile?.name, "Не указано"), "user", "Изменить", context.openEdit),
-      infoRow("Email", safeText(data.profile?.email, "Не указан"), "settings", "Изменить", context.openEdit),
-      infoRow("Телефон", safeText(data.profile?.phone, "Не указан"), "support", "Изменить", context.openEdit),
-      infoRow("Уведомления", "Статусы заказов включены", "bell")
-    ];
+    const form = el("form", "sona-profile-settings-form");
+    const fields = el("div", "sona-profile-settings-fields");
+    const notifications = el("section", "sona-profile-notifications");
+    const notificationSettings = {
+      site: data.profile?.notifications?.site !== false,
+      email: data.profile?.notifications?.email !== false
+    };
+    const makeInput = (label, name, value, type = "text") => {
+      const field = el("label");
+      const input = el("input");
+      input.name = name;
+      input.type = type;
+      input.value = value || "";
+      field.append(el("span", "", label), input);
+      return field;
+    };
+    const makeToggle = (label, name, checked) => {
+      const field = el("label", "sona-profile-notification-toggle");
+      const input = el("input");
+      input.type = "checkbox";
+      input.name = name;
+      input.checked = checked;
+      field.append(input, el("span", "", label));
+      return field;
+    };
+    const siteToggle = makeToggle("Уведомления на сайте", "notifySite", notificationSettings.site);
+    const emailToggle = makeToggle("Уведомления на почту", "notifyEmail", notificationSettings.email);
+    const notificationStatus = el("p", "sona-profile-notification-status", "Настройте удобные способы получения уведомлений.");
+
+    fields.append(
+      makeInput("Имя", "name", data.profile?.name),
+      makeInput("Email", "email", data.profile?.email, "email"),
+      makeInput("Телефон", "phone", data.profile?.phone, "tel"),
+      makeInput("Адрес доставки", "address", data.profile?.address)
+    );
+    notifications.append(
+      el("h3", "", "Уведомления"),
+      siteToggle,
+      emailToggle,
+      button("sona-profile-soft", "Отправить тестовое уведомление", async () => {
+        const result = await context.sendTestNotification?.({
+          site: siteToggle.querySelector("input").checked,
+          email: emailToggle.querySelector("input").checked,
+          emailAddress: form.elements.email.value
+        });
+        notificationStatus.textContent = result?.message || "Тестовое уведомление отправлено.";
+      }, "bell"),
+      button("sona-profile-soft sona-profile-danger", "Отключить все уведомления", () => {
+        siteToggle.querySelector("input").checked = false;
+        emailToggle.querySelector("input").checked = false;
+        notificationStatus.textContent = "Все уведомления отключены. Нажмите «Сохранить изменения».";
+      }, "bell"),
+      notificationStatus
+    );
+    const saveButton = button("sona-profile-primary", "Сохранить изменения", () => {}, "settings");
+    saveButton.type = "submit";
+    form.append(fields, notifications, saveButton);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      context.saveProfile?.({
+        name: form.elements.name.value,
+        email: form.elements.email.value,
+        phone: form.elements.phone.value,
+        address: form.elements.address.value,
+        notifications: {
+          site: form.elements.notifySite.checked,
+          email: form.elements.notifyEmail.checked
+        }
+      });
+    });
     const sessionList = sessions.length ? sessions : [{
       id: context.currentDeviceId,
       email: data.profile?.email || "",
@@ -912,9 +1108,10 @@
     }];
 
     panel.append(sectionHeader("Настройки", "Данные профиля, вход и активные устройства.", [
+      button("sona-profile-soft", "Вернуться в профиль", () => setSection("home", context), "home"),
       button("sona-profile-soft sona-profile-danger", "Выйти", context.logout, "logout")
     ]));
-    profileRows.forEach((row) => panel.append(row));
+    panel.append(form);
     panel.append(el("h3", "sona-profile-subtitle", "Активные сеансы"));
     sessionList.forEach((session) => panel.append(sessionRow(session, context)));
     return panel;
@@ -1005,11 +1202,11 @@
 
     if (activeSection === "favorites") {
       const panel = listPanel(
-        "Избранное",
-        "Все товары, которые вы сохранили.",
+        "Лайки",
+        "Все товары, которым вы поставили лайк.",
         favorites.map((product) => productMiniCard(product, money(product.price), "В корзину", () => context.addToCart(product.id), "Удалить", () => context.removeFavorite?.(product.id))),
-        "В избранном пока пусто.",
-        [button("sona-profile-soft", "Открыть страницу избранного", context.openFavorites, "favorites")]
+        "Лайков пока нет.",
+        [button("sona-profile-soft", "Открыть страницу лайков", context.openFavorites, "favorites")]
       );
       return panel;
     }
