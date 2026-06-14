@@ -254,7 +254,7 @@ let adminSearchTimer = 0;
     const newOrders = orders.filter((order) => ["new", "processing"].includes(order.status)).length;
     const canceled = orders.filter((order) => ["canceled", "return"].includes(order.status)).length;
     const avg = completedOrders.length ? revenue / completedOrders.length : 0;
-    const unread = support.filter((message) => message.role === "user" && message.status !== "read").length;
+    const unread = support.filter((message) => message.role === "user" && message.status === "new").length;
     const stockOut = products.filter((product) => Number(product.stock) <= 0 && product.stock !== undefined).length;
     const hiddenReviews = reviews.filter((review) => review.status === "hidden").length;
 
@@ -689,13 +689,14 @@ let adminSearchTimer = 0;
         const files = el("div", "sona-support-attachments");
         message.attachments.forEach((attachment) => {
           const link = el("a", attachment.type?.startsWith("image/") ? "sona-support-file is-image" : "sona-support-file");
-          link.href = attachment.dataUrl || "#";
+          const safeHref = window.SonaSupport?.safeAttachmentHref?.(attachment) || "#";
+          link.href = safeHref;
           link.download = attachment.name || "file";
           link.target = "_blank";
           link.rel = "noopener";
-          if (attachment.type?.startsWith("image/")) {
+          if (attachment.type?.startsWith("image/") && safeHref !== "#") {
             const image = document.createElement("img");
-            image.src = attachment.dataUrl;
+            image.src = safeHref;
             image.alt = attachment.name || "";
             link.append(image);
           }
@@ -728,21 +729,48 @@ let adminSearchTimer = 0;
     ]));
     const form = el("form", "sona-admin-reply");
     const input = el("textarea");
+    const fileInput = document.createElement("input");
+    const attach = el("button", "sona-admin-soft", "Прикрепить");
+    const fileStatus = el("small", "sona-admin-reply-status", "До 3 файлов, каждый до 6 МБ.");
     input.placeholder = "Ответ администратора";
+    fileInput.type = "file";
+    fileInput.accept = "image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,text/csv,application/json,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,audio/ogg";
+    fileInput.multiple = true;
+    fileInput.hidden = true;
+    attach.type = "button";
+    attach.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => {
+      const report = window.SonaSupport?.validateAttachments?.(fileInput.files, { allowUnread: true });
+      fileStatus.textContent = report?.rejected?.length
+        ? report.rejected.map((item) => `${item.name}: ${item.reason}`).join(". ")
+        : `${report?.accepted?.length || 0} файл(а) готово к отправке`;
+    });
     const send = el("button", "", "Отправить");
     send.type = "submit";
-    form.append(input, send);
-    form.addEventListener("submit", (event) => {
+    form.append(input, fileInput, attach, send, fileStatus);
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const target = dialogs.find((dialog) => dialog.id === active);
-      if (window.SonaSupport?.addAdminReply(input.value, { phone: target?.phone, email: target?.email })) {
+      const prepared = await window.SonaSupport?.prepareAttachments?.(fileInput.files) || { attachments: [], rejected: [] };
+      if (window.SonaSupport?.addAdminReply(input.value, {
+        threadId: target?.id,
+        accountKey: target?.accountKey,
+        phone: target?.phone,
+        email: target?.email
+      }, prepared.attachments)) {
         window.SonaStore.update((data) => {
           data.supportMessages = (data.supportMessages || []).map((message) => (
             messages.some((item) => item.id === message.id) && message.role === "user" ? { ...message, status: "read" } : message
           ));
         });
         input.value = "";
+        fileInput.value = "";
+        fileStatus.textContent = prepared.rejected.length
+          ? `Ответ отправлен. Не добавлены: ${prepared.rejected.map((item) => item.name).join(", ")}`
+          : "Ответ отправлен.";
         context.render();
+      } else {
+        fileStatus.textContent = prepared.rejected.map((item) => `${item.name}: ${item.reason}`).join(". ") || "Введите ответ или прикрепите допустимый файл.";
       }
     });
     const right = el("div", "sona-admin-chat-main");
@@ -755,8 +783,17 @@ let adminSearchTimer = 0;
   function groupSupport(messages) {
     const map = new Map();
     (messages || []).forEach((message) => {
-      const id = message.phone || message.email || message.author || "guest";
-      const dialog = map.get(id) || { id, title: message.role === "admin" ? "Диалог" : (message.author || "Покупатель"), phone: message.phone || "", email: message.email || "", messages: [] };
+      const id = window.SonaSupport?.threadIdFor?.(message) || message.threadId || message.phone || message.email || message.author || "guest";
+      const dialog = map.get(id) || {
+        id,
+        accountKey: message.accountKey || "",
+        title: message.role === "admin" ? "Диалог" : (message.author || "Пользователь"),
+        phone: message.phone || "",
+        email: message.email || "",
+        messages: []
+      };
+      if (message.role === "user" && message.author) dialog.title = message.author;
+      if (message.accountKey) dialog.accountKey = message.accountKey;
       dialog.messages.push(message);
       dialog.last = message;
       map.set(id, dialog);
@@ -784,11 +821,22 @@ let adminSearchTimer = 0;
       form.append(input);
     });
     const save = el("button", "", "Сохранить настройки");
+    const saveStatus = el("p", "sona-admin-muted sona-admin-field-wide", "");
     save.type = "submit";
-    form.append(save);
-    form.addEventListener("submit", (event) => {
+    form.append(save, saveStatus);
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      context.actions.saveSettings(Object.fromEntries(new FormData(form).entries()));
+      save.disabled = true;
+      save.textContent = "Сохраняем...";
+      saveStatus.textContent = "";
+      try {
+        await context.actions.saveSettings(Object.fromEntries(new FormData(form).entries()));
+        saveStatus.textContent = "Настройки сохранены.";
+      } catch (error) {
+        save.disabled = false;
+        save.textContent = "Сохранить настройки";
+        saveStatus.textContent = "Не удалось сохранить настройки. Попробуйте ещё раз.";
+      }
     });
     panel.append(el("h2", "", "Настройки магазина"), form);
     const server = el("section", "sona-admin-server");

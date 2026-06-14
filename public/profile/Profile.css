@@ -9,6 +9,16 @@
   padding: 28px 0 64px;
 }
 
+body.profile-view .account-page {
+  min-height: 0;
+  padding-bottom: 12px;
+}
+
+body.profile-view .sona-profile-main,
+body.profile-view .sona-profile-content {
+  padding-bottom: 0;
+}
+
 .account-head {
   display: flex;
   align-items: end;
@@ -1646,10 +1656,10 @@
 
 .sona-profile-showcase-card__media {
   overflow: hidden;
-  padding: 0;
-  border: 0;
+  padding: 1px;
+  border: 1px solid #d8e1ea;
   border-radius: 12px;
-  background: #f5f6f6;
+  background: #fff;
 }
 
 .sona-profile-showcase-card__media .sona-profile-thumb {
@@ -1658,7 +1668,7 @@
   padding: 8px;
   border: 0;
   border-radius: 0;
-  background: transparent;
+  background: #fff;
 }
 
 .sona-profile-showcase-card__media .sona-profile-thumb img {
@@ -1707,21 +1717,6 @@
 .sona-profile-showcase-card__favorite:active,
 .sona-profile-showcase-card__cart:active {
   transform: scale(0.88);
-}
-
-.sona-profile-showcase-card__favorite.is-favorite-added {
-  animation: favoritePop 0.42s cubic-bezier(0.22, 1.6, 0.36, 1);
-}
-
-.sona-profile-showcase-card__favorite.is-favorite-removed {
-  animation: profileFavoriteRemove 0.52s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes profileFavoriteRemove {
-  0% { transform: scale(1); }
-  42% { transform: scale(0.78) rotate(-8deg); }
-  72% { transform: scale(1.08) rotate(3deg); }
-  100% { transform: scale(1) rotate(0); }
 }
 
 .sona-profile-showcase-card__cart.is-in-cart {

@@ -17,7 +17,7 @@ test("profile and likes use catalog behavior, cart quantity updates locally, adm
       "sona-alaska": {
         ...(state.productOverrides?.["sona-alaska"] || {}),
         gallery: [
-          { id: "photo", src: "assets/фотографии диванов/Аляска.png", alt: "Аляска", main: true, type: "image/png" },
+          { id: "photo", src: "assets/фотографии диванов/аляска бф.png", alt: "Аляска", main: true, type: "image/png" },
           { id: "video", src: "data:video/mp4;base64,AAAA", alt: "Видео Аляска", main: false, type: "video/mp4" }
         ],
         tags: ["хит"]

@@ -44,7 +44,7 @@
       el("span", "sona-preview-category", product.categoryLabel || product.category || "Каталог"),
       el("h3", "", product.name || "Название товара"),
       price,
-      el("span", "sona-preview-rating", `${product.rating || 0} ★ · ${product.reviewsCount || 0} отзывов`),
+      el("span", "sona-preview-rating", Number(product.reviewsCount) > 0 ? `★ ${product.rating || 0} · ${product.reviewsCount} отзывов` : "0 отзывов"),
       el("p", "", product.shortDescription || "Краткое описание будет видно в карточке."),
       el("small", "", `${Number(product.stock) > 0 ? "В наличии" : "Под заказ"} · доставка ${product.deliveryDays || 3} дн.`),
       actions

@@ -306,7 +306,10 @@
 
   function setSection(section, context) {
     activeSection = section || "home";
-    render(context);
+    render({
+      ...context,
+      data: window.SonaStore?.read?.() || context.data
+    });
   }
 
   function button(className, text, action, icon) {
@@ -750,9 +753,6 @@
     const favorite = button(`sona-profile-showcase-card__favorite favorite-button${isFavorite ? " is-active" : ""}`, "", () => {
       const willAdd = !favorite.classList.contains("is-active");
       favorite.classList.toggle("is-active", willAdd);
-      favorite.classList.remove("is-favorite-added", "is-favorite-removed");
-      void favorite.offsetWidth;
-      favorite.classList.add(willAdd ? "is-favorite-added" : "is-favorite-removed");
       context.toggleFavorite?.(product.id);
     }, "favorites");
     const cart = button(`sona-profile-showcase-card__cart product-cart-button${isInCart ? " is-in-cart" : ""}`, "", () => {
@@ -760,9 +760,12 @@
     }, "cart");
     const price = el("div", "sona-profile-showcase-card__price");
     const discount = product.oldPrice ? Math.max(0, Math.round((1 - product.price / product.oldPrice) * 100)) : 0;
+    const reviewSummary = window.SonaReviews?.summary(context.reviews || [], product.id) || { count: 0, average: 0 };
+    const reviewText = reviewSummary.count ? `★ ${reviewSummary.average} · ${reviewSummary.count} отзывов` : "0 отзывов";
 
     mediaButton.append(productThumb(product));
     favorite.dataset.favoriteProductId = product.id;
+    favorite.querySelector("svg")?.classList.add("favorite-icon");
     cart.dataset.cartProductId = product.id;
     cart.querySelector("svg")?.classList.add("product-cart-icon");
     actions.append(cart, favorite);
@@ -772,7 +775,7 @@
       mediaButton,
       actions,
       button("sona-profile-showcase-card__title", product.name, () => context.openProduct?.(product.id)),
-      el("span", "sona-profile-showcase-card__meta", `★ ${Number(product.rating || 4.8).toFixed(1)} · ${product.reviewCount || 0} отзывов`),
+      el("span", "sona-profile-showcase-card__meta", reviewText),
       price
     );
     return card;
@@ -894,6 +897,7 @@
     const quick = el("section", "sona-profile-dashboard-quick");
     const recommendations = recommendationProducts(context);
     const recent = (context.data.viewedProductIds || []).map(context.byId).filter(Boolean).slice(0, 6);
+    const supportThreads = window.SonaSupport?.visibleThreads?.(context.data) || [];
 
     dashboard.append(
       dashboardTile("is-reviews", "Мои отзывы", String(reviews.length), "Все опубликованные отзывы", () => setSection("reviews", context), "reviews"),
@@ -902,7 +906,7 @@
     quick.append(
       dashboardTile("", "Лайки", String(favorites.length), `${favorites.length} товаров`, context.openFavorites, "favorites"),
       dashboardTile("", "Доставка", "", "Адреса и контакты", () => setSection("addresses", context), "addresses"),
-      dashboardTile("", "Обращения", "0", "Поддержка", context.openSupportChat || (() => setSection("support", context)), "support")
+      dashboardTile("", "Обращения", String(supportThreads.length), "Поддержка", () => setSection("support", context), "support")
     );
 
     wrap.append(
@@ -1096,20 +1100,31 @@
       notificationStatus
     );
     const saveButton = button("sona-profile-primary", "Сохранить изменения", () => {}, "settings");
+    const saveStatus = el("p", "sona-profile-notification-status", "");
     saveButton.type = "submit";
-    form.append(fields, notifications, saveButton);
-    form.addEventListener("submit", (event) => {
+    form.append(fields, notifications, saveButton, saveStatus);
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      context.saveProfile?.({
-        name: form.elements.name.value,
-        email: form.elements.email.value,
-        phone: form.elements.phone.value,
-        address: form.elements.address.value,
-        notifications: {
-          site: form.elements.notifySite.checked,
-          email: form.elements.notifyEmail.checked
-        }
-      });
+      saveButton.disabled = true;
+      saveButton.lastChild.textContent = "Сохраняем...";
+      saveStatus.textContent = "";
+      try {
+        await context.saveProfile?.({
+          name: form.elements.name.value,
+          email: form.elements.email.value,
+          phone: form.elements.phone.value,
+          address: form.elements.address.value,
+          notifications: {
+            site: form.elements.notifySite.checked,
+            email: form.elements.notifyEmail.checked
+          }
+        });
+        saveStatus.textContent = "Изменения сохранены.";
+      } catch (error) {
+        saveButton.disabled = false;
+        saveButton.lastChild.textContent = "Сохранить изменения";
+        saveStatus.textContent = "Не удалось сохранить изменения. Попробуйте ещё раз.";
+      }
     });
     const sessionList = sessions.length ? sessions : [{
       id: context.currentDeviceId,
@@ -1250,11 +1265,19 @@
     }
 
     if (activeSection === "support") {
-      const panel = listPanel("Поддержка", "Связь с Soна по заказам и товарам.", [
-        infoRow("Телефон", "8 800 200-40-90", "support", "Позвонить", () => window.location.href = "tel:88002004090"),
-        infoRow("Чат", "Ответим в рабочее время", "reviews", "Написать", context.openSupportChat || (() => {})),
-        infoRow("Заказы", orders.length ? `${orders.length} в профиле` : "Заказов пока нет", "orders", "Открыть", () => setSection("orders", context))
-      ], "Служба поддержки доступна.");
+      const threads = window.SonaSupport?.visibleThreads?.(data) || [];
+      const thread = threads[0];
+      const rows = thread ? [infoRow(
+        "Чат поддержки",
+        thread.last?.text || `${thread.messages.length} сообщений`,
+        "reviews",
+        "Открыть",
+        context.openSupportChat || (() => {})
+      )] : [];
+      const panel = listPanel("Поддержка", "Единый чат с поддержкой Soна.", rows, "Сообщений пока нет.", [
+        button("sona-profile-primary", "Открыть чат", context.openSupportChat || (() => {}), "reviews"),
+        button("sona-profile-soft", "Позвонить", () => window.location.href = "tel:88002004090", "support")
+      ]);
       return panel;
     }
 
@@ -1342,6 +1365,7 @@
     render,
     currentDeviceId,
     clearLocalAuth,
+    syncLocalAuth: writeLocalAuth,
     setSection(section) {
       activeSection = section || "home";
     }

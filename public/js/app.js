@@ -6,32 +6,32 @@
   const ALL_VALUE = "все";
   const REMOVED_PRODUCT_IDS = new Set(["breeze-mini", "compact-nova-sofa"]);
   const SOFA_IMAGE_BY_NAME = {
-    "аляска мд": "assets/фотографии диванов/Аляска МД.png",
-    "аляска": "assets/фотографии диванов/Аляска.png",
-    "андреас": "assets/фотографии диванов/Андреас.png",
-    "бостон": "assets/фотографии диванов/Бостон.png",
-    "валенсия": "assets/фотографии диванов/Валенсия.jpeg",
-    "виктория": "assets/фотографии диванов/Виктория.png",
-    "гудзон": "assets/фотографии диванов/Гудзон.png",
-    "дублин": "assets/фотографии диванов/Дублин.png",
-    "инфинити": "assets/фотографии диванов/Инфинити.jpeg",
-    "канзас 8 мд": "assets/фотографии диванов/Канзас 8 Мд.png",
-    "мальта к": "assets/фотографии диванов/мальта К.png",
-    "марк": "assets/фотографии диванов/Марк.png",
-    "милан": "assets/фотографии диванов/Милан.png",
-    "монтана": "assets/фотографии диванов/Монтана 1.jpeg",
-    "неаполь мд": "assets/фотографии диванов/Неаполь Мд.png",
-    "неаполь мд белый": "assets/фотографии диванов/Неаполь Мд белый.png",
-    "ницца": "assets/фотографии диванов/Ницца.png",
-    "нумо": "assets/фотографии диванов/Нумо.png",
-    "паула": "assets/фотографии диванов/Паула.jpeg",
-    "рейн": "assets/фотографии диванов/Рейн.png",
-    "сиэтл м": "assets/фотографии диванов/Сиэтл М.png",
-    "томас": "assets/фотографии диванов/Томас.png"
+    "аляска мд": "assets/фотографии диванов/аляска МД бф.png",
+    "аляска": "assets/фотографии диванов/аляска бф.png",
+    "андреас": "assets/фотографии диванов/андреас бф.png",
+    "бостон": "assets/фотографии диванов/бостон бф.png",
+    "валенсия": "assets/фотографии диванов/валенсия бф.png",
+    "виктория": "assets/фотографии диванов/виктория бф.png",
+    "гудзон": "assets/фотографии диванов/гудзон бф.png",
+    "дублин": "assets/фотографии диванов/дублин бф.png",
+    "инфинити": "assets/фотографии диванов/инфинити бф.png",
+    "канзас 8 мд": "assets/фотографии диванов/канзас 8 мд бф.png",
+    "мальта к": "assets/фотографии диванов/мальта к бф.png",
+    "марк": "assets/фотографии диванов/марк бф.png",
+    "милан": "assets/фотографии диванов/милан бф.png",
+    "монтана": "assets/фотографии диванов/монтана бф.png",
+    "неаполь мд": "assets/фотографии диванов/неаполь мд бф.png",
+    "неаполь мд белый": "assets/фотографии диванов/неаполь мд белый бф.png",
+    "ницца": "assets/фотографии диванов/ницца бф.png",
+    "нумо": "assets/фотографии диванов/нумо бф.png",
+    "паула": "assets/фотографии диванов/паула бф.png",
+    "рейн": "assets/фотографии диванов/рейн бф.png",
+    "сиэтл м": "assets/фотографии диванов/сиэтл бф.png",
+    "томас": "assets/фотографии диванов/томас бф.png"
   };
   const SOFA_IMAGE_BY_ID = {
-    "sona-mark-large": "assets/фотографии диванов/Марк.png",
-    "sona-mark-compact": "assets/фотографии диванов/Марк маленький.png"
+    "sona-mark-large": "assets/фотографии диванов/марк бф.png",
+    "sona-mark-compact": "assets/фотографии диванов/марк маленький бф.png"
   };
   const PERMANENT_SOFA_PRODUCTS = [
     { id: "sona-numo", name: "Нумо", category: "прямой", dimensions: "2200 × 1000 × 960", price: 0 },
@@ -60,29 +60,36 @@
     { id: "sona-hudson", name: "Гудзон", category: "угловой", dimensions: "3100 × 2280 × 1000", sleepingPlace: "1600 × 2000", oldPrice: 180000, price: 144000, discountPercent: 20, benefit: 36000 },
     { id: "sona-charlie", name: "Чарли", category: "прямой", dimensions: "1850 × 790 × 800", price: 45600, priceMode: "from" },
     { id: "sona-milan", name: "Милан", category: "диван-кровать", dimensions: "2700 × 1350 × 1000", sleepingPlace: "2100 × 1650", price: 127000, priceMode: "from" }
-  ].map((product) => ({
-    brand: "SONA",
-    marketSection: "Мебель",
-    size: product.category === "угловой" || product.category === "модульный" ? "XL" : "M",
-    rating: 0,
-    reviews: 0,
-    deliveryDays: 14,
-    image: "",
-    materials: [],
-    colors: [],
-    variants: [],
-    tags: product.oldPrice ? ["скидка"] : [],
-    specs: [
-      product.dimensions ? `Габаритные размеры: ${product.dimensions}` : "",
-      product.sleepingPlace ? `Спальное место: ${product.sleepingPlace}` : "",
-      product.mechanism ? `Механизм: ${product.mechanism}` : ""
-    ].filter(Boolean),
-    ...product,
-    image: SOFA_IMAGE_BY_ID[product.id]
+  ].map((product) => {
+    const attachedImage = SOFA_IMAGE_BY_ID[product.id]
       || SOFA_IMAGE_BY_NAME[String(product.name || "").trim().toLowerCase()]
-      || product.image
-      || ""
-  }));
+      || "";
+    const image = attachedImage || product.image || "";
+
+    return {
+      brand: "SONA",
+      marketSection: "Мебель",
+      size: product.category === "угловой" || product.category === "модульный" ? "XL" : "M",
+      rating: 0,
+      reviews: 0,
+      deliveryDays: 14,
+      image: "",
+      materials: [],
+      colors: [],
+      variants: [],
+      tags: product.oldPrice ? ["скидка"] : [],
+      specs: [
+        product.dimensions ? `Габаритные размеры: ${product.dimensions}` : "",
+        product.sleepingPlace ? `Спальное место: ${product.sleepingPlace}` : "",
+        product.mechanism ? `Механизм: ${product.mechanism}` : ""
+      ].filter(Boolean),
+      ...product,
+      image,
+      ...(attachedImage ? {
+        gallery: [{ id: "main", src: attachedImage, alt: product.name, main: true }]
+      } : {})
+    };
+  });
 
   const state = {
     route: "home",
@@ -510,14 +517,21 @@
     renderAdminPage();
   }
 
-  function saveShopSettings(settings) {
+  async function saveShopSettings(settings) {
     store.update((data) => {
       data.shopSettings = {
         ...(data.shopSettings || {}),
-        ...settings
+        name: security.sanitizeText(settings.name || "", 80),
+        supportEmail: security.sanitizeEmail(settings.supportEmail || ""),
+        supportPhone: security.sanitizePhone(settings.supportPhone || ""),
+        address: security.sanitizeText(settings.address || "", 160),
+        baseDiscount: Math.max(0, Math.min(100, Number(settings.baseDiscount) || 0)),
+        returnsPolicy: security.sanitizeText(settings.returnsPolicy || "", 700)
       };
     });
+    await store.syncNow();
     renderAdminPage();
+    showToast("Настройки магазина сохранены");
   }
 
   function reviewSummary(productId, data = store.read()) {
@@ -526,7 +540,7 @@
 
   function reviewLabel(productId, data = store.read()) {
     const summary = reviewSummary(productId, data);
-    return summary.count ? `${summary.average} ★ · ${summary.count} оценок` : "0 отзывов";
+    return summary.count ? `★ ${summary.average} · ${summary.count} отзывов` : "0 отзывов";
   }
 
   function createElement(tag, className, text) {
@@ -1240,26 +1254,65 @@
   function bindCardTilt() {
     if (reduceMotion) return;
 
-    els.productGrid.addEventListener("mousemove", (event) => {
-      const card = event.target.closest(".product-card");
+    const selector = [
+      ".product-card",
+      ".catalog-hub-card",
+      ".home-category-card",
+      ".sofa-collection-card",
+      ".service-card",
+      ".lookbook-card",
+      ".similar-card",
+      ".footer-contact-card"
+    ].join(", ");
+    let activeCard = null;
+    let pointerFrame = 0;
+    let pointerX = 0;
+    let pointerY = 0;
+
+    const reset = (card) => {
       if (!card) return;
+      card.style.setProperty("--tilt-x", "0deg");
+      card.style.setProperty("--tilt-y", "0deg");
+      card.style.setProperty("--shine-x", "50%");
+      card.style.setProperty("--pointer-x", "0px");
+      card.style.setProperty("--pointer-y", "0px");
+    };
 
-      const rect = card.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width;
-      const y = (event.clientY - rect.top) / rect.height;
+    const update = () => {
+      pointerFrame = 0;
+      if (!activeCard) return;
 
-      card.style.setProperty("--tilt-x", `${(0.5 - y) * 5}deg`);
-      card.style.setProperty("--tilt-y", `${(x - 0.5) * 5}deg`);
-      card.style.setProperty("--shine-x", `${x * 100}%`);
-    });
+      const rect = activeCard.getBoundingClientRect();
+      const x = Math.max(0, Math.min(1, (pointerX - rect.left) / rect.width));
+      const y = Math.max(0, Math.min(1, (pointerY - rect.top) / rect.height));
 
-    els.productGrid.addEventListener("mouseleave", () => {
-      els.productGrid.querySelectorAll(".product-card").forEach((card) => {
-        card.style.setProperty("--tilt-x", "0deg");
-        card.style.setProperty("--tilt-y", "0deg");
-        card.style.setProperty("--shine-x", "50%");
-      });
-    });
+      activeCard.style.setProperty("--tilt-x", `${(0.5 - y) * 2.4}deg`);
+      activeCard.style.setProperty("--tilt-y", `${(x - 0.5) * 2.4}deg`);
+      activeCard.style.setProperty("--shine-x", `${x * 100}%`);
+      activeCard.style.setProperty("--pointer-x", `${(x - 0.5) * 5}px`);
+      activeCard.style.setProperty("--pointer-y", `${(y - 0.5) * 4}px`);
+    };
+
+    document.addEventListener("pointermove", (event) => {
+      if (event.pointerType === "touch") return;
+      const nextCard = event.target.closest(selector);
+
+      if (nextCard !== activeCard) {
+        reset(activeCard);
+        activeCard = nextCard;
+      }
+      if (!activeCard) return;
+
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      if (!pointerFrame) pointerFrame = requestAnimationFrame(update);
+    }, { passive: true });
+
+    document.addEventListener("pointerout", (event) => {
+      if (event.relatedTarget || !activeCard) return;
+      reset(activeCard);
+      activeCard = null;
+    }, { passive: true });
   }
 
   function bindHeroPointer() {
@@ -1296,12 +1349,12 @@
     let scheduled = false;
     const update = () => {
       scheduled = false;
-      document.querySelectorAll(".hero-banner, .catalog-hub, .deal-strip").forEach((element) => {
+      document.querySelectorAll(".hero-banner, .catalog-hub, .deal-strip, .hits-showcase, .all-products-section, .category-page-hero").forEach((element) => {
         const rect = element.getBoundingClientRect();
         const center = rect.top + rect.height / 2;
         const viewportCenter = window.innerHeight / 2;
-        const offset = (viewportCenter - center) * 0.035;
-        element.style.setProperty("--parallax-y", `${Math.max(-16, Math.min(16, offset))}px`);
+        const offset = (viewportCenter - center) * 0.018;
+        element.style.setProperty("--parallax-y", `${Math.max(-10, Math.min(10, offset))}px`);
       });
     };
 
@@ -1442,7 +1495,7 @@
     const body = createElement("div", "product-body");
     const topLine = createElement("div", "product-top-line");
     const brand = createElement("span", "product-brand", productCategoryLabel(product));
-    const rating = createElement("span", "rating", `★ ${reviewLabel(product.id, data)}`);
+    const rating = createElement("span", "rating", reviewLabel(product.id, data));
     const titleRow = createElement("div", "product-title-row");
     const title = createElement("h3", "", product.name);
     const meta = createElement("div", "product-meta");
@@ -1630,7 +1683,7 @@
     const titleWrap = createElement("div");
     const title = createElement("h2", "", product.name);
     const code = createElement("span", "", `#${product.id.toUpperCase()}`);
-    const rating = createElement("div", "detail-rating", `★ ${reviewLabel(product.id)}`);
+    const rating = createElement("div", "detail-rating", reviewLabel(product.id));
     const warranty = createElement("span", "detail-warranty", product.category === "услуга" ? "договор и этапы работ" : "гарантия 3 года");
     const price = createElement("div", "detail-price");
     const actions = createElement("div", "detail-actions");
@@ -2232,7 +2285,7 @@
     const body = createElement("div", "cart-recommendation-body");
     const actions = createElement("div", "cart-recommendation-actions");
     const title = createElement("strong", "", product.name);
-    const rating = createElement("span", "cart-recommendation-rating", `★ ${reviewLabel(product.id)}`);
+    const rating = createElement("span", "cart-recommendation-rating", reviewLabel(product.id));
     const price = createElement("span", "cart-recommendation-price", money(product.price));
     const button = createElement("button", "soft-button", "");
     const favorite = createElement("button", "favorite-button", "");
@@ -2365,6 +2418,7 @@
       container: els.supportChatRoot,
       onChange: () => {
         renderAdminPage();
+        if (state.route === "profile") renderProfilePage();
       }
     });
     window.requestAnimationFrame(() => {
@@ -2413,6 +2467,7 @@
       container: els.supportChatRoot,
       onChange: () => {
         renderAdminPage();
+        if (state.route === "profile") renderProfilePage();
       }
     });
   }
@@ -3118,9 +3173,9 @@
     });
   }
 
-  function saveInlineProfile(payload) {
+  async function saveInlineProfile(payload) {
     const stableScrollY = state.route === "profile" ? window.scrollY : null;
-    store.update((data) => {
+    const nextData = store.update((data) => {
       data.profile = {
         ...data.profile,
         isActive: true,
@@ -3135,8 +3190,10 @@
         registeredAt: data.profile?.registeredAt || new Date().toISOString()
       };
     });
+    window.SonaProfile?.syncLocalAuth?.(nextData.profile);
+    await store.syncNow();
     if (state.route === "profile") {
-      renderCart();
+      renderProfilePage();
     } else {
       render();
     }
@@ -3517,6 +3574,11 @@
       event.stopPropagation();
       toggleMobileConsultMenu();
     });
+    els.mobileConsultMenu?.querySelector("[data-mobile-consult-close]")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMobileConsultMenu();
+    });
     els.mobileSupportOpen?.addEventListener("click", (event) => {
       event.preventDefault();
       closeMobileConsultMenu();
@@ -3575,6 +3637,45 @@
     window.SonaText?.repairDom(document.body);
   }
 
+  function storeStateSignature(data) {
+    return JSON.stringify(data || {});
+  }
+
+  function bindPassiveStoreRefresh() {
+    let refreshPending = false;
+    let signature = storeStateSignature(store.read());
+
+    const refreshWhenActive = async () => {
+      if (refreshPending || document.hidden) return;
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+
+      refreshPending = true;
+      try {
+        const data = await store.refresh?.();
+        const nextSignature = storeStateSignature(data || store.read());
+        if (nextSignature === signature) return;
+
+        signature = nextSignature;
+        refreshProductsFromAdmin();
+        if (state.route === "admin") {
+          renderAdminPage();
+          renderAds();
+        } else if (["profile", "product", "home", "category"].includes(state.route)) {
+          render();
+        }
+      } catch (error) {
+        // Keep the current UI intact when background synchronization is unavailable.
+      } finally {
+        refreshPending = false;
+      }
+    };
+
+    window.addEventListener("focus", refreshWhenActive, { passive: true });
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) refreshWhenActive();
+    }, { passive: true });
+  }
+
   async function init() {
     try {
       await store.init?.();
@@ -3588,19 +3689,7 @@
       refreshProductsFromAdmin();
       state.route = routeFromLocation();
       render();
-      window.setInterval(async () => {
-        if (document.hidden || ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-        await store.refresh?.().catch(() => null);
-        refreshProductsFromAdmin();
-        if (state.route === "admin") {
-          renderAdminPage();
-          renderAds();
-          return;
-        }
-        if (state.route === "profile" || state.route === "product" || state.route === "home" || state.route === "category") {
-          render();
-        }
-      }, 4000);
+      bindPassiveStoreRefresh();
     } catch (error) {
       els.emptyState.hidden = false;
       els.emptyState.textContent = "Каталог временно недоступен.";

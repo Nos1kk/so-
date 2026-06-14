@@ -7538,3 +7538,176 @@ img {
   display: block;
   object-fit: cover;
 }
+
+/* Calm interaction system: one soft motion language across controls and cards. */
+:root {
+  --sona-motion-fast: 240ms;
+  --sona-motion-medium: 420ms;
+  --sona-motion-slow: 680ms;
+  --sona-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:is(
+  button,
+  [role="button"],
+  .primary-button,
+  .secondary-action,
+  .soft-button,
+  .light-button,
+  .filter-pill,
+  .chip,
+  .tag,
+  .catalog-tab,
+  .quick-link,
+  .nav-action,
+  .category-page-switcher button,
+  .segmented button,
+  .sona-admin-menu button,
+  .footer-nav-panel a,
+  .footer-contact-card
+) {
+  transition:
+    transform var(--sona-motion-medium) var(--sona-motion-ease),
+    box-shadow var(--sona-motion-medium) var(--sona-motion-ease),
+    border-color var(--sona-motion-fast) ease,
+    background-color var(--sona-motion-fast) ease,
+    color var(--sona-motion-fast) ease,
+    filter var(--sona-motion-medium) ease,
+    opacity var(--sona-motion-fast) ease;
+}
+
+:is(input, textarea, select, .search, .search-result) {
+  transition:
+    transform var(--sona-motion-medium) var(--sona-motion-ease),
+    border-color var(--sona-motion-fast) ease,
+    box-shadow var(--sona-motion-medium) var(--sona-motion-ease),
+    background-color var(--sona-motion-fast) ease;
+}
+
+:is(
+  .product-card,
+  .catalog-hub-card,
+  .home-category-card,
+  .sofa-collection-card,
+  .service-card,
+  .lookbook-card,
+  .similar-card,
+  .footer-contact-card
+) {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --pointer-x: 0px;
+  --pointer-y: 0px;
+  transition:
+    transform var(--sona-motion-slow) var(--sona-motion-ease),
+    box-shadow var(--sona-motion-slow) var(--sona-motion-ease),
+    border-color var(--sona-motion-medium) ease,
+    filter var(--sona-motion-medium) ease;
+  will-change: transform;
+}
+
+:is(
+  .product-card,
+  .catalog-hub-card,
+  .home-category-card,
+  .sofa-collection-card,
+  .service-card,
+  .lookbook-card,
+  .similar-card
+) :is(img, .product-placeholder, .catalog-hub-photo) {
+  transition:
+    transform var(--sona-motion-slow) var(--sona-motion-ease),
+    filter var(--sona-motion-slow) ease;
+}
+
+:is(.hits-showcase, .all-products-section, .category-page-hero) {
+  transform: translate3d(0, var(--parallax-y, 0px), 0);
+  transition: transform var(--sona-motion-slow) var(--sona-motion-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(
+    button,
+    [role="button"],
+    .primary-button,
+    .secondary-action,
+    .soft-button,
+    .light-button,
+    .filter-pill,
+    .chip,
+    .tag,
+    .catalog-tab,
+    .quick-link,
+    .nav-action,
+    .category-page-switcher button,
+    .segmented button,
+    .sona-admin-menu button,
+    .footer-nav-panel a
+  ):not(:disabled):is(:hover, :focus-visible) {
+    transform: translate3d(0, -2px, 0);
+    filter: saturate(1.04);
+  }
+
+  :is(
+    .product-card,
+    .catalog-hub-card,
+    .home-category-card,
+    .sofa-collection-card,
+    .service-card,
+    .lookbook-card,
+    .similar-card,
+    .footer-contact-card
+  ):hover {
+    transform:
+      perspective(1100px)
+      translate3d(0, -4px, 0)
+      rotateX(var(--tilt-x))
+      rotateY(var(--tilt-y));
+    filter: saturate(1.025);
+  }
+
+  :is(
+    .product-card,
+    .catalog-hub-card,
+    .home-category-card,
+    .sofa-collection-card,
+    .service-card,
+    .lookbook-card,
+    .similar-card
+  ):hover :is(img, .product-placeholder, .catalog-hub-photo) {
+    transform: translate3d(var(--pointer-x), var(--pointer-y), 0) scale(1.012);
+  }
+
+  :is(input, textarea, select, .search):is(:hover, :focus-within, :focus-visible) {
+    transform: translate3d(0, -1px, 0);
+  }
+}
+
+:is(button, [role="button"], a, input, textarea, select):focus-visible {
+  outline: 2px solid rgba(19, 105, 175, 0.42);
+  outline-offset: 4px;
+}
+
+:is(button, [role="button"], .primary-button, .soft-button, .light-button):not(:disabled):active {
+  transform: translate3d(0, 0, 0) scale(0.985);
+  transition-duration: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce), (pointer: coarse) {
+  :is(
+    .product-card,
+    .catalog-hub-card,
+    .home-category-card,
+    .sofa-collection-card,
+    .service-card,
+    .lookbook-card,
+    .similar-card,
+    .footer-contact-card,
+    .hits-showcase,
+    .all-products-section,
+    .category-page-hero
+  ) {
+    transform: none !important;
+    will-change: auto;
+  }
+}

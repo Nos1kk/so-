@@ -13,6 +13,8 @@
   const productModal = document.getElementById("productModal");
   const profileModal = document.getElementById("profileModal");
   const supportRoot = document.getElementById("supportChatRoot");
+  let lastScrollY = window.scrollY;
+  let scrollTicking = false;
 
   filterModal.className = "mobile-filter-modal";
   filterModal.setAttribute("aria-hidden", "true");
@@ -106,6 +108,30 @@
     body.classList.toggle("mobile-support-ready", window.scrollY > 220);
   }
 
+  function syncQuickNavDirection() {
+    if (!mobileQuery.matches || !header) return;
+    const nextScrollY = Math.max(window.scrollY, 0);
+    const delta = nextScrollY - lastScrollY;
+
+    if (nextScrollY < 20) {
+      header.classList.remove("is-quick-nav-hidden");
+    } else if (Math.abs(delta) > 5) {
+      header.classList.toggle("is-quick-nav-hidden", delta > 0);
+    }
+
+    lastScrollY = nextScrollY;
+  }
+
+  function handleScroll() {
+    if (scrollTicking) return;
+    scrollTicking = true;
+    window.requestAnimationFrame(() => {
+      syncHeaderGlass();
+      syncQuickNavDirection();
+      scrollTicking = false;
+    });
+  }
+
   function syncOverlayState() {
     const hasCatalogDrawer = catalogDrawer?.classList.contains("is-open") && catalogDrawer?.getAttribute("aria-hidden") !== "true";
     const hasProductModal = productModal?.getAttribute("aria-hidden") === "false";
@@ -126,7 +152,7 @@
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeMobileFilters();
   });
-  window.addEventListener("scroll", syncHeaderGlass, { passive: true });
+  window.addEventListener("scroll", handleScroll, { passive: true });
   mobileQuery.addEventListener?.("change", syncMobileState);
 
   const observer = new MutationObserver(syncOverlayState);
@@ -136,5 +162,6 @@
 
   syncMobileState();
   syncHeaderGlass();
+  syncQuickNavDirection();
   syncOverlayState();
 })();

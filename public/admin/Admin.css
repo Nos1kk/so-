@@ -161,7 +161,7 @@
 }
 
 .sona-admin-reply {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: stretch;
   padding: 12px;
   border-top: 1px solid var(--line);
@@ -206,6 +206,7 @@
 }
 
 .sona-admin-reply textarea {
+  grid-row: span 2;
   min-height: 84px;
   padding: 12px;
   resize: vertical;
@@ -213,6 +214,12 @@
 
 .sona-admin-reply button {
   min-width: 132px;
+}
+
+.sona-admin-reply-status {
+  grid-column: 2 / -1;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .sona-admin-editor textarea {
@@ -639,6 +646,14 @@ button.sona-admin-stat {
 
   .sona-admin-chat-history {
     min-height: 260px;
+  }
+
+  .sona-admin-reply textarea {
+    grid-row: auto;
+  }
+
+  .sona-admin-reply-status {
+    grid-column: 1;
   }
 
   .sona-admin-ad-slots {

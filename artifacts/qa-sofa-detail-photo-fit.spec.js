@@ -3,10 +3,10 @@ const { test, expect } = require("@playwright/test");
 test.use({ viewport: { width: 400, height: 850 } });
 
 const cases = [
-  { id: "sona-naples-md", file: "Неаполь Мд.png", screenshot: "89-naples-detail-photo-fit.png" },
-  { id: "sona-montana", file: "Монтана 1.jpeg", screenshot: "90-montana-detail-photo-fit.png" },
-  { id: "sona-mark-large", file: "Марк.png", screenshot: "91-mark-large-photo.png" },
-  { id: "sona-mark-compact", file: "Марк маленький.png", screenshot: "92-mark-compact-photo.png" }
+  { id: "sona-naples-md", file: "неаполь мд бф.png", screenshot: "89-naples-detail-photo-fit.png" },
+  { id: "sona-montana", file: "монтана бф.png", screenshot: "90-montana-detail-photo-fit.png" },
+  { id: "sona-mark-large", file: "марк бф.png", screenshot: "91-mark-large-photo.png" },
+  { id: "sona-mark-compact", file: "марк маленький бф.png", screenshot: "92-mark-compact-photo.png" }
 ];
 
 test("attached sofa photos fit product detail without cropping", async ({ page }) => {

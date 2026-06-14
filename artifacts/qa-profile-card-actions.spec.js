@@ -16,8 +16,9 @@ test("profile product favorite and cart buttons animate beside each other", asyn
   expect(actionClasses[1]).toContain("favorite-button");
 
   const favorite = actions.locator(".favorite-button");
+  const wasFavorite = await favorite.evaluate((button) => button.classList.contains("is-active"));
   await favorite.click();
-  await expect(favorite).toHaveClass(/is-favorite-(added|removed)/);
+  await expect(favorite).toHaveClass(wasFavorite ? /favorite-button(?!.*is-active)/ : /is-active/);
 
   await page.waitForTimeout(750);
   const refreshedActions = page.locator(".sona-profile-showcase-card__actions").first();

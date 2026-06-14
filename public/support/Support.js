@@ -2,6 +2,25 @@
   "use strict";
 
   const HIDDEN_KEY = "sona.support.hidden";
+  const MAX_ATTACHMENTS = 3;
+  const MAX_ATTACHMENT_SIZE = 6 * 1024 * 1024;
+  const MAX_SUPPORT_STORAGE = 30 * 1024 * 1024;
+  const ACCEPTED_EXTENSIONS = new Set([
+    "png", "jpg", "jpeg", "webp", "gif", "pdf", "txt", "csv", "json",
+    "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip",
+    "mp4", "webm", "mov", "mp3", "wav", "ogg"
+  ]);
+  const ACCEPTED_TYPES = new Set([
+    "image/png", "image/jpeg", "image/webp", "image/gif",
+    "application/pdf", "text/plain", "text/csv",
+    "application/json",
+    "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/zip", "application/x-zip-compressed",
+    "video/mp4", "video/webm", "video/quicktime",
+    "audio/mpeg", "audio/wav", "audio/ogg"
+  ]);
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -29,19 +48,142 @@
   function authorName(profile) {
     const name = String(profile?.name || "").trim();
     if (name) return name;
-    const phone = String(profile?.phone || "").trim();
-    if (phone) return phone;
-    const email = String(profile?.email || "").trim();
-    if (email) return email;
-    return "Гость Soна";
+    return "Пользователь";
+  }
+
+  function adminAuthor(data) {
+    return String(data?.admin?.name || "").trim() || "Администратор SONA";
   }
 
   function isProfileActive(data) {
-    return Boolean(data?.profile?.isActive);
+    return Boolean(data?.profile?.isActive || isAdmin(data));
+  }
+
+  function isAdmin(data) {
+    if (window.SonaAdmin?.isAdmin) return window.SonaAdmin.isAdmin(data);
+    const adminEmail = String(data?.admin?.email || "").trim().toLowerCase();
+    const profileEmail = String(data?.profile?.email || "").trim().toLowerCase();
+    return Boolean(
+      (data?.admin?.isAuthenticated && adminEmail === "kcel046@gmail.com") ||
+      (data?.profile?.role === "admin" && profileEmail === "kcel046@gmail.com")
+    );
+  }
+
+  function accountKey(data) {
+    const profile = data?.profile || {};
+    const role = isAdmin(data) ? "admin" : "user";
+    return `${role}:${String(profile.email || profile.phone || profile.sessionId || "local").trim().toLowerCase()}`;
+  }
+
+  function threadIdFor(message) {
+    return message?.accountKey || `legacy:${message?.phone || message?.email || message?.author || "support"}`;
+  }
+
+  function userThreadId(data) {
+    return `THREAD-${accountKey(data)}`;
+  }
+
+  function visibleThreads(data) {
+    const admin = isAdmin(data);
+    const key = accountKey(data);
+    const profile = data.profile || {};
+    const map = new Map();
+
+    (data.supportMessages || []).forEach((message) => {
+      const legacyMatch = !message.accountKey && (
+        (profile.email && message.email === profile.email) ||
+        (profile.phone && message.phone === profile.phone)
+      );
+      if (!admin && message.accountKey !== key && !legacyMatch) return;
+
+      const id = threadIdFor(message);
+      const thread = map.get(id) || { id, accountKey: message.accountKey || "", messages: [], title: message.subject || "" };
+      thread.messages.push(message);
+      thread.last = message;
+      if (!thread.title && message.role === "user") thread.title = message.text || message.author || "Обращение";
+      map.set(id, thread);
+    });
+
+    return [...map.values()]
+      .map((thread) => ({ ...thread, title: String(thread.title || "Обращение в поддержку").slice(0, 42) }))
+      .sort((a, b) => Number(b.last?.createdAt || 0) - Number(a.last?.createdAt || 0));
   }
 
   function cleanFileName(name) {
     return (window.SonaSecurity?.sanitizeText(name, 120) || String(name || "file").trim().slice(0, 120)) || "file";
+  }
+
+  function fileExtension(name) {
+    return String(name || "").toLowerCase().split(".").pop() || "";
+  }
+
+  function isAcceptedAttachment(item) {
+    const type = String(item?.type || "").toLowerCase();
+    if (ACCEPTED_TYPES.has(type)) return true;
+    return (!type || type === "application/octet-stream") && ACCEPTED_EXTENSIONS.has(fileExtension(item?.name));
+  }
+
+  function safeAttachmentHref(item) {
+    if (!isAcceptedAttachment(item)) return "#";
+    const raw = String(item?.dataUrl || "");
+    const type = String(item?.type || "application/octet-stream").toLowerCase();
+    return raw.toLowerCase().startsWith(`data:${type};`) ? raw : "#";
+  }
+
+  function dataUrlBytes(dataUrl) {
+    const raw = String(dataUrl || "");
+    const comma = raw.indexOf(",");
+    if (comma < 0) return 0;
+    const payload = raw.slice(comma + 1);
+    try {
+      return raw.slice(0, comma).includes(";base64")
+        ? Math.floor(payload.length * 0.75)
+        : new TextEncoder().encode(decodeURIComponent(payload)).length;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  function attachmentBytes(item) {
+    return Math.max(Number(item?.size) || 0, dataUrlBytes(item?.dataUrl));
+  }
+
+  function supportStorageBytes(messages) {
+    return (messages || []).reduce((total, message) => total + (message.attachments || [])
+      .reduce((sum, attachment) => sum + String(attachment.dataUrl || "").length, 0), 0);
+  }
+
+  function validateAttachments(items, options = {}) {
+    const accepted = [];
+    const rejected = [];
+    const rows = Array.from(items || []);
+    const storageLeft = Number.isFinite(options.storageLeft) ? options.storageLeft : MAX_SUPPORT_STORAGE;
+    let used = 0;
+
+    rows.forEach((item, index) => {
+      const name = cleanFileName(item?.name);
+      const size = attachmentBytes(item);
+      let reason = "";
+      if (index >= MAX_ATTACHMENTS) reason = `Можно прикрепить не больше ${MAX_ATTACHMENTS} файлов`;
+      else if (!isAcceptedAttachment(item)) reason = "Формат файла не поддерживается";
+      else if (!item?.dataUrl && !options.allowUnread) reason = "Файл не удалось прочитать";
+      else if (item?.dataUrl && safeAttachmentHref(item) === "#") reason = "Содержимое файла не соответствует его формату";
+      else if (size > MAX_ATTACHMENT_SIZE) reason = "Файл больше 6 МБ";
+      else if (used + String(item?.dataUrl || "").length > storageLeft) reason = "В хранилище чата недостаточно места";
+
+      if (reason) {
+        rejected.push({ name, reason });
+        return;
+      }
+      used += String(item?.dataUrl || "").length;
+      accepted.push(options.allowUnread ? item : {
+        name,
+        type: String(item?.type || "application/octet-stream").toLowerCase(),
+        size,
+        dataUrl: String(item?.dataUrl || "")
+      });
+    });
+    return { accepted, rejected };
   }
 
   function formatFileSize(size) {
@@ -66,30 +208,40 @@
   }
 
   async function prepareAttachments(files) {
-    const selected = Array.from(files || []).slice(0, 3);
-    const allowed = selected.filter((file) => file.size <= 6 * 1024 * 1024);
-    return Promise.all(allowed.map(readAttachment));
+    const metadata = validateAttachments(files, { allowUnread: true });
+    const attachments = await Promise.all(metadata.accepted.map(readAttachment));
+    const data = window.SonaStore.read();
+    const storageLeft = MAX_SUPPORT_STORAGE - supportStorageBytes(data.supportMessages);
+    const final = validateAttachments(attachments, { storageLeft });
+    return { attachments: final.accepted, rejected: [...metadata.rejected, ...final.rejected] };
   }
 
-  function addMessage(text, source = "chat", attachments = []) {
+  function addMessage(text, source = "chat", attachments = [], target = {}) {
     const clean = window.SonaSecurity?.sanitizeText(text, 700) || String(text || "").trim().slice(0, 700);
-    const cleanAttachments = Array.isArray(attachments) ? attachments.filter((item) => item?.dataUrl).slice(0, 3) : [];
+    const data = window.SonaStore.read();
+    const storageLeft = MAX_SUPPORT_STORAGE - supportStorageBytes(data.supportMessages);
+    const cleanAttachments = validateAttachments(attachments, { storageLeft }).accepted;
     if (!clean && !cleanAttachments.length) return false;
 
     window.SonaStore.update((data) => {
+      const admin = isAdmin(data);
+      const ownAccountKey = accountKey(data);
+      const threadId = admin ? target.threadId : userThreadId(data);
       data.supportMessages = [
         ...(data.supportMessages || []),
         {
-          id: `SUP-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
-          role: "user",
-          author: authorName(data.profile),
+          id: `${admin ? "ADM" : "SUP"}-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
+          threadId,
+          accountKey: admin ? (target.accountKey || ownAccountKey) : ownAccountKey,
+          role: admin ? "admin" : "user",
+          author: admin ? adminAuthor(data) : authorName(data.profile),
           phone: data.profile?.phone || "",
           email: data.profile?.email || "",
           text: clean,
           attachments: cleanAttachments,
           source,
           createdAt: Date.now(),
-          status: "new"
+          status: admin ? "sent" : "new"
         }
       ];
     });
@@ -97,20 +249,29 @@
     return true;
   }
 
-  function addAdminReply(text, target = {}) {
+  function addAdminReply(text, target = {}, attachments = []) {
     const clean = window.SonaSecurity?.sanitizeText(text, 700) || String(text || "").trim().slice(0, 700);
-    if (!clean) return false;
+    const data = window.SonaStore.read();
+    if (!isAdmin(data)) return false;
+    const targetThread = (data.supportMessages || []).find((message) => threadIdFor(message) === target.threadId);
+    if (!targetThread) return false;
+    const storageLeft = MAX_SUPPORT_STORAGE - supportStorageBytes(data.supportMessages);
+    const cleanAttachments = validateAttachments(attachments, { storageLeft }).accepted;
+    if (!clean && !cleanAttachments.length) return false;
 
     window.SonaStore.update((data) => {
       data.supportMessages = [
         ...(data.supportMessages || []),
         {
           id: `ADM-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
+          threadId: target.threadId,
+          accountKey: target.accountKey || targetThread.accountKey || "",
           role: "admin",
-          author: "Поддержка Soна",
+          author: adminAuthor(data),
           phone: target.phone || "",
           email: target.email || "",
           text: clean,
+          attachments: cleanAttachments,
           source: "admin",
           createdAt: Date.now(),
           status: "sent"
@@ -130,20 +291,21 @@
       return list;
     }
 
-    rows.slice(-30).forEach((message) => {
+    rows.forEach((message) => {
       const bubble = el("article", `sona-support-message is-${message.role === "admin" ? "admin" : "user"}`);
       const attachments = Array.isArray(message.attachments) ? message.attachments : [];
       const attachmentList = el("div", "sona-support-attachments");
 
       attachments.forEach((attachment) => {
         const link = el("a", attachment.type?.startsWith("image/") ? "sona-support-file is-image" : "sona-support-file");
-        link.href = attachment.dataUrl || "#";
+        const safeHref = safeAttachmentHref(attachment);
+        link.href = safeHref;
         link.download = attachment.name || "file";
         link.target = "_blank";
         link.rel = "noopener";
-        if (attachment.type?.startsWith("image/")) {
+        if (attachment.type?.startsWith("image/") && safeHref !== "#") {
           const image = document.createElement("img");
-          image.src = attachment.dataUrl;
+          image.src = safeHref;
           image.alt = attachment.name || "";
           link.append(image);
         }
@@ -170,6 +332,10 @@
     const wasHidden = localStorage.getItem(HIDDEN_KEY) === "true";
     const data = window.SonaStore.read();
     const canUseChat = isProfileActive(data);
+    const admin = isAdmin(data);
+    const threads = visibleThreads(data);
+    const activeThread = threads[0];
+    const activeThreadId = activeThread?.last?.threadId || userThreadId(data);
     const root = el("div", "sona-support-widget");
     const launcher = el("button", "sona-support-launcher");
     const hide = el("button", "sona-support-hide", "×");
@@ -182,7 +348,7 @@
     const input = el("textarea");
     const fileInput = document.createElement("input");
     const attach = el("button", `sona-support-attach${canUseChat ? "" : " is-login-required"}`);
-    const notice = el("p", "sona-support-form-note", canUseChat ? "Можно прикрепить до 3 файлов или фото." : "Войдите в аккаунт, чтобы писать в поддержку.");
+    const notice = el("p", "sona-support-form-note", canUseChat ? "До 3 файлов, каждый до 6 МБ." : "Войдите в аккаунт, чтобы писать в поддержку.");
     const send = el("button", "sona-support-send", canUseChat ? "Отправить" : "Войти");
 
     const openProfile = () => document.getElementById("profileButton")?.click();
@@ -254,7 +420,7 @@
     headWrap.append(head, close);
     head.append(
       el("strong", "", "Чат поддержки"),
-      el("span", "", canUseChat ? "Ответ появится в этом окне" : "Войдите, чтобы начать диалог")
+      el("span", "", canUseChat ? (admin ? "Вы пишете как администратор" : "Ответ появится в этом окне") : "Войдите, чтобы начать диалог")
     );
 
     input.placeholder = canUseChat ? "Опишите вопрос по заказу, доставке или товару" : "Войдите в аккаунт, чтобы написать";
@@ -266,7 +432,7 @@
     }
 
     fileInput.type = "file";
-    fileInput.accept = "image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,.doc,.docx,.xls,.xlsx";
+    fileInput.accept = "image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,text/csv,application/json,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,audio/ogg";
     fileInput.multiple = true;
     fileInput.hidden = true;
     attach.type = "button";
@@ -280,7 +446,11 @@
       fileInput.click();
     });
     fileInput.addEventListener("change", () => {
-      renderAttachIcon(fileInput.files?.length || 0);
+      const report = validateAttachments(fileInput.files, { allowUnread: true });
+      renderAttachIcon(report.accepted.length);
+      notice.textContent = report.rejected.length
+        ? report.rejected.map((item) => `${item.name}: ${item.reason}`).join(". ")
+        : `${report.accepted.length} файл(а) готово к отправке`;
     });
 
     send.type = "submit";
@@ -292,8 +462,12 @@
         return;
       }
 
-      const attachments = await prepareAttachments(fileInput.files);
-      if (!addMessage(input.value, "widget", attachments)) {
+      const prepared = await prepareAttachments(fileInput.files);
+      if (!addMessage(input.value, "widget", prepared.attachments, {
+        threadId: activeThreadId,
+        accountKey: activeThread?.accountKey || accountKey(data)
+      })) {
+        notice.textContent = prepared.rejected.map((item) => `${item.name}: ${item.reason}`).join(". ") || "Введите сообщение или прикрепите допустимый файл.";
         input.focus();
         return;
       }
@@ -301,8 +475,13 @@
       input.value = "";
       fileInput.value = "";
       renderAttachIcon();
+      notice.textContent = prepared.rejected.length
+        ? `Сообщение отправлено. Не добавлены: ${prepared.rejected.map((item) => `${item.name} (${item.reason})`).join(", ")}`
+        : "Сообщение отправлено.";
       const currentList = panel.querySelector(".sona-support-messages");
-      const nextList = renderMessages(window.SonaStore.read().supportMessages);
+      const nextData = window.SonaStore.read();
+      const nextThread = visibleThreads(nextData)[0];
+      const nextList = renderMessages(nextThread?.messages || []);
       currentList?.replaceWith(nextList);
       root.classList.add("is-open");
       document.body.classList.add("support-chat-open");
@@ -314,7 +493,7 @@
       options.onChange?.();
     });
 
-    panel.append(headWrap, renderMessages(data.supportMessages), form);
+    panel.append(headWrap, renderMessages(activeThread?.messages || []), form);
     root.append(launcher, hide, restore, panel);
     container.replaceChildren(root);
     setHidden(wasHidden);
@@ -326,6 +505,16 @@
     addAdminReply,
     renderWidget,
     renderMessages,
+    visibleThreads,
+    threadIdFor,
+    prepareAttachments,
+    validateAttachments,
+    safeAttachmentHref,
+    limits: {
+      maxAttachments: MAX_ATTACHMENTS,
+      maxAttachmentSize: MAX_ATTACHMENT_SIZE,
+      maxSupportStorage: MAX_SUPPORT_STORAGE
+    },
     nowLabel
   };
 })();

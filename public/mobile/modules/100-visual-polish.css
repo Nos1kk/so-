@@ -2458,6 +2458,105 @@
   }
 }
 
+/* Requested mobile header, search and consult interaction polish. */
+@media (max-width: 760px) {
+  body .site-header {
+    background: rgba(248, 252, 255, 0.72) !important;
+    backdrop-filter: blur(22px) saturate(1.22) !important;
+  }
+
+  body .site-header .quick-nav {
+    max-height: 58px !important;
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      max-height 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+      padding 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.24s ease,
+      transform 0.42s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
+  body .site-header.is-quick-nav-hidden .quick-nav {
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0;
+    transform: translateY(-18px);
+    pointer-events: none;
+  }
+
+  body .site-header:has(#mobileConsultButton[aria-expanded="true"]) .quick-nav {
+    margin-top: 0 !important;
+  }
+
+  body .search {
+    border-color: rgba(111, 160, 211, 0.4) !important;
+    overflow: visible !important;
+    transition:
+      border-color 0.28s ease,
+      box-shadow 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  }
+
+  body .search:focus-within {
+    border-color: rgba(101, 171, 232, 0.82) !important;
+    box-shadow:
+      0 0 0 7px rgba(92, 166, 230, 0.14),
+      0 14px 30px rgba(13, 42, 76, 0.2) !important;
+    transform: translateY(-1px);
+  }
+
+  body .search-icon {
+    justify-self: end !important;
+    margin-right: -5px !important;
+    transform: translateX(2px);
+  }
+
+  body .search:focus-within .search-icon,
+  body .search:hover .search-icon {
+    transform: translate(2px, -1px);
+  }
+
+  body .mobile-consult-menu {
+    top: calc(64px + env(safe-area-inset-top)) !important;
+    padding: 30px 10px 10px !important;
+    border: 1px solid rgba(185, 211, 235, 0.9) !important;
+    background: rgba(248, 252, 255, 0.92) !important;
+    backdrop-filter: blur(24px) saturate(1.2) !important;
+  }
+
+  body .mobile-consult-menu .mobile-consult-close {
+    position: absolute !important;
+    top: 7px !important;
+    right: 8px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    border: 1px solid rgba(173, 201, 229, 0.82) !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.88) !important;
+    color: #102844 !important;
+    font-size: 20px !important;
+    line-height: 1 !important;
+    transition:
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      background 0.2s ease,
+      box-shadow 0.24s ease !important;
+  }
+
+  body .mobile-consult-menu .mobile-consult-close:is(:hover, :focus-visible) {
+    background: #fff !important;
+    box-shadow: 0 8px 18px rgba(19, 50, 83, 0.18) !important;
+    transform: rotate(90deg) scale(1.06);
+  }
+
+  body .mobile-consult-menu .mobile-consult-close:active {
+    transform: rotate(90deg) scale(0.9);
+  }
+}
+
 /* Shared product-card visual language: keep every section's existing dimensions. */
 @media (max-width: 760px) {
   body :is(
@@ -2985,11 +3084,13 @@
 
   body.profile-view .account-page {
     min-height: 0 !important;
+    padding-bottom: 8px !important;
   }
 
   body.profile-view .sona-profile-main,
   body.profile-view .sona-profile-content {
     gap: 10px !important;
+    padding-bottom: 8px !important;
   }
 
   body.profile-view .sona-profile-showcase {
@@ -3024,6 +3125,7 @@
     max-width: 100% !important;
     height: 190px !important;
     transform: none !important;
+    background: #fff !important;
   }
 
   body :is(
@@ -3118,8 +3220,7 @@
     inset: 0 0 auto auto !important;
   }
 
-  body .favorite-actions .favorite-button.is-active,
-  body.profile-view .sona-profile-showcase-card__favorite.is-active {
+  body .favorite-actions .favorite-button.is-active {
     animation: none !important;
     transform: none !important;
   }
