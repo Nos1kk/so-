@@ -143,7 +143,12 @@
       sleepingSize: product.sleepingPlace || product.sleepingSize || "",
       image: main?.src || product.image || "",
       gallery: photos,
-      variants,
+      variants: variants.map((variant) => ({
+        ...variant,
+        price: Math.max(0, Number(variant.price) || 0),
+        oldPrice: Math.max(0, Number(variant.oldPrice) || 0),
+        stock: Math.max(0, Number(variant.stock) || 0)
+      })),
       materials: String(product.materials || "").split(",").map((item) => item.trim()).filter(Boolean),
       colors: String(product.colors || "").split(",").map((item) => item.trim()).filter(Boolean),
       tags: String(product.tags || "").split(",").map((item) => item.trim()).filter(Boolean),

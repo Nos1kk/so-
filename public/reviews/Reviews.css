@@ -113,3 +113,39 @@
   transform: translateY(-3px);
   box-shadow: 0 16px 28px rgba(34, 58, 94, 0.1);
 }
+
+.review-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.review-control {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--blue-deep);
+  font-weight: 900;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.review-control:not(:disabled):is(:hover, :focus-visible) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(34, 58, 94, 0.12);
+}
+
+.review-control:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.review-page-indicator {
+  min-width: 56px;
+  color: var(--muted);
+  font-weight: 900;
+  text-align: center;
+}

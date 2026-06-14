@@ -2314,6 +2314,10 @@
   body .variant-section.is-fabric-picker .variant-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 7px !important;
+    max-height: 244px !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    padding-right: 3px !important;
   }
 
   body .variant-section.is-fabric-picker .variant-option {
@@ -2337,6 +2341,11 @@
   body .variant-section.is-fabric-picker .variant-meta {
     font-size: 10px !important;
     line-height: 1.1 !important;
+  }
+
+  body .variant-section.is-fabric-picker .variant-price {
+    grid-column: 2 !important;
+    font-size: 10px !important;
   }
 
   body .detail-reviews,

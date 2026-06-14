@@ -1816,7 +1816,7 @@
 
     delivery.append(
       createElement("h3", "", "Доставка"),
-      createElement("p", "", product.deliveryDays <= 3 ? "Доставим быстро по Москве и области." : `Доставка от ${product.deliveryDays} дней. Самовывоз доступен из пункта выдачи.`)
+      createElement("p", "", "Доставка в любую точку России. Срок доставки зависит от вашего региона.")
     );
 
     info.append(titleRow, rating, warranty, price, actions, sellerCall, variants, characteristics, delivery);
@@ -1836,13 +1836,22 @@
     head.append(title, note);
     if (!isService) section.classList.add("is-fabric-picker");
 
+    if (!options.length) {
+      const empty = createElement("p", "variant-empty", isService
+        ? "Варианты услуги пока не добавлены."
+        : "Доступные ткани уточнит продавец.");
+      section.append(head, empty);
+      return section;
+    }
+
     options.forEach((variant, index) => {
       const option = createElement("button", "variant-option");
       const color = createElement("span", "variant-color");
       const copy = createElement("span", "variant-copy");
       const text = createElement("strong", "", variant.name || variant.title || "Вариант");
       const meta = createElement("span", "variant-meta", isService ? "вариант пакета" : fabricTypeLabel(variant, product, index));
-      const price = createElement("span", "", money(variant.price || product.price));
+      const variantPrice = Number(variant.price) || 0;
+      const price = createElement("span", "variant-price", variantPrice > 0 ? money(variantPrice) : "Цена уточняется");
 
       option.type = "button";
       option.classList.toggle("is-active", index === 0);
@@ -1858,7 +1867,7 @@
       });
       copy.append(text, meta);
       option.append(color, copy);
-      if (isService) option.append(price);
+      option.append(price);
       grid.append(option);
     });
 
@@ -1870,20 +1879,8 @@
     const variants = Array.isArray(product.variants) ? product.variants : [];
     const materials = Array.isArray(product.materials) ? product.materials.map(displayText).filter(Boolean) : [];
     const colors = Array.isArray(product.colors) ? product.colors : [];
-    const defaults = [
-      { name: "Azure, микровелюр", color: "#246aaf", type: "мягкий микровелюр" },
-      { name: "Mist, велюр", color: "#9cc8e8", type: "бархатистый велюр" },
-      { name: "Snow, букле", color: "#e8f5ff", type: "объемное букле" },
-      { name: "Sage, рогожка", color: "#9cc9b9", type: "плотная рогожка" },
-      { name: "Latte, шенилл", color: "#d7c4ad", type: "теплый шенилл" },
-      { name: "Graphite, велюр", color: "#506070", type: "темный велюр" },
-      { name: "Pearl, букле", color: "#f1eee6", type: "светлое букле" },
-      { name: "Terracotta, микрофибра", color: "#bd7462", type: "практичная микрофибра" }
-    ];
-    const seen = new Set();
-    const options = variants.map((variant, index) => {
+    return variants.map((variant, index) => {
       const title = displayText(variant.name || variant.title || materials[index % materials.length] || `Ткань ${index + 1}`);
-      seen.add(title.toLowerCase());
       return {
         ...variant,
         name: title,
@@ -1891,15 +1888,6 @@
         type: fabricTypeLabel(variant, product, index)
       };
     });
-
-    defaults.forEach((fabric) => {
-      if (options.length >= 8) return;
-      if (seen.has(fabric.name.toLowerCase())) return;
-      options.push(fabric);
-      seen.add(fabric.name.toLowerCase());
-    });
-
-    return options;
   }
 
   function fabricTypeLabel(variant, product, index) {
@@ -1936,9 +1924,13 @@
     const section = createElement("section", "detail-reviews");
     const head = createElement("div", "section-head");
     const cards = createElement("div", "review-grid");
+    const controls = createElement("div", "review-controls");
     const data = store.read();
     const reviews = window.SonaReviews?.list(data.reviews || [], product.id) || [];
     const summary = reviewSummary(product.id, data);
+    const pageSize = 6;
+    const pageCount = Math.max(1, Math.ceil(reviews.length / pageSize));
+    let page = 0;
 
     head.append(createElement("h2", "", "Отзывы"), createElement("span", "", summary.count ? `${summary.average} ★ · ${summary.count} оценок` : "0 отзывов"));
 
@@ -1952,24 +1944,51 @@
       return section;
     }
 
-    reviews.forEach((review) => {
-      const card = createElement("article", "review-card");
-      const top = createElement("div");
-      const stars = "★★★★★".slice(0, Number(review.rating) || 5);
-      const rating = Number(review.rating) || 5;
-      const date = window.SonaReviews?.displayMoment(review) || review.date || "";
+    const previous = createElement("button", "review-control", "Назад");
+    const indicator = createElement("span", "review-page-indicator");
+    const next = createElement("button", "review-control", "Вперёд");
+    previous.type = "button";
+    next.type = "button";
 
-      top.append(createElement("strong", "", review.author), createElement("span", "", date));
-      card.append(top, createElement("b", "", `${stars} ${rating}/5`), createElement("p", "", review.text));
-      if (review.reply) {
-        const reply = createElement("div", "review-reply");
-        reply.append(createElement("strong", "", "Ответ Soна"), createElement("p", "", review.reply));
-        card.append(reply);
-      }
-      cards.append(card);
+    function renderReviewPage() {
+      const pageReviews = reviews.slice(page * pageSize, (page + 1) * pageSize);
+      const reviewCards = pageReviews.map((review) => {
+        const card = createElement("article", "review-card");
+        const top = createElement("div");
+        const stars = "★★★★★".slice(0, Number(review.rating) || 5);
+        const rating = Number(review.rating) || 5;
+        const date = window.SonaReviews?.displayMoment(review) || review.date || "";
+
+        top.append(createElement("strong", "", review.author), createElement("span", "", date));
+        card.append(top, createElement("b", "", `${stars} ${rating}/5`), createElement("p", "", review.text));
+        if (review.reply) {
+          const reply = createElement("div", "review-reply");
+          reply.append(createElement("strong", "", "Ответ Soна"), createElement("p", "", review.reply));
+          card.append(reply);
+        }
+        return card;
+      });
+
+      cards.replaceChildren(...reviewCards);
+      indicator.textContent = `${page + 1} / ${pageCount}`;
+      previous.disabled = page === 0;
+      next.disabled = page >= pageCount - 1;
+      cards.scrollTo({ left: 0, behavior: pageScrollBehavior() });
+    }
+
+    previous.addEventListener("click", () => {
+      page = Math.max(0, page - 1);
+      renderReviewPage();
+    });
+    next.addEventListener("click", () => {
+      page = Math.min(pageCount - 1, page + 1);
+      renderReviewPage();
     });
 
+    controls.append(previous, indicator, next);
+    renderReviewPage();
     section.append(head, cards);
+    if (pageCount > 1) section.append(controls);
     return section;
   }
 

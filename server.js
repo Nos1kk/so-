@@ -87,7 +87,12 @@ function setSecurityHeaders(res) {
 function sendJson(res, statusCode, payload) {
   setSecurityHeaders(res);
   setApiCorsHeaders(res);
-  res.writeHead(statusCode, { "Content-Type": MIME_TYPES[".json"] });
+  res.writeHead(statusCode, {
+    "Content-Type": MIME_TYPES[".json"],
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0"
+  });
   res.end(JSON.stringify(payload));
 }
 
@@ -102,14 +107,12 @@ function setApiCorsHeaders(res) {
 }
 
 function cacheControlFor(ext) {
-  if (ext === ".html") return "no-store";
+  if ([".html", ".css", ".js", ".json"].includes(ext)) {
+    return "no-store, no-cache, must-revalidate, proxy-revalidate";
+  }
   if ([".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico"].includes(ext)) {
     return "public, max-age=604800";
   }
-  if ([".css", ".js"].includes(ext)) {
-    return "public, max-age=3600, must-revalidate";
-  }
-  if (ext === ".json") return "no-cache";
   return "no-store";
 }
 
@@ -742,7 +745,9 @@ function createServer() {
         setSecurityHeaders(res);
         res.writeHead(200, {
           "Content-Type": MIME_TYPES[".html"],
-          "Cache-Control": "no-store"
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0"
         });
         res.end(req.method === "HEAD" ? undefined : fallbackContent);
       });
@@ -764,6 +769,10 @@ function createServer() {
         "Content-Type": contentType,
         "Cache-Control": cacheControl
       };
+      if ([".html", ".css", ".js", ".json"].includes(ext)) {
+        headers.Pragma = "no-cache";
+        headers.Expires = "0";
+      }
 
       if (req.method === "HEAD") {
         res.writeHead(200, headers);

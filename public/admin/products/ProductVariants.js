@@ -27,7 +27,7 @@
     const isFabricCategory = ["sofa", "sofaCollection", "chair", "bed"].includes(category);
     const add = el("button", "sona-admin-soft", isFabricCategory ? "Добавить ткань" : "Добавить вариант");
     const hint = category === "sofaCollection" || category === "sofa"
-      ? "Добавляйте ткани для дивана: название, цвет/HEX, тип обивки, остаток и фото. Эти варианты появятся в карточке товара."
+      ? "Добавляйте ткани для дивана: название, цвет/HEX, тип обивки, стоимость, остаток и фото. Эти варианты появятся в карточке товара."
       : category === "bed"
         ? "Например: размер спального места, цвет ткани, подъемный механизм."
         : "Например: цвет ткани, размер, сторона угла, комплектация.";
@@ -60,7 +60,7 @@
       row.append(
         field("title", isFabricCategory ? "Название ткани" : "Название варианта", variant.title, (value) => patch("title", value)),
         field("sku", "Артикул", variant.sku, (value) => patch("sku", value)),
-        field("price", "Цена", variant.price, (value) => patch("price", value), "number"),
+        field("price", isFabricCategory ? "Стоимость с этой тканью" : "Цена", variant.price, (value) => patch("price", value), "number"),
         field("oldPrice", "Старая цена", variant.oldPrice, (value) => patch("oldPrice", value), "number"),
         field("stock", "Остаток", variant.stock, (value) => patch("stock", value), "number"),
         field("color", isFabricCategory ? "Цвет ткани / HEX" : "Цвет / материал", variant.color, (value) => patch("color", value)),

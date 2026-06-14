@@ -6809,11 +6809,17 @@ img {
 .variant-section.is-fabric-picker .variant-grid {
   grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
   gap: 8px;
+  max-height: 286px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-color: rgba(72, 119, 164, 0.45) transparent;
+  scrollbar-width: thin;
 }
 
 .variant-section.is-fabric-picker .variant-option {
   min-height: 58px;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   gap: 7px;
   padding: 9px;
   border-radius: 12px;
@@ -6830,6 +6836,23 @@ img {
 
 .variant-section.is-fabric-picker .variant-meta {
   font-size: 0.72rem;
+}
+
+.variant-price {
+  color: var(--blue-deep);
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.variant-empty {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed rgba(151, 185, 216, 0.82);
+  border-radius: 13px;
+  background: rgba(245, 250, 255, 0.78);
+  color: var(--muted);
+  line-height: 1.4;
 }
 
 .detail-reviews,

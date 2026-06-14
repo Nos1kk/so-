@@ -36,9 +36,7 @@
       ["subcategory", "Подкатегория", "text"],
       ["brand", "Бренд", "text"],
       ["status", "Статус", "select", false, [["active", "Активен"], ["hidden", "Скрыт"], ["draft", "Черновик"]]],
-      ["tags", "Теги", "text"],
-      ["rating", "Рейтинг", "number"],
-      ["reviewsCount", "Количество отзывов", "number"]
+      ["tags", "Теги", "text"]
     ],
     price: [
       ["sku", "Артикул", "text"],

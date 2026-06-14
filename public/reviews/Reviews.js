@@ -3,7 +3,7 @@
 
   function list(reviews, productId) {
     return (Array.isArray(reviews) ? reviews : [])
-      .filter((review) => review.productId === productId && !["hidden", "deleted"].includes(review.status))
+      .filter((review) => review.productId === productId && ["published", ""].includes(review.status || ""))
       .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
   }
 

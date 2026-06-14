@@ -30,6 +30,10 @@
     return "Активен";
   }
 
+  function reviewSummary(context, productId) {
+    return window.SonaReviews?.summary(context.data?.reviews || [], productId) || { count: 0, average: 0 };
+  }
+
   function filteredProducts(context) {
     const query = filters.query.toLowerCase();
     const maxPrice = Number(filters.price) || 0;
@@ -42,8 +46,8 @@
         (!maxPrice || Number(product.price) <= maxPrice);
     }).sort((a, b) => {
       if (filters.sort === "price") return (Number(b.price) || 0) - (Number(a.price) || 0);
-      if (filters.sort === "reviews") return (Number(b.reviewsCount) || 0) - (Number(a.reviewsCount) || 0);
-      if (filters.sort === "rating") return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+      if (filters.sort === "reviews") return reviewSummary(context, b.id).count - reviewSummary(context, a.id).count;
+      if (filters.sort === "rating") return reviewSummary(context, b.id).average - reviewSummary(context, a.id).average;
       return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
     });
   }
@@ -101,6 +105,7 @@
     head.append(headRow);
 
     filteredProducts(context).forEach((product) => {
+      const productReviews = reviewSummary(context, product.id);
       const tr = document.createElement("tr");
       const imageCell = el("td");
       const image = document.createElement("img");
@@ -140,8 +145,8 @@
         el("td", "", productTypeLabel(product)),
         el("td", "", `${money(product.price)}${product.oldPrice ? `\n${money(product.oldPrice)}` : ""}`),
         (() => { const td = el("td"); td.append(stockInput); return td; })(),
-        el("td", "", String(product.rating || 0)),
-        el("td", "", String(product.reviewsCount || 0)),
+        el("td", "", String(productReviews.average || 0)),
+        el("td", "", String(productReviews.count || 0)),
         el("td", "", statusText(product)),
         el("td", "", product.updatedAt ? new Date(product.updatedAt).toLocaleDateString("ru-RU") : "—"),
         (() => { const td = el("td"); td.append(priceInput, actions); return td; })()
