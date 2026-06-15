@@ -18,6 +18,7 @@ const ACCOUNTS_FILE = path.join(ACCOUNTS_DIR, "accounts.json");
 const ADMIN_EMAIL = normalizeEmail(process.env.SONA_ADMIN_EMAIL || "kcel046@gmail.com");
 const AUTH_SECRET = process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
 const emailCodes = new Map();
+const telegramLoginCodes = new Map();
 const authRateLimits = new Map();
 const authBlockedClients = new Map();
 const lastCodeHashes = new Map();
@@ -36,6 +37,7 @@ const securityCleanupTimer = setInterval(() => {
   for (const [key, value] of authBlockedClients) if (value.until <= now) authBlockedClients.delete(key);
   for (const [key, value] of authSessions) if (value.expiresAt <= now) authSessions.delete(key);
   for (const [key, value] of emailCodes) if (value.expiresAt <= now) emailCodes.delete(key);
+  for (const [key, value] of telegramLoginCodes) if (value.expiresAt <= now) telegramLoginCodes.delete(key);
   for (const [key, value] of telegramLinkTokens) if (value.expiresAt <= now) telegramLinkTokens.delete(key);
 }, 10 * 60 * 1000);
 securityCleanupTimer.unref();
@@ -531,6 +533,10 @@ function accountIdFor(email) {
   return `USER-${crypto.createHash("sha256").update(normalizeEmail(email)).digest("hex").slice(0, 12)}`;
 }
 
+function telegramEmailFor(chatId) {
+  return `telegram-${crypto.createHash("sha256").update(String(chatId)).digest("hex").slice(0, 12)}@sona.telegram`;
+}
+
 function upsertAccount(email, callback) {
   const normalizedEmail = normalizeEmail(email);
   const now = new Date().toISOString();
@@ -559,6 +565,51 @@ function upsertAccount(email, callback) {
 
     state.accounts = [
       ...state.accounts.filter((item) => item.email !== normalizedEmail),
+      account
+    ].sort((a, b) => String(a.email).localeCompare(String(b.email)));
+
+    writeAccounts(state, (writeError) => {
+      callback(writeError, account, state, false);
+    });
+  });
+}
+
+function upsertTelegramAccount(chatId, username, callback) {
+  const now = new Date().toISOString();
+  const normalizedChatId = String(chatId || "").trim();
+  if (!normalizedChatId) {
+    callback(new Error("Telegram chat is empty"));
+    return;
+  }
+
+  readAccounts((readError, state) => {
+    if (readError) {
+      callback(readError);
+      return;
+    }
+
+    const existing = state.accounts.find((account) => String(account.telegramChatId || "") === normalizedChatId);
+    const email = existing?.email || telegramEmailFor(normalizedChatId);
+    const account = {
+      ...(existing || {}),
+      id: existing?.id || accountIdFor(email),
+      email,
+      role: existing?.role || "user",
+      status: existing?.status || "active",
+      createdAt: existing?.createdAt || now,
+      lastLoginAt: now,
+      telegramChatId: normalizedChatId,
+      telegramUsername: String(username || existing?.telegramUsername || "").slice(0, 80),
+      telegramConnectedAt: existing?.telegramConnectedAt || now
+    };
+
+    if (account.status === "blocked") {
+      callback(null, account, state, true);
+      return;
+    }
+
+    state.accounts = [
+      ...state.accounts.filter((item) => item.id !== account.id && item.email !== account.email),
       account
     ].sort((a, b) => String(a.email).localeCompare(String(b.email)));
 
@@ -917,6 +968,26 @@ async function processTelegramUpdate(update) {
   const match = String(message?.text || "").trim().match(/^\/start\s+([a-zA-Z0-9_-]{20,80})$/);
   if (!match || !message?.chat?.id) return;
   const token = match[1];
+  const login = telegramLoginCodes.get(token);
+  if (login) {
+    if (login.expiresAt <= Date.now()) {
+      telegramLoginCodes.delete(token);
+      await sendTelegramMessage(message.chat.id, "Вход устарел. Нажмите Telegram на сайте ещё раз.");
+      return;
+    }
+    const authCode = createAuthCode(`telegram:${token}`);
+    telegramLoginCodes.set(token, {
+      ...login,
+      hash: authCode.hash,
+      attempts: 0,
+      chatId: String(message.chat.id),
+      username: String(message.from?.username || "").slice(0, 80),
+      expiresAt: Date.now() + CODE_TTL_MS
+    });
+    await sendTelegramMessage(message.chat.id, `Код входа в SONA: ${authCode.code}\n\nВведите его на сайте. Код действует 10 минут.`);
+    return;
+  }
+
   const link = telegramLinkTokens.get(token);
   if (!link || link.expiresAt <= Date.now()) {
     telegramLinkTokens.delete(token);
@@ -1003,6 +1074,86 @@ function handleTelegramUnlink(req, res) {
     .catch(() => sendJson(res, 500, { ok: false, error: "Account update failed" }));
 }
 
+function handleTelegramAuthRequest(req, res) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_BOT_USERNAME) {
+    sendJson(res, 503, {
+      ok: false,
+      error: "Telegram bot is not configured",
+      message: "Telegram-бот пока не настроен на сервере."
+    });
+    return;
+  }
+  if (!checkRateLimit(`telegram-auth-ip:${clientIp(req)}`, 20, 10 * 60 * 1000)) {
+    securityEvent("telegram_auth_request_rate_limited", req);
+    sendJson(res, 429, { ok: false, error: "Too many authentication requests" });
+    return;
+  }
+  const loginId = crypto.randomBytes(24).toString("base64url");
+  telegramLoginCodes.set(loginId, {
+    attempts: 0,
+    expiresAt: Date.now() + CODE_TTL_MS
+  });
+  sendJson(res, 200, {
+    ok: true,
+    loginId,
+    url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${loginId}`,
+    expiresIn: Math.floor(CODE_TTL_MS / 1000)
+  });
+}
+
+function handleTelegramAuthVerify(req, res) {
+  readJsonBody(req, (error, body) => {
+    if (error) {
+      sendJson(res, 400, { ok: false, error: "Invalid JSON" });
+      return;
+    }
+    const loginId = String(body.loginId || "").trim();
+    const code = String(body.code || "").trim();
+    const record = telegramLoginCodes.get(loginId);
+    if (!/^[a-zA-Z0-9_-]{20,80}$/.test(loginId) || !/^\d{6}$/.test(code)) {
+      sendJson(res, 400, { ok: false, error: "Invalid auth payload" });
+      return;
+    }
+    if (!record || record.expiresAt < Date.now()) {
+      telegramLoginCodes.delete(loginId);
+      sendJson(res, 400, { ok: false, error: "Code expired" });
+      return;
+    }
+    if (!record.hash || !record.chatId) {
+      sendJson(res, 409, {
+        ok: false,
+        error: "Telegram start required",
+        message: "Откройте @SonaShop_bot и нажмите Start, затем введите код из чата."
+      });
+      return;
+    }
+    if (record.hash !== hashAuthCode(`telegram:${loginId}`, code)) {
+      record.attempts += 1;
+      securityEvent("invalid_telegram_login_code", req, { attempts: record.attempts });
+      if (record.attempts >= 4) {
+        telegramLoginCodes.delete(loginId);
+        sendJson(res, 403, { ok: false, error: "Too many wrong codes" });
+        return;
+      }
+      sendJson(res, 400, { ok: false, error: "Wrong code" });
+      return;
+    }
+    telegramLoginCodes.delete(loginId);
+    upsertTelegramAccount(record.chatId, record.username, (accountError, account, _state, blocked) => {
+      if (accountError) {
+        sendJson(res, 500, { ok: false, error: "Account store unavailable" });
+        return;
+      }
+      if (blocked) {
+        sendJson(res, 403, { ok: false, error: "Account blocked" });
+        return;
+      }
+      createSession(req, res, account);
+      sendJson(res, 200, { ok: true, account: safeAccount(account) });
+    });
+  });
+}
+
 function handleTestNotification(req, res) {
   const account = requireAuth(req, res);
   if (!account) return;
@@ -1040,14 +1191,16 @@ function handleAuthRequest(req, res) {
       return;
     }
 
-    const email = normalizeEmail(body.email);
-    const channel = body.channel === "telegram" ? "telegram" : "email";
+    const rawIdentifier = String(body.email || "").trim();
+    const isAdminShortcut = /^0{8}$/.test(rawIdentifier);
+    const email = isAdminShortcut ? ADMIN_EMAIL : normalizeEmail(rawIdentifier);
+    const codeKey = isAdminShortcut ? "admin:00000000" : email;
     if (!isValidEmail(email)) {
       sendJson(res, 400, { ok: false, error: "Invalid email" });
       return;
     }
 
-    if (blockInfo(req, email)) {
+    if (blockInfo(req, codeKey)) {
       sendJson(res, 403, {
         ok: false,
         error: "Device blocked",
@@ -1062,43 +1215,33 @@ function handleAuthRequest(req, res) {
       return;
     }
 
-    if (!checkRateLimit(requestKey(req, email), 5, 10 * 60 * 1000)) {
+    if (!checkRateLimit(requestKey(req, codeKey), 5, 10 * 60 * 1000)) {
       securityEvent("email_code_rate_limited", req, {
-        emailHash: crypto.createHash("sha256").update(email).digest("hex").slice(0, 12)
+        emailHash: crypto.createHash("sha256").update(codeKey).digest("hex").slice(0, 12)
       });
       sendJson(res, 429, { ok: false, error: "Too many code requests" });
       return;
     }
 
-    const authCode = createAuthCode(email);
-    emailCodes.set(email, {
+    const authCode = createAuthCode(codeKey);
+    emailCodes.set(codeKey, {
       hash: authCode.hash,
       attempts: 0,
-      expiresAt: Date.now() + CODE_TTL_MS
+      expiresAt: Date.now() + CODE_TTL_MS,
+      email
     });
-
-    if (channel === "telegram") {
-      accountByEmail(email)
-        .then((account) => sendTelegramCode(account, authCode.code))
-        .then(() => sendJson(res, 200, { ok: true, channel: "telegram" }))
-        .catch(() => {
-          emailCodes.delete(email);
-          sendJson(res, 409, {
-            ok: false,
-            error: "Telegram is not connected",
-            message: "Сначала подключите @SonaShop_bot в настройках профиля."
-          });
-        });
-      return;
-    }
 
     sendEmailCode(email, authCode.code, (mailError) => {
       if (mailError) {
-        emailCodes.delete(email);
-        sendJson(res, 502, { ok: false, error: "Email provider failed" });
+        emailCodes.delete(codeKey);
+        sendJson(res, 502, {
+          ok: false,
+          error: "Email provider failed",
+          message: "Почта не отправила код. Проверьте SMTP_HOST, SMTP_USER и пароль приложения SMTP_PASS."
+        });
         return;
       }
-      sendJson(res, 200, { ok: true, channel: "email" });
+      sendJson(res, 200, { ok: true, channel: "email", admin: isAdminShortcut });
     });
   });
 }
@@ -1110,17 +1253,20 @@ function handleAuthVerify(req, res) {
       return;
     }
 
-    const email = normalizeEmail(body.email);
+    const rawIdentifier = String(body.email || "").trim();
+    const isAdminShortcut = /^0{8}$/.test(rawIdentifier);
+    const codeKey = isAdminShortcut ? "admin:00000000" : normalizeEmail(rawIdentifier);
+    const email = isAdminShortcut ? ADMIN_EMAIL : normalizeEmail(rawIdentifier);
     const code = String(body.code || "").trim();
-    const record = emailCodes.get(email);
+    const record = emailCodes.get(codeKey);
 
     if (!isValidEmail(email) || !/^\d{6}$/.test(code)) {
       sendJson(res, 400, { ok: false, error: "Invalid auth payload" });
       return;
     }
 
-    if (blockInfo(req, email)) {
-      securityEvent("blocked_login_attempt", req, { emailHash: crypto.createHash("sha256").update(email).digest("hex").slice(0, 12) });
+    if (blockInfo(req, codeKey)) {
+      securityEvent("blocked_login_attempt", req, { emailHash: crypto.createHash("sha256").update(codeKey).digest("hex").slice(0, 12) });
       sendJson(res, 403, {
         ok: false,
         error: "Device blocked",
@@ -1130,20 +1276,20 @@ function handleAuthVerify(req, res) {
     }
 
     if (!record || record.expiresAt < Date.now()) {
-      emailCodes.delete(email);
+      emailCodes.delete(codeKey);
       sendJson(res, 400, { ok: false, error: "Code expired" });
       return;
     }
 
-    if (record.hash !== hashAuthCode(email, code)) {
+    if (record.hash !== hashAuthCode(codeKey, code)) {
       record.attempts += 1;
       securityEvent("invalid_login_code", req, {
-        emailHash: crypto.createHash("sha256").update(email).digest("hex").slice(0, 12),
+        emailHash: crypto.createHash("sha256").update(codeKey).digest("hex").slice(0, 12),
         attempts: record.attempts
       });
       if (record.attempts >= 4) {
-        emailCodes.delete(email);
-        blockClient(req, email);
+        emailCodes.delete(codeKey);
+        blockClient(req, codeKey);
         sendJson(res, 403, {
           ok: false,
           error: "Device blocked",
@@ -1160,7 +1306,7 @@ function handleAuthVerify(req, res) {
       return;
     }
 
-    emailCodes.delete(email);
+    emailCodes.delete(codeKey);
     upsertAccount(email, (accountError, account, _state, blocked) => {
       if (accountError) {
         sendJson(res, 500, { ok: false, error: "Account store unavailable" });
@@ -1236,8 +1382,18 @@ function createServer() {
     return;
   }
 
+  if (req.method === "POST" && req.url === "/api/auth/request-telegram") {
+    handleTelegramAuthRequest(req, res);
+    return;
+  }
+
   if (req.method === "POST" && req.url === "/api/auth/verify-email") {
     handleAuthVerify(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/verify-telegram") {
+    handleTelegramAuthVerify(req, res);
     return;
   }
 
