@@ -17,7 +17,9 @@
       registeredAt: "",
       notifications: {
         site: true,
-        email: true
+        email: true,
+        telegram: false,
+        sound: true
       }
     },
     orders: [],

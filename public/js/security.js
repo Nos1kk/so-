@@ -148,6 +148,34 @@
     return sanitizeText(value, 48).replace(/[^a-z0-9-]/gi, "");
   }
 
+  function safeNavigationUrl(value, fallback = "#") {
+    const source = String(value || "").trim();
+    if (/^#[a-z0-9_-]+$/i.test(source)) return source;
+    try {
+      const url = new URL(source, document.baseURI);
+      if (url.protocol === "https:") return url.href;
+      if (url.protocol === "http:" && url.origin === window.location.origin) return url.href;
+      return fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function safeMediaUrl(value, fallback = "") {
+    const source = String(value || "").trim();
+    if (!source) return fallback;
+    if (/^data:(?:image\/(?:png|jpeg|webp|gif)|video\/(?:mp4|webm));base64,/i.test(source)) return source;
+    if (/^blob:/i.test(source)) return source;
+    try {
+      const url = new URL(source, document.baseURI);
+      if (url.protocol === "https:") return url.href;
+      if (url.protocol === "http:" && url.origin === window.location.origin) return url.href;
+      return fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
   window.SonaSecurity = {
     sanitizeText,
     sanitizeEmail,
@@ -156,7 +184,9 @@
     isValidEmail,
     validateAuthEmail,
     validateProfile,
-    safeProductId
+    safeProductId,
+    safeNavigationUrl,
+    safeMediaUrl
   };
 
   window.SonaText = {

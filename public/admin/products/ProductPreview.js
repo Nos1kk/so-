@@ -29,7 +29,7 @@
 
     if (main?.src || product.image) {
       const img = document.createElement("img");
-      img.src = main?.src || product.image;
+      img.src = window.SonaSecurity?.safeMediaUrl(main?.src || product.image);
       img.alt = main?.alt || product.name || "";
       media.append(img);
     } else {

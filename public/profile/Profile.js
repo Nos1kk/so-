@@ -36,6 +36,7 @@
   let loginCodeSent = false;
   let loginBusy = false;
   let loginError = "";
+  let loginChannel = "email";
   const DEVICE_KEY = "sona.device.id";
   const LOCAL_AUTH_KEY = "sona.auth.local";
 
@@ -194,11 +195,11 @@
     return window.location.protocol === "file:" ? `http://127.0.0.1:8000${path}` : path;
   }
 
-  async function requestEmailCode(email) {
+  async function requestLoginCode(email, channel = "email") {
     const response = await fetch(authApiUrl("/api/auth/request-email"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email, channel })
     });
     return response.json();
   }
@@ -442,65 +443,23 @@
     const form = el("form", "sona-login-form");
     const phoneLabel = el("label", "", "Телефон");
     const emailInput = el("input");
-    const codeLabel = el("label", "", "Код из письма");
+    const codeLabel = el("label", "", "Код из письма или Telegram");
     const codeInput = el("input");
     const submit = button("sona-profile-primary", loginBusy ? "Подождите..." : (loginCodeSent ? "Войти" : "Получить код"), () => {});
-    const temporaryLogin = button("", "Войти без почты (временно)", () => {
-      const email = "demo@sona.local";
-      const account = {
-        id: "USER-TEMPORARY",
-        email,
-        role: "user",
-        status: "active",
-        createdAt: new Date().toISOString()
-      };
-
-      window.SonaStore.update((data) => {
-        data.profile = {
-          ...(data.profile || {}),
-          isActive: true,
-          name: data.profile?.name || "Пользователь",
-          email,
-          role: "user",
-          registeredAt: data.profile?.registeredAt || account.createdAt
-        };
-        data.admin = { ...(data.admin || {}), isAuthenticated: false, email: "" };
-        upsertCurrentSession(data, account);
-        data.users = [
-          ...(data.users || []).filter((user) => user.email !== email),
-          {
-            id: account.id,
-            name: data.profile.name,
-            email,
-            phone: data.profile.phone || "",
-            role: "user",
-            status: "active",
-            registeredAt: data.profile.registeredAt
-          }
-        ];
-        writeLocalAuth(data.profile);
-      });
-
+    const channelPicker = el("div", "sona-login-channels");
+    const emailChannel = button(loginChannel === "email" ? "is-active" : "", "На почту", () => {
+      loginChannel = "email";
       loginCodeSent = false;
-      loginBusy = false;
-      loginEmail = "";
       loginError = "";
-      activeSection = "home";
-      context.onAuthChange?.();
+      render(context);
+    });
+    const telegramChannel = button(loginChannel === "telegram" ? "is-active" : "", "В Telegram", () => {
+      loginChannel = "telegram";
+      loginCodeSent = false;
+      loginError = "";
+      render(context);
     });
     const adminLogin = button("sona-admin-login-link", "Войти в аккаунт администратора", () => {
-      window.SonaStore.update((data) => {
-        const email = window.SonaAdmin?.ADMIN_EMAIL || "admin@sona.local";
-        data.admin = { ...(data.admin || {}), isAuthenticated: true, email };
-        data.profile = {
-          ...(data.profile || {}),
-          isActive: true,
-          name: "Администратор SONA",
-          email,
-          role: "admin",
-          registeredAt: data.profile?.registeredAt || new Date().toISOString()
-        };
-      });
       context.openAdmin?.();
     });
 
@@ -520,7 +479,8 @@
     phoneLabel.textContent = "Email";
     phoneLabel.append(emailInput);
     codeLabel.append(codeInput);
-    form.append(phoneLabel, codeLabel, submit);
+    channelPicker.append(emailChannel, telegramChannel);
+    form.append(phoneLabel, channelPicker, codeLabel, submit);
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (loginBusy) return;
@@ -538,7 +498,7 @@
         loginBusy = true;
         render(context);
         try {
-          const result = await requestEmailCode(email);
+          const result = await requestLoginCode(email, loginChannel);
           if (!result.ok) {
             loginError = result.message || "Не удалось отправить письмо. Проверьте email или повторите позже.";
             render(context);
@@ -547,7 +507,9 @@
 
           loginEmail = email;
           loginCodeSent = true;
-          loginError = "Код отправлен на указанную почту.";
+          loginError = loginChannel === "telegram"
+            ? "Код отправлен в чат @SonaShop_bot."
+            : "Код отправлен на указанную почту.";
           render(context);
         } catch (error) {
           loginError = "Сервер почты недоступен. Проверьте, что локальный сервер запущен и SMTP настроен.";
@@ -572,6 +534,7 @@
           return;
         }
         account = result.account || null;
+        await window.SonaStore.refresh().catch(() => null);
       } catch (error) {
         loginError = "Неверный код из письма.";
         loginBusy = false;
@@ -628,9 +591,8 @@
       visual,
       el("p", "sona-profile-kicker", "Вход в аккаунт"),
       el("h1", "", "Войти в SONA"),
-      el("p", "sona-profile-muted", "Введите email. После подтверждения кода из письма откроется личный кабинет."),
+      el("p", "sona-profile-muted", "Введите email и выберите, куда отправить одноразовый код входа."),
       form,
-      temporaryLogin,
       adminLogin
     );
     if (loginError) {
@@ -1050,7 +1012,9 @@
     const notifications = el("section", "sona-profile-notifications");
     const notificationSettings = {
       site: data.profile?.notifications?.site !== false,
-      email: data.profile?.notifications?.email !== false
+      email: data.profile?.notifications?.email !== false,
+      telegram: data.profile?.notifications?.telegram === true,
+      sound: data.profile?.notifications?.sound !== false
     };
     const makeInput = (label, name, value, type = "text") => {
       const field = el("label");
@@ -1072,7 +1036,34 @@
     };
     const siteToggle = makeToggle("Уведомления на сайте", "notifySite", notificationSettings.site);
     const emailToggle = makeToggle("Уведомления на почту", "notifyEmail", notificationSettings.email);
+    const telegramToggle = makeToggle("Уведомления в Telegram", "notifyTelegram", notificationSettings.telegram);
+    const soundToggle = makeToggle("Звук уведомлений", "notifySound", notificationSettings.sound);
     const notificationStatus = el("p", "sona-profile-notification-status", "Настройте удобные способы получения уведомлений.");
+    const telegramStatus = el("p", "sona-profile-notification-status", "Проверяем подключение @SonaShop_bot...");
+    const telegramActions = el("div", "sona-profile-telegram-actions");
+    const connectTelegram = button("sona-profile-soft", "Подключить @SonaShop_bot", async () => {
+      const result = await context.connectTelegram?.();
+      telegramStatus.textContent = result?.message || "Откройте Telegram и нажмите Start.";
+    }, "bell");
+    const unlinkTelegram = button("sona-profile-soft sona-profile-danger", "Отключить Telegram", async () => {
+      const result = await context.unlinkTelegram?.();
+      telegramToggle.querySelector("input").checked = false;
+      telegramStatus.textContent = result?.message || "Telegram отключён.";
+      connectTelegram.hidden = false;
+      unlinkTelegram.hidden = true;
+    }, "bell");
+    unlinkTelegram.hidden = true;
+    telegramActions.append(connectTelegram, unlinkTelegram);
+    context.getTelegramStatus?.().then((status) => {
+      const connected = Boolean(status?.connected);
+      telegramStatus.textContent = connected
+        ? `Telegram подключён${status.username ? `: ${status.username}` : "."}`
+        : (status?.configured ? "Telegram пока не подключён." : "Бот Telegram ещё не настроен на сервере.");
+      connectTelegram.hidden = connected;
+      unlinkTelegram.hidden = !connected;
+    }).catch(() => {
+      telegramStatus.textContent = "Не удалось проверить подключение Telegram.";
+    });
 
     fields.append(
       makeInput("Имя", "name", data.profile?.name),
@@ -1084,17 +1075,24 @@
       el("h3", "", "Уведомления"),
       siteToggle,
       emailToggle,
+      telegramToggle,
+      soundToggle,
+      telegramActions,
+      telegramStatus,
       button("sona-profile-soft", "Отправить тестовое уведомление", async () => {
         const result = await context.sendTestNotification?.({
           site: siteToggle.querySelector("input").checked,
           email: emailToggle.querySelector("input").checked,
-          emailAddress: form.elements.email.value
+          telegram: telegramToggle.querySelector("input").checked,
+          sound: soundToggle.querySelector("input").checked
         });
         notificationStatus.textContent = result?.message || "Тестовое уведомление отправлено.";
       }, "bell"),
       button("sona-profile-soft sona-profile-danger", "Отключить все уведомления", () => {
         siteToggle.querySelector("input").checked = false;
         emailToggle.querySelector("input").checked = false;
+        telegramToggle.querySelector("input").checked = false;
+        soundToggle.querySelector("input").checked = false;
         notificationStatus.textContent = "Все уведомления отключены. Нажмите «Сохранить изменения».";
       }, "bell"),
       notificationStatus
@@ -1116,7 +1114,9 @@
           address: form.elements.address.value,
           notifications: {
             site: form.elements.notifySite.checked,
-            email: form.elements.notifyEmail.checked
+            email: form.elements.notifyEmail.checked,
+            telegram: form.elements.notifyTelegram.checked,
+            sound: form.elements.notifySound.checked
           }
         });
         saveStatus.textContent = "Изменения сохранены.";

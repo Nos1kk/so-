@@ -87,7 +87,7 @@
       const down = el("button", "", "↓");
       const remove = el("button", "is-danger", "Удалить");
 
-      media.src = photo.src;
+      media.src = window.SonaSecurity?.safeMediaUrl(photo.src);
       if (isVideo) {
         media.controls = true;
         media.muted = true;

@@ -497,7 +497,7 @@
         eyebrow: security.sanitizeText(ad.eyebrow || "Реклама Soна", 50),
         badge: security.sanitizeText(ad.badge || "", 40),
         cta: security.sanitizeText(ad.cta || "Смотреть", 40),
-        link: security.sanitizeText(ad.link || "#catalog", 120),
+        link: security.safeNavigationUrl(ad.link || "#catalog", "#catalog"),
         active: ad.active !== false,
         uploaded: Boolean(ad.uploaded || (ad.visual && !ad.title))
       });
@@ -612,11 +612,7 @@
   }
 
   function safeImageSrc(value) {
-    const source = String(value || "").trim();
-    if (!source || /^(?:data:|blob:|https?:|\/)/i.test(source)) {
-      return source;
-    }
-    return new URL(encodeURI(source.replace(/^(?:\.{1,2}\/)+/, "")), document.baseURI).href;
+    return security.safeMediaUrl(value);
   }
 
   function isAttachedSofaPhoto(value) {
@@ -809,7 +805,7 @@
     }
     button.type = "button";
     button.addEventListener("click", () => {
-      const target = ad.link || "#catalog";
+      const target = security.safeNavigationUrl(ad.link || "#catalog", "#catalog");
       if (target.startsWith("#")) {
         document.querySelector(target)?.scrollIntoView({ block: "start", behavior: pageScrollBehavior() });
       } else {
@@ -819,7 +815,7 @@
 
     if (ad.visual) {
       const image = document.createElement("img");
-      image.src = ad.visual;
+      image.src = security.safeMediaUrl(ad.visual);
       image.alt = "";
       visual.append(image);
     } else {
@@ -2579,6 +2575,9 @@
       openSupportChat,
       saveProfile: saveInlineProfile,
       sendTestNotification,
+      getTelegramStatus,
+      connectTelegram,
+      unlinkTelegram,
       onAuthChange: () => {
         render();
         showToast("Вход выполнен");
@@ -2591,6 +2590,7 @@
           data.accountSessions = (data.accountSessions || []).filter((session) => session.id !== sessionId);
         });
         if (sessionId === currentId) {
+          fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
           window.SonaProfile?.clearLocalAuth?.();
           store.clearProfile();
           window.SonaProfile?.setSection("home");
@@ -2603,6 +2603,7 @@
       },
       logout: () => {
         const currentId = window.SonaProfile?.currentDeviceId?.();
+        fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
         window.SonaProfile?.clearLocalAuth?.();
         store.update((data) => {
           data.accountSessions = (data.accountSessions || []).filter((session) => session.id !== currentId);
@@ -3204,7 +3205,9 @@
         address: security.sanitizeText(payload.address || "", 120),
         notifications: {
           site: payload.notifications?.site !== false,
-          email: payload.notifications?.email !== false
+          email: payload.notifications?.email !== false,
+          telegram: payload.notifications?.telegram === true,
+          sound: payload.notifications?.sound !== false
         },
         registeredAt: data.profile?.registeredAt || new Date().toISOString()
       };
@@ -3223,25 +3226,81 @@
     showToast("Изменения профиля сохранены");
   }
 
-  async function sendTestNotification({ site, email, emailAddress }) {
+  function playNotificationSound() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return false;
+    const context = new AudioContextClass();
+    const gain = context.createGain();
+    const oscillator = context.createOscillator();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(660, context.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(880, context.currentTime + 0.16);
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.16, context.currentTime + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.32);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.34);
+    oscillator.addEventListener("ended", () => context.close().catch(() => null), { once: true });
+    return true;
+  }
+
+  async function getTelegramStatus() {
+    const response = await fetch("/api/telegram/status", { headers: { Accept: "application/json" }, cache: "no-store" });
+    return response.json();
+  }
+
+  async function connectTelegram() {
+    const popup = window.open("about:blank", "_blank");
+    if (popup) popup.opener = null;
+    const response = await fetch("/api/telegram/link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    const result = await response.json();
+    if (!response.ok || !result.url) {
+      popup?.close();
+      return { message: "Не удалось создать ссылку подключения Telegram." };
+    }
+    if (popup) popup.location.href = result.url;
+    else window.location.href = result.url;
+    return { message: "В Telegram нажмите Start. Ссылка действует 15 минут." };
+  }
+
+  async function unlinkTelegram() {
+    const response = await fetch("/api/telegram/unlink", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    return response.ok ? { message: "Telegram отключён." } : { message: "Не удалось отключить Telegram." };
+  }
+
+  async function sendTestNotification({ site, email, telegram, sound }) {
     const channels = [];
     if (site) {
       showToast("Тестовое уведомление SONA");
       channels.push("на сайте");
     }
-    if (email) {
-      const target = security.sanitizeEmail(emailAddress || "");
-      if (!target) return { message: "Укажите email для отправки уведомления." };
+    if (sound) {
+      playNotificationSound();
+      channels.push("со звуком");
+    }
+    if (email || telegram) {
       try {
         const response = await fetch("/api/notifications/test", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: target })
+          body: JSON.stringify({ email, telegram })
         });
-        if (!response.ok) return { message: "Уведомление на сайте отправлено, но почта сейчас недоступна." };
-        channels.push("на почту");
+        const result = await response.json();
+        if (result.sent?.includes("email")) channels.push("на почту");
+        if (result.sent?.includes("telegram")) channels.push("в Telegram");
+        if (!response.ok && !channels.length) return { message: "Не удалось отправить тестовое уведомление." };
       } catch (error) {
-        return { message: "Уведомление на сайте отправлено, но почта сейчас недоступна." };
+        return { message: "Сайт и звук работают, но внешние каналы сейчас недоступны." };
       }
     }
     return { message: channels.length ? `Уведомление отправлено ${channels.join(" и ")}.` : "Сначала включите хотя бы один способ уведомлений." };

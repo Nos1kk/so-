@@ -251,7 +251,7 @@
       const photo = photos.find((item) => item.main) || photos[0];
       if (photo?.src) {
         const image = document.createElement("img");
-        image.src = photo.src;
+        image.src = window.SonaSecurity?.safeMediaUrl(photo.src);
         image.alt = "";
         side.append(image);
       }

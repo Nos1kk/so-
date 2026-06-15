@@ -89,6 +89,7 @@ let adminSearchTimer = 0;
   }
 
   function logoutAdmin(onChange) {
+    fetch(authApiUrl("/api/auth/logout"), { method: "POST" }).catch(() => null);
     window.SonaStore.update((state) => {
       state.admin = { ...(state.admin || {}), isAuthenticated: false, email: "" };
       state.profile = { ...(state.profile || {}), role: "user", isActive: false };
@@ -231,6 +232,7 @@ let adminSearchTimer = 0;
         return;
       }
 
+      await window.SonaStore.refresh().catch(() => null);
       window.SonaStore.update((data) => {
         data.admin = { ...(data.admin || {}), isAuthenticated: true, email: loginEmail };
         data.profile = {
@@ -395,7 +397,7 @@ let adminSearchTimer = 0;
         const product = context.byId?.(item.id);
         const row = el("div", "sona-admin-order-item");
         const image = document.createElement("img");
-        image.src = product?.image || product?.gallery?.find((photo) => photo.main)?.src || "assets/sona-logo.png";
+        image.src = window.SonaSecurity?.safeMediaUrl(product?.image || product?.gallery?.find((photo) => photo.main)?.src, "assets/sona-logo.png") || "assets/sona-logo.png";
         image.alt = "";
         row.append(image, el("span", "", `${product?.name || item.id} × ${item.quantity || 1}`));
         items.append(row);
@@ -633,7 +635,7 @@ let adminSearchTimer = 0;
       const image = document.createElement("img");
       const upload = el("input");
       const label = el("label", "sona-admin-ad-upload", ad ? "Заменить фото" : "Загрузить фото");
-      image.src = ad?.visual || `assets/ads/sona-${index === 0 ? "living-01" : index === 1 ? "living-02" : "bedroom-03"}.png`;
+      image.src = window.SonaSecurity?.safeMediaUrl(ad?.visual, `assets/ads/sona-${index === 0 ? "living-01" : index === 1 ? "living-02" : "bedroom-03"}.png`);
       image.alt = `Рекламный слайд ${index + 1}`;
       upload.type = "file";
       upload.accept = "image/png,image/jpeg,image/webp";

@@ -120,10 +120,12 @@
 
       const galleryImage = (product.gallery || []).find((item) => item.main && !String(item.type || "").startsWith("video/"))
         || (product.gallery || []).find((item) => !String(item.type || "").startsWith("video/"));
-      image.src = product.image || galleryImage?.src || "assets/sona-logo.png";
+      image.src = window.SonaSecurity?.safeMediaUrl(product.image || galleryImage?.src, "assets/sona-logo.png") || "assets/sona-logo.png";
       image.alt = product.name || "";
       image.addEventListener("error", () => {
-        image.src = galleryImage?.src && image.src !== galleryImage.src ? galleryImage.src : "assets/sona-logo.png";
+        image.src = galleryImage?.src && image.src !== galleryImage.src
+          ? window.SonaSecurity?.safeMediaUrl(galleryImage.src, "assets/sona-logo.png")
+          : "assets/sona-logo.png";
       }, { once: true });
       imageCell.append(image);
       priceInput.type = "number";

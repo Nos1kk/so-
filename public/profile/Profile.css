@@ -1776,6 +1776,32 @@ body.profile-view .sona-profile-content {
   margin: 0;
 }
 
+.sona-profile-telegram-actions,
+.sona-login-channels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sona-login-channels button {
+  flex: 1 1 130px;
+  min-height: 42px;
+  border: 1px solid #b9cbe0;
+  border-radius: 12px;
+  background: #fff;
+  color: #60738a;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.sona-login-channels button.is-active {
+  border-color: #102844;
+  background: #102844;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(16, 40, 68, 0.18);
+}
+
 .sona-profile-notification-toggle {
   min-height: 46px;
   display: flex;
