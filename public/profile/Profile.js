@@ -467,6 +467,7 @@
     const submit = button("sona-profile-primary", loginBusy ? "Подождите..." : (loginCodeSent ? "Войти" : (loginChannel === "telegram" ? "Открыть бота" : "Получить код")), () => {});
     const channelPicker = el("div", "sona-login-channels");
     const emailChannel = button(loginChannel === "email" ? "is-active" : "", "На почту", () => {
+      loginEmail = String(emailInput.value || loginEmail || "").trim();
       loginChannel = "email";
       loginCodeSent = false;
       loginTelegramId = "";
@@ -474,6 +475,7 @@
       render(context);
     });
     const telegramChannel = button(loginChannel === "telegram" ? "is-active" : "", "В Telegram", () => {
+      loginEmail = String(emailInput.value || loginEmail || "").trim();
       loginChannel = "telegram";
       loginCodeSent = false;
       loginTelegramId = "";
@@ -485,6 +487,9 @@
     emailInput.placeholder = "name@example.com";
     emailInput.value = loginEmail;
     emailInput.autocomplete = "email";
+    emailInput.addEventListener("input", () => {
+      loginEmail = emailInput.value;
+    });
 
     codeInput.inputMode = "numeric";
     codeInput.placeholder = "000000";
@@ -508,6 +513,9 @@
       const isAdminShortcut = /^0{8}$/.test(rawIdentifier);
       const emailCheck = window.SonaSecurity?.validateAuthEmail(rawIdentifier) || { ok: false, email: "", message: "Введите email" };
       const email = isAdminShortcut ? rawIdentifier : emailCheck.email;
+      if (loginChannel === "email") {
+        loginEmail = rawIdentifier;
+      }
 
       if (!loginCodeSent) {
         if (loginChannel === "telegram") {
@@ -547,6 +555,7 @@
         }
 
         loginBusy = true;
+        loginEmail = rawIdentifier;
         render(context);
         try {
           const result = await requestLoginCode(email, loginChannel);

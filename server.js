@@ -5,6 +5,7 @@ const zlib = require("zlib");
 const crypto = require("crypto");
 const net = require("net");
 const tls = require("tls");
+const { spawn } = require("child_process");
 
 loadEnvFile(path.join(__dirname, ".env"));
 
@@ -24,8 +25,6 @@ const authBlockedClients = new Map();
 const lastCodeHashes = new Map();
 const authSessions = new Map();
 const telegramLinkTokens = new Map();
-const TELEGRAM_BOT_TOKEN = String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
-const TELEGRAM_BOT_USERNAME = String(process.env.TELEGRAM_BOT_USERNAME || "SonaShop_bot").replace(/^@/, "").trim();
 const CODE_TTL_MS = 10 * 60 * 1000;
 const BLOCK_TTL_MS = 24 * 60 * 60 * 1000;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -66,7 +65,7 @@ const MIME_TYPES = {
   ".ico": "image/x-icon"
 };
 
-function loadEnvFile(filePath) {
+function loadEnvFile(filePath, options = {}) {
   if (!fs.existsSync(filePath)) return;
 
   const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
@@ -79,7 +78,7 @@ function loadEnvFile(filePath) {
 
     const key = trimmed.slice(0, separator).trim();
     let value = trimmed.slice(separator + 1).trim();
-    if (!key || process.env[key] !== undefined) return;
+    if (!key || (!options.override && process.env[key] !== undefined)) return;
 
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
@@ -90,6 +89,20 @@ function loadEnvFile(filePath) {
 
     process.env[key] = value;
   });
+}
+
+function refreshRuntimeEnv() {
+  loadEnvFile(path.join(__dirname, ".env"), { override: true });
+}
+
+function telegramBotToken() {
+  refreshRuntimeEnv();
+  return String(process.env.TELEGRAM_BOT_TOKEN || "").trim();
+}
+
+function telegramBotUsername() {
+  refreshRuntimeEnv();
+  return String(process.env.TELEGRAM_BOT_USERNAME || "SonaShop_bot").replace(/^@/, "").trim();
 }
 
 function setSecurityHeaders(res) {
@@ -847,6 +860,7 @@ function connectSmtp({ host, port, secure }) {
 }
 
 async function sendSmtpMail({ to, subject, text }) {
+  refreshRuntimeEnv();
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 465);
   const user = process.env.SMTP_USER;
@@ -902,16 +916,80 @@ function sendEmailCode(email, code, callback) {
 }
 
 async function telegramApi(method, payload = {}) {
-  if (!TELEGRAM_BOT_TOKEN) throw new Error("Telegram bot is not configured");
-  const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(method === "getUpdates" ? 35000 : 12000)
-  });
-  const result = await response.json();
-  if (!response.ok || !result.ok) throw new Error(`Telegram API ${method} failed`);
+  const token = telegramBotToken();
+  if (!token) throw new Error("Telegram bot is not configured");
+  const body = JSON.stringify(payload);
+  let result;
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      signal: AbortSignal.timeout(method === "getUpdates" ? 35000 : 12000)
+    });
+    result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.description || `Telegram API ${method} failed`);
+  } catch (error) {
+    if (process.platform !== "win32") throw error;
+    result = await telegramApiViaPowerShell(method, token, body);
+  }
+  if (!result.ok) throw new Error(result.description || `Telegram API ${method} failed`);
   return result.result;
+}
+
+function telegramApiViaPowerShell(method, token, body) {
+  return new Promise((resolve, reject) => {
+    const script = [
+      "$body = [Console]::In.ReadToEnd()",
+      "$uri = \"https://api.telegram.org/bot$env:SONA_TELEGRAM_TOKEN/$env:SONA_TELEGRAM_METHOD\"",
+      "$result = Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body $body -TimeoutSec 45",
+      "$result | ConvertTo-Json -Depth 20 -Compress"
+    ].join("; ");
+    const child = spawn("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], {
+      windowsHide: true,
+      env: {
+        ...process.env,
+        SONA_TELEGRAM_TOKEN: token,
+        SONA_TELEGRAM_METHOD: method
+      }
+    });
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error("Telegram PowerShell fallback timeout"));
+    }, method === "getUpdates" ? 55000 : 20000);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.once("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.once("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        reject(new Error(stderr.trim() || `Telegram PowerShell fallback exited with ${code}`));
+        return;
+      }
+      try {
+        resolve(JSON.parse(stdout));
+      } catch (error) {
+        reject(error);
+      }
+    });
+    child.stdin.end(body);
+  });
+}
+
+async function checkTelegramApi() {
+  if (!telegramBotToken()) return { ok: false, configured: false };
+  const result = await telegramApi("getMe", {});
+  return { ok: true, configured: true, username: result?.username || "" };
 }
 
 function sendTelegramMessage(chatId, text) {
@@ -1005,7 +1083,7 @@ async function processTelegramUpdate(update) {
 
 let telegramPollingStarted = false;
 function startTelegramPolling() {
-  if (!TELEGRAM_BOT_TOKEN || telegramPollingStarted) return;
+  if (!telegramBotToken() || telegramPollingStarted) return;
   telegramPollingStarted = true;
   let offset = 0;
   const poll = async () => {
@@ -1033,10 +1111,12 @@ function startTelegramPolling() {
 function handleTelegramLink(req, res) {
   const account = requireAuth(req, res);
   if (!account) return;
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_BOT_USERNAME) {
+  const botUsername = telegramBotUsername();
+  if (!telegramBotToken() || !botUsername) {
     sendJson(res, 503, { ok: false, error: "Telegram bot is not configured" });
     return;
   }
+  startTelegramPolling();
   const token = crypto.randomBytes(24).toString("base64url");
   telegramLinkTokens.set(token, {
     email: account.email,
@@ -1044,7 +1124,7 @@ function handleTelegramLink(req, res) {
   });
   sendJson(res, 200, {
     ok: true,
-    url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${token}`,
+    url: `https://t.me/${botUsername}?start=${token}`,
     expiresIn: Math.floor(TELEGRAM_LINK_TTL_MS / 1000)
   });
 }
@@ -1055,7 +1135,7 @@ function handleTelegramStatus(req, res) {
   accountByEmail(account.email)
     .then((stored) => sendJson(res, 200, {
       ok: true,
-      configured: Boolean(TELEGRAM_BOT_TOKEN),
+      configured: Boolean(telegramBotToken()),
       connected: Boolean(stored?.telegramChatId),
       username: stored?.telegramUsername ? `@${stored.telegramUsername}` : ""
     }))
@@ -1075,7 +1155,8 @@ function handleTelegramUnlink(req, res) {
 }
 
 function handleTelegramAuthRequest(req, res) {
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_BOT_USERNAME) {
+  const botUsername = telegramBotUsername();
+  if (!telegramBotToken() || !botUsername) {
     sendJson(res, 503, {
       ok: false,
       error: "Telegram bot is not configured",
@@ -1083,6 +1164,7 @@ function handleTelegramAuthRequest(req, res) {
     });
     return;
   }
+  startTelegramPolling();
   if (!checkRateLimit(`telegram-auth-ip:${clientIp(req)}`, 20, 10 * 60 * 1000)) {
     securityEvent("telegram_auth_request_rate_limited", req);
     sendJson(res, 429, { ok: false, error: "Too many authentication requests" });
@@ -1096,7 +1178,7 @@ function handleTelegramAuthRequest(req, res) {
   sendJson(res, 200, {
     ok: true,
     loginId,
-    url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${loginId}`,
+    url: `https://t.me/${botUsername}?start=${loginId}`,
     expiresIn: Math.floor(CODE_TTL_MS / 1000)
   });
 }
