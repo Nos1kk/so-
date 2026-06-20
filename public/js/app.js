@@ -678,6 +678,10 @@
     return decodeURI(String(value || "")).includes("assets/фотографии диванов/");
   }
 
+  function isSofaLayoutPhoto(value) {
+    return decodeURI(String(value || "")).includes("assets/sofa-layouts/");
+  }
+
   function isSofaProduct(product) {
     return ["прямой", "угловой", "модульный", "диван-кровать"].includes(product.category)
       || displayText(`${product.name || ""} ${product.category || ""}`).toLowerCase().includes("диван");
@@ -1783,6 +1787,9 @@
         if (isAttachedSofaPhoto(item.src)) {
           holder.classList.add("is-attached-sofa-photo");
         }
+        if (isSofaLayoutPhoto(item.src)) {
+          holder.classList.add("is-sofa-layout-photo");
+        }
         holder.append(image);
         stage.replaceChildren(holder);
       } else {
@@ -1791,6 +1798,8 @@
       thumbList.querySelectorAll(".detail-thumb").forEach((button, buttonIndex) => {
         button.classList.toggle("is-active", buttonIndex === index);
       });
+      const activeThumb = thumbList.querySelectorAll(".detail-thumb")[index];
+      activeThumb?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest", inline: "center" });
     }
 
     fallbackGallery.forEach((item, index) => {
@@ -1808,6 +1817,9 @@
         }
         if (isAttachedSofaPhoto(item.src)) {
           thumb.classList.add("is-attached-sofa-photo");
+        }
+        if (isSofaLayoutPhoto(item.src)) {
+          thumb.classList.add("is-sofa-layout-photo");
         }
         thumb.append(thumbImage);
       } else {
