@@ -472,6 +472,11 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(normalizeEmail(value));
 }
 
+function isBlockedEmailProvider(value) {
+  const domain = normalizeEmail(value).split("@").pop();
+  return ["gmail.com", "googlemail.com"].includes(domain);
+}
+
 function hashAuthCode(email, code) {
   return crypto
     .createHmac("sha256", AUTH_SECRET)
@@ -1053,16 +1058,8 @@ async function processTelegramUpdate(update) {
       await sendTelegramMessage(message.chat.id, "Вход устарел. Нажмите Telegram на сайте ещё раз.");
       return;
     }
-    const authCode = createAuthCode(`telegram:${token}`);
-    telegramLoginCodes.set(token, {
-      ...login,
-      hash: authCode.hash,
-      attempts: 0,
-      chatId: String(message.chat.id),
-      username: String(message.from?.username || "").slice(0, 80),
-      expiresAt: Date.now() + CODE_TTL_MS
-    });
-    await sendTelegramMessage(message.chat.id, `Код входа в SONA: ${authCode.code}\n\nВведите его на сайте. Код действует 10 минут.`);
+    telegramLoginCodes.delete(token);
+    await sendTelegramMessage(message.chat.id, "Вы открыли бот SONA. Здесь будут уведомления, помощь и коды, если они понадобятся.");
     return;
   }
 
@@ -1281,6 +1278,14 @@ function handleAuthRequest(req, res) {
       sendJson(res, 400, { ok: false, error: "Invalid email" });
       return;
     }
+    if (!isAdminShortcut && isBlockedEmailProvider(email)) {
+      sendJson(res, 400, {
+        ok: false,
+        error: "Email provider is blocked",
+        message: "Gmail-почта для входа недоступна. Используйте другую почту."
+      });
+      return;
+    }
 
     if (blockInfo(req, codeKey)) {
       sendJson(res, 403, {
@@ -1344,6 +1349,14 @@ function handleAuthVerify(req, res) {
 
     if (!isValidEmail(email) || !/^\d{6}$/.test(code)) {
       sendJson(res, 400, { ok: false, error: "Invalid auth payload" });
+      return;
+    }
+    if (!isAdminShortcut && isBlockedEmailProvider(email)) {
+      sendJson(res, 400, {
+        ok: false,
+        error: "Email provider is blocked",
+        message: "Gmail-почта для входа недоступна. Используйте другую почту."
+      });
       return;
     }
 

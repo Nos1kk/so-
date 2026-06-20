@@ -466,21 +466,42 @@
     const codeInput = el("input");
     const submit = button("sona-profile-primary", loginBusy ? "Подождите..." : (loginCodeSent ? "Войти" : (loginChannel === "telegram" ? "Открыть бота" : "Получить код")), () => {});
     const channelPicker = el("div", "sona-login-channels");
+    let loginErrorNode = null;
+    const setLoginError = (message) => {
+      loginError = message || "";
+      if (loginErrorNode) {
+        loginErrorNode.textContent = loginError;
+        loginErrorNode.hidden = !loginError;
+      }
+    };
+    const setBusy = (busy) => {
+      loginBusy = Boolean(busy);
+      submit.disabled = loginBusy;
+      submit.textContent = loginBusy ? "Подождите..." : (loginCodeSent ? "Войти" : (loginChannel === "telegram" ? "Открыть бота" : "Получить код"));
+    };
+    const syncLoginMode = () => {
+      emailChannel.classList.toggle("is-active", loginChannel === "email");
+      telegramChannel.classList.toggle("is-active", loginChannel === "telegram");
+      phoneLabel.hidden = loginChannel === "telegram";
+      codeInput.hidden = loginChannel === "telegram" || !loginCodeSent;
+      codeLabel.hidden = loginChannel === "telegram" || !loginCodeSent;
+      submit.textContent = loginBusy ? "Подождите..." : (loginCodeSent ? "Войти" : (loginChannel === "telegram" ? "Открыть бота" : "Получить код"));
+    };
     const emailChannel = button(loginChannel === "email" ? "is-active" : "", "На почту", () => {
       loginEmail = String(emailInput.value || loginEmail || "").trim();
       loginChannel = "email";
       loginCodeSent = false;
       loginTelegramId = "";
-      loginError = "";
-      render(context);
+      setLoginError("");
+      syncLoginMode();
     });
     const telegramChannel = button(loginChannel === "telegram" ? "is-active" : "", "В Telegram", () => {
       loginEmail = String(emailInput.value || loginEmail || "").trim();
       loginChannel = "telegram";
       loginCodeSent = false;
       loginTelegramId = "";
-      loginError = "";
-      render(context);
+      setLoginError("");
+      syncLoginMode();
     });
 
     emailInput.type = "text";
@@ -505,6 +526,7 @@
     codeLabel.append(codeInput);
     channelPicker.append(emailChannel, telegramChannel);
     form.append(phoneLabel, channelPicker, codeLabel, submit);
+    syncLoginMode();
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (loginBusy) return;
@@ -519,64 +541,60 @@
 
       if (!loginCodeSent) {
         if (loginChannel === "telegram") {
-          loginBusy = true;
+          setBusy(true);
           const popup = window.open("about:blank", "_blank");
           if (popup) popup.opener = null;
-          render(context);
           try {
             const result = await requestTelegramLogin();
             if (!result.ok || !result.url || !result.loginId) {
               popup?.close();
-              loginError = result.message || "Не удалось открыть Telegram-бота.";
-              render(context);
+              setLoginError(result.message || "Не удалось открыть Telegram-бота.");
               return;
             }
             loginTelegramId = result.loginId;
-            loginCodeSent = true;
             if (popup) popup.location.href = result.url;
             else window.location.href = result.url;
-            loginError = "Нажмите Start в @SonaShop_bot, а потом введите код из чата.";
-            render(context);
+            setLoginError("Открыл @SonaShop_bot. Нажмите Start в Telegram.");
           } catch (error) {
             popup?.close();
-            loginError = "Telegram-вход сейчас недоступен. Проверьте настройки бота.";
-            render(context);
+            setLoginError("Telegram-вход сейчас недоступен. Проверьте настройки бота.");
           } finally {
-            loginBusy = false;
-            render(context);
+            setBusy(false);
           }
           return;
         }
 
         if (!isAdminShortcut && !emailCheck.ok) {
-          loginError = emailCheck.message;
-          render(context);
+          setLoginError(emailCheck.message);
+          syncLoginMode();
           return;
         }
 
-        loginBusy = true;
+        if (!isAdminShortcut && /@(gmail\.com|googlemail\.com)$/i.test(email)) {
+          setLoginError("Gmail-почта для входа недоступна. Используйте другую почту.");
+          syncLoginMode();
+          return;
+        }
+
+        setBusy(true);
         loginEmail = rawIdentifier;
-        render(context);
         try {
           const result = await requestLoginCode(email, loginChannel);
           if (!result.ok) {
-            loginError = result.message || "Не удалось отправить письмо. Проверьте email или повторите позже.";
-            render(context);
+            setLoginError(result.message || "Не удалось отправить письмо. Проверьте email или повторите позже.");
             return;
           }
 
           loginEmail = email;
           loginCodeSent = true;
-          loginError = isAdminShortcut
+          setLoginError(isAdminShortcut
             ? "Код админа отправлен на админскую почту."
-            : "Код отправлен на указанную почту.";
-          render(context);
+            : "Код отправлен на указанную почту.");
+          syncLoginMode();
         } catch (error) {
-          loginError = "Сервер почты недоступен. Проверьте, что локальный сервер запущен и SMTP настроен.";
-          render(context);
+          setLoginError("Сервер почты недоступен. Проверьте SMTP и повторите попытку.");
         } finally {
-          loginBusy = false;
-          render(context);
+          setBusy(false);
         }
         return;
       }
@@ -654,12 +672,12 @@
       visual,
       el("p", "sona-profile-kicker", "Вход в аккаунт"),
       el("h1", "", "Войти в SONA"),
-      el("p", "sona-profile-muted", "Войдите по почте или через Telegram-бота. Код должен совпасть с тем, который отправил сервер."),
+      el("p", "sona-profile-muted", "Войдите по почте или откройте Telegram-бота SONA. Gmail-почта для входа недоступна."),
       form
     );
-    if (loginError) {
-      card.append(el("p", "sona-login-error", loginError));
-    }
+    loginErrorNode = el("p", "sona-login-error", loginError);
+    loginErrorNode.hidden = !loginError;
+    card.append(loginErrorNode);
     root.append(card);
     return root;
   }
