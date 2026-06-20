@@ -19,7 +19,7 @@ const ACCOUNTS_DIR = path.join(DATA_DIR, "accounts");
 const ACCOUNTS_FILE = path.join(ACCOUNTS_DIR, "accounts.json");
 const SESSIONS_FILE = path.join(ACCOUNTS_DIR, "sessions.json");
 const ADMIN_EMAIL = normalizeEmail(process.env.SONA_ADMIN_EMAIL || "kcel046@gmail.com");
-const AUTH_SECRET = process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
+const AUTH_SECRET = resolveAuthSecret();
 const emailCodes = new Map();
 const telegramLoginCodes = new Map();
 const authRateLimits = new Map();
@@ -58,11 +58,7 @@ const securityCleanupTimer = setInterval(() => {
 }, 10 * 60 * 1000);
 securityCleanupTimer.unref();
 
-if (process.env.NODE_ENV === "production" && (
-  !(process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET)
-  || String(process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET).length < 32
-  || /^(?:change-me|sona-local-auth-secret|replace-with-)/i.test(process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET)
-)) {
+if (process.env.NODE_ENV === "production" && !isStrongAuthSecret(AUTH_SECRET)) {
   throw new Error("SONA_AUTH_SECRET must be set to a strong unique value in production");
 }
 if (process.env.NODE_ENV === "production" && process.env.SMTP_SECURE === "false") {
@@ -237,6 +233,41 @@ function parseCookies(req) {
 
 function sessionTokenHash(token) {
   return crypto.createHash("sha256").update(String(token || "")).digest("hex");
+}
+
+function isStrongAuthSecret(value) {
+  const secret = String(value || "").trim();
+  return secret.length >= 32 && !/^(?:change-me|sona-local-auth-secret|replace-with-)/i.test(secret);
+}
+
+function resolveAuthSecret() {
+  const configured = String(process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET || "").trim();
+  if (isStrongAuthSecret(configured)) return configured;
+
+  const secretFile = path.join(ACCOUNTS_DIR, "auth-secret");
+  try {
+    fs.mkdirSync(ACCOUNTS_DIR, { recursive: true });
+    if (fs.existsSync(secretFile)) {
+      const stored = fs.readFileSync(secretFile, "utf8").trim();
+      if (isStrongAuthSecret(stored)) return stored;
+    }
+
+    const generated = crypto.randomBytes(48).toString("base64url");
+    try {
+      fs.writeFileSync(secretFile, generated, { encoding: "utf8", mode: 0o600, flag: "wx" });
+      return generated;
+    } catch (writeError) {
+      if (writeError.code !== "EEXIST") throw writeError;
+      const stored = fs.readFileSync(secretFile, "utf8").trim();
+      if (isStrongAuthSecret(stored)) return stored;
+      throw writeError;
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(`Unable to initialize persistent authentication secret: ${error.message}`);
+    }
+    return crypto.randomBytes(48).toString("base64url");
+  }
 }
 
 function loadPersistentSessions() {

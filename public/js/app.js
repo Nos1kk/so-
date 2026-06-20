@@ -33,6 +33,29 @@
     "sona-mark-large": "assets/фотографии диванов/марк бф.png",
     "sona-mark-compact": "assets/фотографии диванов/марк маленький бф.png"
   };
+  const SOFA_LAYOUTS_DIR = "assets/sofa-layouts";
+  const SOFA_LAYOUTS_BY_ID = {
+    "sona-alaska-md": ["аляска мд.png", "аляска мд 1.png"],
+    "sona-alaska": ["аляска.png"],
+    "sona-andreas": ["андреас.png"],
+    "sona-boston": ["бостон.png", "бостон 2.png"],
+    "sona-valencia": ["валенсия.png", "валенсия 1.png", "валенсия 2.png"],
+    "sona-victoria": ["виктория.png"],
+    "sona-hudson": ["гудзон (3).png"],
+    "sona-dublin": ["дублин.png"],
+    "sona-infinity": ["инфинити.png"],
+    "sona-malta-k": ["мальта к.png", "мальта к 1.png"],
+    "sona-mark-compact": ["марк (3).png"],
+    "sona-mark-large": ["марк большой.png", "марк большой 1.png"],
+    "sona-milan": ["милан (4).png"],
+    "sona-naples-md": ["неаполь мд.png", "неаполь мд 1.png", "неаполь мд 2.png"],
+    "sona-naples-md-white": ["неаполь мд белый.png", "неаполь мд белый 1.png"],
+    "sona-numo": ["нумо.png", "нумо 1.png"],
+    "sona-paula": ["паула (3).png", "паула 1.png"],
+    "sona-rhine": ["рейн.png", "рейн 1.png", "рейн 2.png"],
+    "sona-seattle-m": ["сиэтл М.png", "сиэтл м 1.png"],
+    "sona-charlie": ["чарли.png"]
+  };
   const PERMANENT_SOFA_PRODUCTS = [
     { id: "sona-numo", name: "Нумо", category: "прямой", dimensions: "2200 × 1000 × 960", price: 0 },
     { id: "sona-paula", name: "Паула", category: "диван-кровать", dimensions: "2300 × 950 × 1000", sleepingPlace: "1950 × 1400", mechanism: "Книжка", oldPrice: 47500, price: 37900, discountPercent: 20, benefit: 9600 },
@@ -65,6 +88,13 @@
       || SOFA_IMAGE_BY_NAME[String(product.name || "").trim().toLowerCase()]
       || "";
     const image = attachedImage || product.image || "";
+    const layoutImages = (SOFA_LAYOUTS_BY_ID[product.id] || []).map((fileName, index) => ({
+      id: `layout-${index + 1}`,
+      src: `${SOFA_LAYOUTS_DIR}/${fileName}`,
+      alt: `${product.name}: вариант раскладки ${index + 1}`,
+      main: false
+    }));
+    const galleryMainImage = image || (layoutImages.length ? "assets/source/диван в категории-no-bg-preview (carve.photos).png" : "");
 
     return {
       brand: "SONA",
@@ -85,8 +115,11 @@
       ].filter(Boolean),
       ...product,
       image,
-      ...(attachedImage ? {
-        gallery: [{ id: "main", src: attachedImage, alt: product.name, main: true }]
+      ...(galleryMainImage ? {
+        gallery: [
+          { id: "main", src: galleryMainImage, alt: product.name, main: true },
+          ...layoutImages
+        ]
       } : {})
     };
   });

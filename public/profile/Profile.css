@@ -1149,6 +1149,45 @@ body.profile-view .sona-profile-content {
   gap: 10px;
 }
 
+.sona-login-links:has(> :only-child) {
+  justify-content: center;
+}
+
+.sona-login-telegram-alternative {
+  display: grid;
+  grid-template-columns: minmax(24px, 1fr) auto minmax(24px, 1fr);
+  align-items: center;
+  gap: 10px;
+  color: #7b8ba0;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.sona-login-telegram-alternative::before,
+.sona-login-telegram-alternative::after {
+  content: "";
+  height: 1px;
+  background: rgba(188, 204, 222, 0.86);
+}
+
+.sona-login-telegram-button {
+  grid-column: 1 / -1;
+  min-height: 50px;
+  border: 1px solid #b9cbe0;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #244d78;
+  font: inherit;
+  font-weight: 900;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.sona-login-telegram-button:is(:hover, :focus-visible) {
+  border-color: #244d78;
+  background: #f3f8fd;
+  transform: translateY(-1px);
+}
+
 .sona-login-text-button {
   padding: 3px 0;
   border: 0;

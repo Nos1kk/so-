@@ -38,7 +38,7 @@
   let loginError = "";
   let loginChannel = "email";
   let loginTelegramId = "";
-  let loginMode = "login";
+  let loginMode = "register";
   let loginStep = "credentials";
   let loginActionToken = "";
   const DEVICE_KEY = "sona.device.id";
@@ -477,7 +477,7 @@
 
     const titles = {
       login: ["Вход в аккаунт", "Войти в SONA", "Введите почту и пароль или войдите через Telegram-бота."],
-      register: ["Новый аккаунт", "Создать аккаунт", "Сначала подтвердите почту кодом, затем придумайте пароль."],
+      register: ["Новый аккаунт", "Создать аккаунт", "Подтвердите почту и придумайте пароль или продолжите через Telegram-бота."],
       reset: ["Восстановление", "Вернуть доступ", "Мы отправим одноразовый код на почту, привязанную к аккаунту."]
     };
 
@@ -563,7 +563,7 @@
       });
       loginCodeSent = false;
       loginBusy = false;
-      loginMode = "login";
+      loginMode = "register";
       loginStep = "credentials";
       loginEmail = "";
       loginActionToken = "";
@@ -597,6 +597,8 @@
         loginError = "Введите код, который отправил @SonaShop_bot.";
       } catch (error) {
         popup?.close();
+        loginChannel = "email";
+        loginStep = "credentials";
         loginError = "Telegram-вход сейчас недоступен. Проверьте настройки бота.";
       } finally {
         loginBusy = false;
@@ -617,23 +619,7 @@
     let passwordField = null;
     let passwordConfirmField = null;
 
-    if (loginMode === "login") {
-      const channels = el("div", "sona-login-channels");
-      const emailChannel = button(loginChannel === "email" ? "is-active" : "", "Почта и пароль", () => {
-        loginChannel = "email";
-        loginStep = "credentials";
-        loginCodeSent = false;
-        loginError = "";
-        render(context);
-      });
-      const telegramChannel = button(loginChannel === "telegram" ? "is-active" : "", "Telegram", () => {
-        beginTelegramLogin();
-      });
-      channels.append(emailChannel, telegramChannel);
-      form.append(channels);
-    }
-
-    if (loginChannel === "email" || loginMode !== "login") {
+    if (loginChannel === "email") {
       if (loginStep !== "password") {
         emailField = field("Email", "email", loginEmail, "email");
         emailField.input.disabled = loginStep === "code";
@@ -657,33 +643,46 @@
       form.append(passwordField.label, passwordConfirmField.label, el("p", "sona-login-password-hint", "От 10 символов, минимум одна буква и одна цифра."));
     }
 
-    const submitLabels = loginMode === "login"
-      ? (loginChannel === "telegram" ? (loginStep === "code" ? "Войти" : "Открыть бота") : "Войти")
-      : (loginStep === "credentials" ? "Получить код" : (loginStep === "code" ? "Подтвердить код" : (loginMode === "reset" ? "Сохранить новый пароль" : "Создать аккаунт")));
+    const submitLabels = loginChannel === "telegram"
+      ? (loginStep === "code" ? "Войти через Telegram" : "Открыть Telegram-бота")
+      : (loginMode === "login"
+        ? "Войти"
+        : (loginStep === "credentials" ? "Получить код" : (loginStep === "code" ? "Подтвердить код" : (loginMode === "reset" ? "Сохранить новый пароль" : "Создать аккаунт"))));
     const submit = button("sona-profile-primary", submitLabels, () => {});
     submit.type = "submit";
     submit.disabled = loginBusy;
     form.append(submit);
+
+    if (["login", "register"].includes(loginMode) && loginChannel === "email" && loginStep === "credentials") {
+      const telegramAlternative = el("div", "sona-login-telegram-alternative");
+      telegramAlternative.append(
+        el("span", "", "или"),
+        button("sona-login-telegram-button", loginMode === "register" ? "Создать аккаунт через Telegram" : "Войти через Telegram", beginTelegramLogin)
+      );
+      form.append(telegramAlternative);
+    }
 
     if (loginMode === "login" && loginChannel === "email") {
       modeLinks.append(
         button("sona-login-text-button", "Забыли пароль?", () => setMode("reset")),
         button("sona-login-text-button", "Создать аккаунт", () => setMode("register"))
       );
-    } else if (loginMode !== "login") {
+    } else if (loginMode === "register") {
+      modeLinks.append(button("sona-login-text-button", "Войти в аккаунт", () => setMode("login")));
+    } else {
       modeLinks.append(button("sona-login-text-button", "Вернуться ко входу", () => setMode("login")));
     }
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (loginBusy) return;
-      if (loginMode === "login" && loginChannel === "telegram" && loginStep !== "code") {
+      if (loginChannel === "telegram" && loginStep !== "code") {
         await beginTelegramLogin();
         return;
       }
 
       if (emailField && loginStep !== "code") loginEmail = String(emailField.input.value || "").trim();
-      if ((loginChannel === "email" || loginMode !== "login") && loginStep !== "password") {
+      if (loginChannel === "email" && loginStep !== "password") {
         const checked = validEmail(loginEmail);
         if (!checked.ok) {
           loginError = checked.message;
@@ -702,7 +701,7 @@
           await finishAuth(result.account);
           return;
         }
-        if (loginMode === "login" && loginChannel === "telegram") {
+        if (loginChannel === "telegram") {
           const code = window.SonaSecurity?.sanitizeAuthCode(codeField.input.value) || codeField.input.value.trim();
           result = await verifyTelegramCode(loginTelegramId, code);
           if (!result.ok) throw result;
