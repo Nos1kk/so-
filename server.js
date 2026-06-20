@@ -16,6 +16,7 @@ const DATA_DIR = process.env.SONA_DATA_DIR || path.join(__dirname, "data");
 const STORE_FILE = path.join(DATA_DIR, "store.json");
 const ACCOUNTS_DIR = path.join(DATA_DIR, "accounts");
 const ACCOUNTS_FILE = path.join(ACCOUNTS_DIR, "accounts.json");
+const SESSIONS_FILE = path.join(ACCOUNTS_DIR, "sessions.json");
 const ADMIN_EMAIL = normalizeEmail(process.env.SONA_ADMIN_EMAIL || "kcel046@gmail.com");
 const AUTH_SECRET = process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
 const emailCodes = new Map();
@@ -24,27 +25,42 @@ const authRateLimits = new Map();
 const authBlockedClients = new Map();
 const lastCodeHashes = new Map();
 const authSessions = new Map();
+const authActionTokens = new Map();
 const telegramLinkTokens = new Map();
 const CODE_TTL_MS = 10 * 60 * 1000;
 const BLOCK_TTL_MS = 24 * 60 * 60 * 1000;
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const SESSION_IDLE_TTL_MS = 5 * 24 * 60 * 60 * 1000;
+const SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
+const AUTH_ACTION_TTL_MS = 15 * 60 * 1000;
 const TELEGRAM_LINK_TTL_MS = 15 * 60 * 1000;
 const SESSION_COOKIE = "sona_session";
+const PASSWORD_SCRYPT = Object.freeze({ N: 16384, r: 8, p: 1, keylen: 64, maxmem: 64 * 1024 * 1024 });
+const DUMMY_PASSWORD_SALT = Buffer.alloc(16, 0x53);
+const DUMMY_PASSWORD_HASH = crypto.scryptSync("sona-invalid-password", DUMMY_PASSWORD_SALT, PASSWORD_SCRYPT.keylen, PASSWORD_SCRYPT);
+loadPersistentSessions();
 const securityCleanupTimer = setInterval(() => {
   const now = Date.now();
+  let sessionsChanged = false;
   for (const [key, value] of authRateLimits) if (value.resetAt <= now) authRateLimits.delete(key);
   for (const [key, value] of authBlockedClients) if (value.until <= now) authBlockedClients.delete(key);
-  for (const [key, value] of authSessions) if (value.expiresAt <= now) authSessions.delete(key);
+  for (const [key, value] of authSessions) {
+    if (value.expiresAt <= now) {
+      authSessions.delete(key);
+      sessionsChanged = true;
+    }
+  }
   for (const [key, value] of emailCodes) if (value.expiresAt <= now) emailCodes.delete(key);
   for (const [key, value] of telegramLoginCodes) if (value.expiresAt <= now) telegramLoginCodes.delete(key);
+  for (const [key, value] of authActionTokens) if (value.expiresAt <= now) authActionTokens.delete(key);
   for (const [key, value] of telegramLinkTokens) if (value.expiresAt <= now) telegramLinkTokens.delete(key);
+  if (sessionsChanged) persistSessions();
 }, 10 * 60 * 1000);
 securityCleanupTimer.unref();
 
 if (process.env.NODE_ENV === "production" && (
   !(process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET)
   || String(process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET).length < 32
-  || ["change-me", "sona-local-auth-secret"].includes(process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET)
+  || /^(?:change-me|sona-local-auth-secret|replace-with-)/i.test(process.env.SONA_AUTH_SECRET || process.env.SESSION_SECRET)
 )) {
   throw new Error("SONA_AUTH_SECRET must be set to a strong unique value in production");
 }
@@ -218,24 +234,52 @@ function parseCookies(req) {
   }, {});
 }
 
-function sessionFor(req) {
-  const token = parseCookies(req)[SESSION_COOKIE];
-  const session = token ? authSessions.get(token) : null;
-  if (!session) return null;
-  if (session.expiresAt <= Date.now()) {
-    authSessions.delete(token);
-    return null;
-  }
-  session.expiresAt = Date.now() + SESSION_TTL_MS;
-  return session;
+function sessionTokenHash(token) {
+  return crypto.createHash("sha256").update(String(token || "")).digest("hex");
 }
 
-function createSession(req, res, account) {
-  const token = crypto.randomBytes(32).toString("base64url");
-  authSessions.set(token, {
-    account: safeAccount(account),
-    expiresAt: Date.now() + SESSION_TTL_MS
-  });
+function loadPersistentSessions() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(SESSIONS_FILE, "utf8"));
+    const now = Date.now();
+    for (const record of Array.isArray(parsed.sessions) ? parsed.sessions : []) {
+      if (!/^[a-f0-9]{64}$/.test(String(record.tokenHash || ""))) continue;
+      if (!record.account?.id || !record.account?.email || Number(record.expiresAt) <= now) continue;
+      authSessions.set(record.tokenHash, {
+        account: safeAccount(record.account),
+        createdAt: Number(record.createdAt) || now,
+        lastSeenAt: Number(record.lastSeenAt) || now,
+        lastPersistedAt: Number(record.lastSeenAt) || now,
+        expiresAt: Number(record.expiresAt)
+      });
+    }
+  } catch (error) {
+    if (error.code !== "ENOENT") console.warn("Unable to load auth sessions:", error.message);
+  }
+}
+
+function persistSessions() {
+  try {
+    fs.mkdirSync(ACCOUNTS_DIR, { recursive: true });
+    const tempPath = `${SESSIONS_FILE}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
+    const sessions = Array.from(authSessions, ([tokenHash, session]) => ({
+      tokenHash,
+      account: safeAccount(session.account),
+      createdAt: session.createdAt,
+      lastSeenAt: session.lastSeenAt,
+      expiresAt: session.expiresAt
+    }));
+    fs.writeFileSync(tempPath, JSON.stringify({ updatedAt: new Date().toISOString(), sessions }, null, 2), {
+      encoding: "utf8",
+      mode: 0o600
+    });
+    fs.renameSync(tempPath, SESSIONS_FILE);
+  } catch (error) {
+    console.warn("Unable to persist auth sessions:", error.message);
+  }
+}
+
+function setSessionCookie(req, res, token) {
   const requestHost = String(req.headers.host || "").split(":")[0];
   const isLocalhost = ["127.0.0.1", "localhost"].includes(requestHost);
   const secure = !isLocalhost && (process.env.NODE_ENV === "production"
@@ -247,18 +291,67 @@ function createSession(req, res, account) {
     "HttpOnly",
     "SameSite=Strict",
     secure ? "Secure" : "",
-    `Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`
+    `Max-Age=${Math.floor(SESSION_IDLE_TTL_MS / 1000)}`
   ].filter(Boolean).join("; "));
+}
+
+function sessionFor(req, res) {
+  const token = parseCookies(req)[SESSION_COOKIE];
+  const tokenHash = token ? sessionTokenHash(token) : "";
+  const session = tokenHash ? authSessions.get(tokenHash) : null;
+  if (!session) return null;
+  if (session.expiresAt <= Date.now()) {
+    authSessions.delete(tokenHash);
+    persistSessions();
+    return null;
+  }
+  const now = Date.now();
+  session.lastSeenAt = now;
+  session.expiresAt = now + SESSION_IDLE_TTL_MS;
+  if (res && token) setSessionCookie(req, res, token);
+  if (now - session.lastPersistedAt >= SESSION_TOUCH_INTERVAL_MS) {
+    session.lastPersistedAt = now;
+    persistSessions();
+  }
+  return session;
+}
+
+function createSession(req, res, account) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  const now = Date.now();
+  authSessions.set(sessionTokenHash(token), {
+    account: safeAccount(account),
+    createdAt: now,
+    lastSeenAt: now,
+    lastPersistedAt: now,
+    expiresAt: now + SESSION_IDLE_TTL_MS
+  });
+  persistSessions();
+  setSessionCookie(req, res, token);
 }
 
 function clearSession(req, res) {
   const token = parseCookies(req)[SESSION_COOKIE];
-  if (token) authSessions.delete(token);
+  if (token) {
+    authSessions.delete(sessionTokenHash(token));
+    persistSessions();
+  }
   res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`);
 }
 
+function revokeSessionsForEmail(email) {
+  const normalizedEmail = normalizeEmail(email);
+  let changed = false;
+  for (const [tokenHash, session] of authSessions) {
+    if (normalizeEmail(session.account?.email) !== normalizedEmail) continue;
+    authSessions.delete(tokenHash);
+    changed = true;
+  }
+  if (changed) persistSessions();
+}
+
 function requireAdmin(req, res) {
-  const session = sessionFor(req);
+  const session = sessionFor(req, res);
   if (session?.account?.role === "admin" && session.account.status !== "blocked") return session.account;
   securityEvent("admin_access_denied", req);
   sendJson(res, 403, { ok: false, error: "Administrator authorization required" });
@@ -266,7 +359,7 @@ function requireAdmin(req, res) {
 }
 
 function requireAuth(req, res) {
-  const session = sessionFor(req);
+  const session = sessionFor(req, res);
   if (session?.account && session.account.status !== "blocked") return session.account;
   securityEvent("authenticated_access_denied", req);
   sendJson(res, 401, { ok: false, error: "Authorization required" });
@@ -510,6 +603,83 @@ function createAuthCode(email) {
   return { code, hash };
 }
 
+function passwordValidationError(password) {
+  if (typeof password !== "string" || password.length < 10 || password.length > 128) {
+    return "Password must contain 10 to 128 characters";
+  }
+  if (!/\p{L}/u.test(password) || !/\p{N}/u.test(password)) {
+    return "Password must contain at least one letter and one number";
+  }
+  if (/^[\s]+$/.test(password) || password !== password.trim()) {
+    return "Password cannot start or end with a space";
+  }
+  return "";
+}
+
+function hashPassword(password) {
+  return new Promise((resolve, reject) => {
+    const salt = crypto.randomBytes(16);
+    crypto.scrypt(password, salt, PASSWORD_SCRYPT.keylen, PASSWORD_SCRYPT, (error, derivedKey) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve([
+        "scrypt",
+        PASSWORD_SCRYPT.N,
+        PASSWORD_SCRYPT.r,
+        PASSWORD_SCRYPT.p,
+        salt.toString("base64url"),
+        derivedKey.toString("base64url")
+      ].join("$"));
+    });
+  });
+}
+
+function verifyPassword(password, encodedHash) {
+  return new Promise((resolve) => {
+    const parts = String(encodedHash || "").split("$");
+    const validRecord = parts.length === 6
+      && parts[0] === "scrypt"
+      && Number(parts[1]) === PASSWORD_SCRYPT.N
+      && Number(parts[2]) === PASSWORD_SCRYPT.r
+      && Number(parts[3]) === PASSWORD_SCRYPT.p;
+    let salt = DUMMY_PASSWORD_SALT;
+    let expected = DUMMY_PASSWORD_HASH;
+    if (validRecord) {
+      try {
+        salt = Buffer.from(parts[4], "base64url");
+        expected = Buffer.from(parts[5], "base64url");
+      } catch (error) {
+        salt = DUMMY_PASSWORD_SALT;
+        expected = DUMMY_PASSWORD_HASH;
+      }
+    }
+    crypto.scrypt(String(password || ""), salt, expected.length, PASSWORD_SCRYPT, (error, actual) => {
+      resolve(!error && validRecord && actual.length === expected.length && crypto.timingSafeEqual(actual, expected));
+    });
+  });
+}
+
+function issueAuthActionToken(email, purpose) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  authActionTokens.set(sessionTokenHash(token), {
+    email: normalizeEmail(email),
+    purpose,
+    expiresAt: Date.now() + AUTH_ACTION_TTL_MS
+  });
+  return token;
+}
+
+function consumeAuthActionToken(token, purpose) {
+  if (!/^[a-zA-Z0-9_-]{40,80}$/.test(String(token || ""))) return null;
+  const tokenHash = sessionTokenHash(token);
+  const record = authActionTokens.get(tokenHash);
+  authActionTokens.delete(tokenHash);
+  if (!record || record.expiresAt <= Date.now() || record.purpose !== purpose) return null;
+  return record;
+}
+
 function safeAccount(account) {
   if (!account) return null;
   return {
@@ -601,6 +771,41 @@ function upsertAccount(email, callback) {
     writeAccounts(state, (writeError) => {
       callback(writeError, account, state, false);
     });
+  });
+}
+
+function setAccountPassword(email, encodedHash, callback) {
+  const normalizedEmail = normalizeEmail(email);
+  readAccounts((readError, state) => {
+    if (readError) {
+      callback(readError);
+      return;
+    }
+    const account = state.accounts.find((item) => item.email === normalizedEmail);
+    if (!account) {
+      callback(null, null);
+      return;
+    }
+    account.passwordHash = encodedHash;
+    account.passwordChangedAt = new Date().toISOString();
+    account.lastLoginAt = account.passwordChangedAt;
+    writeAccounts(state, (writeError) => callback(writeError, account));
+  });
+}
+
+function updateAccountLogin(account, callback) {
+  readAccounts((readError, state) => {
+    if (readError) {
+      callback(readError);
+      return;
+    }
+    const stored = state.accounts.find((item) => item.id === account.id);
+    if (!stored) {
+      callback(null, null);
+      return;
+    }
+    stored.lastLoginAt = new Date().toISOString();
+    writeAccounts(state, (writeError) => callback(writeError, stored));
   });
 }
 
@@ -784,7 +989,7 @@ function handleStoreGet(req, res) {
       return;
     }
 
-    const session = sessionFor(req);
+    const session = sessionFor(req, res);
     if (session?.account?.role !== "admin") {
       sendJson(res, 200, { ok: true, state: publicStoreState(state || {}, session?.account || null) });
       return;
@@ -919,12 +1124,14 @@ async function sendSmtpMail({ to, subject, text }) {
   }
 }
 
-function sendEmailCode(email, code, callback) {
-  const subject = "Код входа SONA";
+function sendEmailCode(email, code, callback, purpose = "register") {
+  const isReset = purpose === "reset";
+  const subject = isReset ? "Восстановление доступа SONA" : "Подтверждение почты SONA";
   const text = [
-    `Ваш код входа в SONA: ${code}`,
+    `${isReset ? "Ваш код восстановления доступа" : "Ваш код подтверждения почты"} SONA: ${code}`,
     "",
-    "Код действует 10 минут. Если вы не запрашивали вход, просто проигнорируйте это письмо."
+    "Код действует 10 минут и подходит только для одной попытки. Никому его не сообщайте.",
+    "Если вы не запрашивали этот код, просто проигнорируйте письмо."
   ].join("\n");
 
   sendSmtpMail({ to: email, subject, text })
@@ -1335,7 +1542,8 @@ function handleAuthRequest(req, res) {
       hash: authCode.hash,
       attempts: 0,
       expiresAt: Date.now() + CODE_TTL_MS,
-      email
+      email,
+      purpose: "register"
     });
 
     sendEmailCode(email, authCode.code, (mailError) => {
@@ -1390,7 +1598,7 @@ function handleAuthVerify(req, res) {
       return;
     }
 
-    if (!record || record.expiresAt < Date.now()) {
+    if (!record || record.expiresAt < Date.now() || record.purpose !== "register") {
       emailCodes.delete(codeKey);
       sendJson(res, 400, { ok: false, error: "Code expired" });
       return;
@@ -1433,9 +1641,227 @@ function handleAuthVerify(req, res) {
         return;
       }
 
-      createSession(req, res, account);
-      sendJson(res, 200, { ok: true, account: safeAccount(account) });
+      if (account.passwordHash) {
+        sendJson(res, 409, {
+          ok: false,
+          error: "Account already exists",
+          message: "Аккаунт уже создан. Войдите с помощью почты и пароля."
+        });
+        return;
+      }
+
+      const setupToken = issueAuthActionToken(account.email, "setup-password");
+      sendJson(res, 200, {
+        ok: true,
+        requiresPasswordSetup: true,
+        setupToken,
+        account: safeAccount(account)
+      });
     });
+  });
+}
+
+function handlePasswordSetup(req, res) {
+  readJsonBody(req, async (error, body) => {
+    if (error) {
+      sendJson(res, 400, { ok: false, error: "Invalid JSON" });
+      return;
+    }
+    const token = String(body.token || "");
+    const password = String(body.password || "");
+    const passwordConfirm = String(body.passwordConfirm || "");
+    const passwordError = passwordValidationError(password);
+    if (password !== passwordConfirm) {
+      sendJson(res, 400, { ok: false, error: "Passwords do not match" });
+      return;
+    }
+    if (passwordError) {
+      sendJson(res, 400, { ok: false, error: passwordError });
+      return;
+    }
+    const action = consumeAuthActionToken(token, "setup-password");
+    if (!action) {
+      sendJson(res, 400, { ok: false, error: "Setup token expired" });
+      return;
+    }
+    try {
+      const encodedHash = await hashPassword(password);
+      setAccountPassword(action.email, encodedHash, (accountError, account) => {
+        if (accountError || !account) {
+          sendJson(res, 500, { ok: false, error: "Account store unavailable" });
+          return;
+        }
+        if (account.status === "blocked") {
+          sendJson(res, 403, { ok: false, error: "Account blocked" });
+          return;
+        }
+        revokeSessionsForEmail(account.email);
+        createSession(req, res, account);
+        sendJson(res, 200, { ok: true, account: safeAccount(account) });
+      });
+    } catch (hashError) {
+      sendJson(res, 500, { ok: false, error: "Password setup failed" });
+    }
+  });
+}
+
+function handlePasswordLogin(req, res) {
+  readJsonBody(req, async (error, body) => {
+    if (error) {
+      sendJson(res, 400, { ok: false, error: "Invalid JSON" });
+      return;
+    }
+    const rawEmail = String(body.email || "").trim();
+    const email = /^0{8}$/.test(rawEmail) ? ADMIN_EMAIL : normalizeEmail(rawEmail);
+    const password = String(body.password || "");
+    const rateKey = `password-login:${clientIp(req)}:${crypto.createHash("sha256").update(email).digest("hex").slice(0, 16)}`;
+    if (!isValidEmail(email) || password.length > 128) {
+      sendJson(res, 400, { ok: false, error: "Invalid email or password" });
+      return;
+    }
+    if (!checkRateLimit(rateKey, 8, 15 * 60 * 1000)) {
+      securityEvent("password_login_rate_limited", req);
+      sendJson(res, 429, { ok: false, error: "Too many login attempts" });
+      return;
+    }
+    try {
+      const account = await accountByEmail(email);
+      const validPassword = await verifyPassword(password, account?.passwordHash);
+      if (!account || !validPassword || account.status === "blocked") {
+        securityEvent("invalid_password_login", req, {
+          emailHash: crypto.createHash("sha256").update(email).digest("hex").slice(0, 12)
+        });
+        sendJson(res, 401, { ok: false, error: "Invalid email or password" });
+        return;
+      }
+      updateAccountLogin(account, (updateError, updatedAccount) => {
+        if (updateError || !updatedAccount) {
+          sendJson(res, 500, { ok: false, error: "Account store unavailable" });
+          return;
+        }
+        createSession(req, res, updatedAccount);
+        sendJson(res, 200, { ok: true, account: safeAccount(updatedAccount) });
+      });
+    } catch (accountError) {
+      sendJson(res, 500, { ok: false, error: "Account store unavailable" });
+    }
+  });
+}
+
+function handlePasswordResetRequest(req, res) {
+  readJsonBody(req, async (error, body) => {
+    if (error) {
+      sendJson(res, 400, { ok: false, error: "Invalid JSON" });
+      return;
+    }
+    const email = normalizeEmail(body.email);
+    if (!isValidEmail(email)) {
+      sendJson(res, 400, { ok: false, error: "Invalid email" });
+      return;
+    }
+    if (!checkRateLimit(`password-reset-ip:${clientIp(req)}`, 10, 15 * 60 * 1000)
+      || !checkRateLimit(requestKey(req, `reset:${email}`), 4, 15 * 60 * 1000)) {
+      sendJson(res, 429, { ok: false, error: "Too many reset requests" });
+      return;
+    }
+    try {
+      const account = await accountByEmail(email);
+      if (!account?.passwordHash || account.status === "blocked") {
+        sendJson(res, 200, { ok: true });
+        return;
+      }
+      const codeKey = `reset:${email}`;
+      const authCode = createAuthCode(codeKey);
+      emailCodes.set(codeKey, {
+        hash: authCode.hash,
+        attempts: 0,
+        expiresAt: Date.now() + CODE_TTL_MS,
+        email,
+        purpose: "reset"
+      });
+      sendEmailCode(email, authCode.code, (mailError) => {
+        if (mailError) {
+          emailCodes.delete(codeKey);
+          sendJson(res, 502, { ok: false, error: "Email provider failed" });
+          return;
+        }
+        sendJson(res, 200, { ok: true });
+      }, "reset");
+    } catch (accountError) {
+      sendJson(res, 500, { ok: false, error: "Account store unavailable" });
+    }
+  });
+}
+
+function handlePasswordResetVerify(req, res) {
+  readJsonBody(req, (error, body) => {
+    if (error) {
+      sendJson(res, 400, { ok: false, error: "Invalid JSON" });
+      return;
+    }
+    const email = normalizeEmail(body.email);
+    const code = String(body.code || "").trim();
+    const codeKey = `reset:${email}`;
+    const record = emailCodes.get(codeKey);
+    if (!isValidEmail(email) || !/^\d{6}$/.test(code)) {
+      sendJson(res, 400, { ok: false, error: "Invalid reset payload" });
+      return;
+    }
+    if (!record || record.expiresAt <= Date.now() || record.purpose !== "reset") {
+      emailCodes.delete(codeKey);
+      sendJson(res, 400, { ok: false, error: "Code expired" });
+      return;
+    }
+    if (record.hash !== hashAuthCode(codeKey, code)) {
+      record.attempts += 1;
+      if (record.attempts >= 4) emailCodes.delete(codeKey);
+      sendJson(res, 400, { ok: false, error: "Wrong code" });
+      return;
+    }
+    emailCodes.delete(codeKey);
+    sendJson(res, 200, {
+      ok: true,
+      resetToken: issueAuthActionToken(email, "reset-password")
+    });
+  });
+}
+
+function handlePasswordResetComplete(req, res) {
+  readJsonBody(req, async (error, body) => {
+    if (error) {
+      sendJson(res, 400, { ok: false, error: "Invalid JSON" });
+      return;
+    }
+    const password = String(body.password || "");
+    const passwordConfirm = String(body.passwordConfirm || "");
+    if (password !== passwordConfirm) {
+      sendJson(res, 400, { ok: false, error: "Passwords do not match" });
+      return;
+    }
+    const passwordError = passwordValidationError(password);
+    if (passwordError) {
+      sendJson(res, 400, { ok: false, error: passwordError });
+      return;
+    }
+    const action = consumeAuthActionToken(String(body.token || ""), "reset-password");
+    if (!action) {
+      sendJson(res, 400, { ok: false, error: "Reset token expired" });
+      return;
+    }
+    try {
+      const encodedHash = await hashPassword(password);
+      setAccountPassword(action.email, encodedHash, (accountError, account) => {
+        if (accountError || !account) {
+          sendJson(res, 500, { ok: false, error: "Account store unavailable" });
+          return;
+        }
+        revokeSessionsForEmail(account.email);
+        createSession(req, res, account);
+        sendJson(res, 200, { ok: true, account: safeAccount(account) });
+      });
+    } catch (hashError) {
+      sendJson(res, 500, { ok: false, error: "Password reset failed" });
+    }
   });
 }
 
@@ -1445,7 +1871,7 @@ function handleAuthLogout(req, res) {
 }
 
 function handleAuthSession(req, res) {
-  const session = sessionFor(req);
+  const session = sessionFor(req, res);
   sendJson(res, 200, { ok: true, account: session?.account || null });
 }
 
@@ -1505,6 +1931,31 @@ function createServer() {
 
   if (req.method === "POST" && req.url === "/api/auth/verify-email") {
     handleAuthVerify(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/setup-password") {
+    handlePasswordSetup(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/password-login") {
+    handlePasswordLogin(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/request-password-reset") {
+    handlePasswordResetRequest(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/verify-password-reset") {
+    handlePasswordResetVerify(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/reset-password") {
+    handlePasswordResetComplete(req, res);
     return;
   }
 

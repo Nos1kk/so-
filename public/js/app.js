@@ -113,6 +113,31 @@
     activeProductId: "",
     productReturnPath: ""
   };
+  let productModalScrollY = 0;
+
+  function lockProductModalScroll() {
+    if (document.documentElement.classList.contains("modal-lock")) return;
+    productModalScrollY = window.scrollY;
+    document.documentElement.classList.add("modal-lock");
+    document.body.classList.add("modal-lock");
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${productModalScrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+  }
+
+  function unlockProductModalScroll() {
+    const wasLocked = document.documentElement.classList.contains("modal-lock");
+    document.documentElement.classList.remove("modal-lock");
+    document.body.classList.remove("modal-lock");
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    if (wasLocked) window.scrollTo({ top: productModalScrollY, left: 0, behavior: "instant" });
+  }
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const mobileViewport = window.matchMedia("(max-width: 760px)");
@@ -1645,7 +1670,7 @@
     els.productDetail.scrollTo({ top: 0, left: 0, behavior: "instant" });
     els.productModal.classList.add("is-open");
     els.productModal.setAttribute("aria-hidden", "false");
-    document.body.classList.add("modal-lock");
+    lockProductModalScroll();
     const nextPath = routePath("product");
     if (currentPath !== nextPath) {
       window.history.pushState({ route: "product", productId: product.id }, "", nextPath);
@@ -1655,7 +1680,7 @@
   function closeProduct() {
     els.productModal.classList.remove("is-open");
     els.productModal.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("modal-lock");
+    unlockProductModalScroll();
     const currentPath = window.location.pathname.replace(/\/+$/, "") || "/";
     const currentQueryRoute = new URLSearchParams(window.location.search).get("route");
     if (currentPath === "/product" || currentQueryRoute === "product") {
@@ -2592,7 +2617,10 @@
           data.accountSessions = (data.accountSessions || []).filter((session) => session.id !== sessionId);
         });
         if (sessionId === currentId) {
-          fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+          fetch(window.SonaProfile?.apiUrl?.("/api/auth/logout") || "/api/auth/logout", {
+            method: "POST",
+            credentials: "include"
+          }).catch(() => null);
           window.SonaProfile?.clearLocalAuth?.();
           store.clearProfile();
           window.SonaProfile?.setSection("home");
@@ -2605,7 +2633,10 @@
       },
       logout: () => {
         const currentId = window.SonaProfile?.currentDeviceId?.();
-        fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+        fetch(window.SonaProfile?.apiUrl?.("/api/auth/logout") || "/api/auth/logout", {
+          method: "POST",
+          credentials: "include"
+        }).catch(() => null);
         window.SonaProfile?.clearLocalAuth?.();
         store.update((data) => {
           data.accountSessions = (data.accountSessions || []).filter((session) => session.id !== currentId);
@@ -3061,8 +3092,12 @@
         renderProductDetail(product);
         els.productModal.classList.add("is-open");
         els.productModal.setAttribute("aria-hidden", "false");
-        document.body.classList.add("modal-lock");
+        lockProductModalScroll();
       }
+    } else if (els.productModal.classList.contains("is-open")) {
+      els.productModal.classList.remove("is-open");
+      els.productModal.setAttribute("aria-hidden", "true");
+      unlockProductModalScroll();
     }
   }
 

@@ -38,6 +38,9 @@
   let loginError = "";
   let loginChannel = "email";
   let loginTelegramId = "";
+  let loginMode = "login";
+  let loginStep = "credentials";
+  let loginActionToken = "";
   const DEVICE_KEY = "sona.device.id";
   const LOCAL_AUTH_KEY = "sona.auth.local";
 
@@ -129,17 +132,6 @@
     if (!email) return;
     storageSet(LOCAL_AUTH_KEY, JSON.stringify({
       email,
-      profile: {
-        isActive: true,
-        name: profile.name || "",
-        email,
-        phone: profile.phone || "",
-        address: profile.address || "",
-        role: profile.role || "user",
-        registeredAt: profile.registeredAt || new Date().toISOString(),
-        sessionId: currentDeviceId()
-      },
-      deviceId: currentDeviceId(),
       savedAt: new Date().toISOString()
     }));
   }
@@ -149,24 +141,7 @@
   }
 
   function restoreLocalAuth(data) {
-    if (data?.profile?.isActive) return data;
-    const auth = readLocalAuth();
-    if (!auth?.profile?.email || auth.deviceId !== currentDeviceId()) return data;
-
-    const sessions = Array.isArray(data?.accountSessions) ? data.accountSessions : [];
-    const knownSessions = sessions.filter((session) => session.email === auth.profile.email);
-    if (knownSessions.length && !knownSessions.some((session) => session.id === auth.deviceId)) {
-      clearLocalAuth();
-      return data;
-    }
-
-    return window.SonaStore.update((state) => {
-      state.profile = {
-        ...(state.profile || {}),
-        ...auth.profile,
-        isActive: true
-      };
-    });
+    return data;
   }
 
   function upsertCurrentSession(data, account) {
@@ -236,6 +211,36 @@
       body: JSON.stringify({ loginId, code })
     });
     return response.json();
+  }
+
+  async function authPost(path, payload) {
+    const response = await fetch(authApiUrl(path), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload || {})
+    });
+    return response.json();
+  }
+
+  function loginWithPassword(email, password) {
+    return authPost("/api/auth/password-login", { email, password });
+  }
+
+  function setupPassword(token, password, passwordConfirm) {
+    return authPost("/api/auth/setup-password", { token, password, passwordConfirm });
+  }
+
+  function requestPasswordReset(email) {
+    return authPost("/api/auth/request-password-reset", { email });
+  }
+
+  function verifyPasswordReset(email, code) {
+    return authPost("/api/auth/verify-password-reset", { email, code });
+  }
+
+  function completePasswordReset(token, password, passwordConfirm) {
+    return authPost("/api/auth/reset-password", { token, password, passwordConfirm });
   }
 
   function iconSvg(name) {
@@ -466,47 +471,111 @@
     const card = el("div", "sona-login-card");
     const visual = el("div", "sona-login-visual");
     const form = el("form", "sona-login-form");
-    const phoneLabel = el("label", "", "Телефон");
-    const emailInput = el("input");
-    const codeLabel = el("label", "", loginChannel === "telegram" ? "Введите код из Telegram" : "Введите код из письма");
-    const codeInput = el("input");
-    const submit = button("sona-profile-primary", loginBusy ? "Подождите..." : (loginCodeSent ? "Войти" : (loginChannel === "telegram" ? "Открыть бота" : "Получить код")), () => {});
-    const channelPicker = el("div", "sona-login-channels");
     const status = el("p", "sona-login-error", loginError);
+    const modeLinks = el("div", "sona-login-links");
     status.hidden = !loginError;
 
-    function setStatus(message) {
-      loginError = message || "";
-      status.textContent = loginError;
-      status.hidden = !loginError;
+    const titles = {
+      login: ["Вход в аккаунт", "Войти в SONA", "Введите почту и пароль или войдите через Telegram-бота."],
+      register: ["Новый аккаунт", "Создать аккаунт", "Сначала подтвердите почту кодом, затем придумайте пароль."],
+      reset: ["Восстановление", "Вернуть доступ", "Мы отправим одноразовый код на почту, привязанную к аккаунту."]
+    };
+
+    function field(labelText, type, value = "", autocomplete = "") {
+      const label = el("label", "", labelText);
+      const input = el("input");
+      input.type = type === "email" ? "text" : type;
+      if (type === "email") input.inputMode = "email";
+      input.value = value;
+      input.autocomplete = autocomplete;
+      if (type === "email") input.placeholder = "name@example.com";
+      if (type === "password") input.placeholder = "Не менее 10 символов";
+      label.append(input);
+      return { label, input };
     }
 
-    function setCodePrompt(text) {
-      const textNode = Array.from(codeLabel.childNodes).find((node) => node.nodeType === Node.TEXT_NODE);
-      if (textNode) textNode.nodeValue = text;
+    function setBusy(control, value, text) {
+      loginBusy = value;
+      control.disabled = value;
+      if (text) control.textContent = value ? "Подождите..." : text;
     }
 
-    function selectChannel(channel) {
-      loginEmail = String(emailInput.value || loginEmail || "").trim();
-      loginChannel = channel;
+    function setMode(mode) {
+      loginMode = mode;
+      loginChannel = "email";
+      loginStep = "credentials";
       loginCodeSent = false;
+      loginActionToken = "";
       loginTelegramId = "";
-      emailChannel.classList.toggle("is-active", channel === "email");
-      telegramChannel.classList.toggle("is-active", channel === "telegram");
-      phoneLabel.hidden = channel === "telegram";
-      codeLabel.hidden = true;
-      codeInput.hidden = true;
-      submit.textContent = channel === "telegram" ? "Открыть бота" : "Получить код";
-      setStatus("");
+      loginError = "";
+      render(context);
+    }
+
+    function resultMessage(result, fallback) {
+      const messages = {
+        "Invalid email or password": "Неверная почта или пароль.",
+        "Too many login attempts": "Слишком много попыток. Повторите вход через 15 минут.",
+        "Passwords do not match": "Пароли не совпадают.",
+        "Password must contain 10 to 128 characters": "Пароль должен содержать от 10 до 128 символов.",
+        "Password must contain at least one letter and one number": "Добавьте в пароль хотя бы одну букву и одну цифру.",
+        "Password cannot start or end with a space": "Пароль не должен начинаться или заканчиваться пробелом.",
+        "Code expired": "Код истёк. Запросите новый.",
+        "Wrong code": "Неверный код.",
+        "Setup token expired": "Время создания пароля истекло. Подтвердите почту ещё раз.",
+        "Reset token expired": "Время восстановления истекло. Запросите новый код.",
+        "Email provider failed": "Письмо не отправилось. Повторите попытку позже."
+      };
+      return result?.warning || result?.message || messages[result?.error] || fallback;
+    }
+
+    function validEmail(raw) {
+      const isAdminShortcut = /^0{8}$/.test(raw);
+      const checked = window.SonaSecurity?.validateAuthEmail(raw) || { ok: false, email: "", message: "Введите email" };
+      if (!isAdminShortcut && !checked.ok) return { ok: false, message: checked.message };
+      const email = isAdminShortcut ? raw : checked.email;
+      if (!isAdminShortcut && /@(gmail\.com|googlemail\.com)$/i.test(email)) {
+        return { ok: false, message: "Gmail-почта для входа недоступна. Используйте другую почту." };
+      }
+      return { ok: true, email };
+    }
+
+    async function finishAuth(account) {
+      await window.SonaStore.refresh().catch(() => null);
+      window.SonaStore.update((data) => {
+        const accountEmail = String(account?.email || loginEmail || "").trim().toLowerCase();
+        const role = account?.role === "admin" ? "admin" : "user";
+        data.profile = {
+          ...(data.profile || {}),
+          isActive: true,
+          email: accountEmail,
+          role,
+          registeredAt: account?.createdAt || data.profile?.registeredAt || new Date().toISOString()
+        };
+        data.admin = role === "admin"
+          ? { ...(data.admin || {}), isAuthenticated: true, email: accountEmail }
+          : { ...(data.admin || {}), isAuthenticated: false, email: "" };
+        if (role === "admin") data.profile.name = data.profile.name || "Администратор SONA";
+        if (role !== "admin" && /^Администратор(?:\s+SONA)?$/i.test(String(data.profile.name || "").trim())) {
+          data.profile.name = "Пользователь";
+        }
+        upsertCurrentSession(data, account);
+        writeLocalAuth(data.profile);
+      });
+      loginCodeSent = false;
+      loginBusy = false;
+      loginMode = "login";
+      loginStep = "credentials";
+      loginEmail = "";
+      loginActionToken = "";
+      loginTelegramId = "";
+      loginError = "";
+      activeSection = "home";
+      context.onAuthChange?.();
     }
 
     async function beginTelegramLogin() {
-      selectChannel("telegram");
+      loginChannel = "telegram";
       loginBusy = true;
-      emailChannel.disabled = true;
-      telegramChannel.disabled = true;
-      submit.disabled = true;
-      submit.textContent = "Открываем Telegram...";
       const transitionUrl = new URL("telegram-redirect.html", document.baseURI).href;
       const popup = window.open(transitionUrl, "_blank");
       const transitionStartedAt = performance.now();
@@ -515,198 +584,177 @@
         const result = await requestTelegramLogin();
         if (!result.ok || !result.url || !result.loginId) {
           popup?.close();
-          setStatus(result.message || "Не удалось открыть Telegram-бота.");
-          submit.textContent = "Открыть бота";
+          loginError = resultMessage(result, "Не удалось открыть Telegram-бота.");
           return;
         }
         loginTelegramId = result.loginId;
         loginCodeSent = true;
-        const transitionDelay = Math.max(0, 360 - (performance.now() - transitionStartedAt));
-        if (transitionDelay) await new Promise((resolve) => window.setTimeout(resolve, transitionDelay));
+        loginStep = "code";
+        const delay = Math.max(0, 360 - (performance.now() - transitionStartedAt));
+        if (delay) await new Promise((resolve) => window.setTimeout(resolve, delay));
         if (popup) popup.location.href = result.url;
         else window.location.href = result.url;
-        setCodePrompt("Введите код из Telegram");
-        codeLabel.hidden = false;
-        codeInput.hidden = false;
-        submit.textContent = "Войти";
-        setStatus("Введите код, который отправил @SonaShop_bot.");
+        loginError = "Введите код, который отправил @SonaShop_bot.";
       } catch (error) {
         popup?.close();
-        submit.textContent = "Открыть бота";
-        setStatus("Telegram-вход сейчас недоступен. Проверьте настройки бота.");
+        loginError = "Telegram-вход сейчас недоступен. Проверьте настройки бота.";
       } finally {
         loginBusy = false;
-        emailChannel.disabled = false;
-        telegramChannel.disabled = false;
-        submit.disabled = false;
+        render(context);
       }
     }
 
-    const emailChannel = button(loginChannel === "email" ? "is-active" : "", "На почту", () => {
-      selectChannel("email");
-    });
-    const telegramChannel = button(loginChannel === "telegram" ? "is-active" : "", "В Telegram", beginTelegramLogin);
-
-    emailInput.type = "text";
-    emailInput.placeholder = "name@example.com";
-    emailInput.value = loginEmail;
-    emailInput.autocomplete = "email";
-    emailInput.addEventListener("input", () => {
-      loginEmail = emailInput.value;
-    });
-
-    codeInput.inputMode = "numeric";
-    codeInput.placeholder = "000000";
-    codeInput.maxLength = 6;
-    codeInput.hidden = !loginCodeSent;
-    codeLabel.hidden = !loginCodeSent;
-    submit.type = "submit";
-    submit.disabled = loginBusy;
-
-    phoneLabel.textContent = "Email";
-    phoneLabel.hidden = loginChannel === "telegram";
-    phoneLabel.append(emailInput);
-    codeLabel.append(codeInput);
-    channelPicker.append(emailChannel, telegramChannel);
-    form.append(phoneLabel, channelPicker, codeLabel, submit);
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      if (loginBusy) return;
-
-      const rawIdentifier = String(emailInput.value || "").trim();
-      const isAdminShortcut = /^0{8}$/.test(rawIdentifier);
-      const emailCheck = window.SonaSecurity?.validateAuthEmail(rawIdentifier) || { ok: false, email: "", message: "Введите email" };
-      const email = isAdminShortcut ? rawIdentifier : emailCheck.email;
-      if (loginChannel === "email") {
-        loginEmail = rawIdentifier;
-      }
-
-      if (!loginCodeSent) {
-        if (loginChannel === "telegram") {
-          await beginTelegramLogin();
-          return;
-        }
-
-        if (!isAdminShortcut && !emailCheck.ok) {
-          loginError = emailCheck.message;
-          render(context);
-          return;
-        }
-
-        if (!isAdminShortcut && /@(gmail\.com|googlemail\.com)$/i.test(email)) {
-          loginError = "Gmail-почта для входа недоступна. Используйте другую почту.";
-          render(context);
-          return;
-        }
-
-        loginBusy = true;
-        loginEmail = rawIdentifier;
-        render(context);
-        try {
-          const result = await requestLoginCode(email, loginChannel);
-          if (!result.ok) {
-            loginError = result.message || "Не удалось отправить письмо. Проверьте email или повторите позже.";
-            render(context);
-            return;
-          }
-
-          loginEmail = email;
-          loginCodeSent = true;
-          loginError = isAdminShortcut
-            ? "Код админа отправлен на админскую почту."
-            : "Код отправлен на указанную почту.";
-          render(context);
-        } catch (error) {
-          loginError = "Сервер почты недоступен. Проверьте, что локальный сервер запущен и SMTP настроен.";
-          render(context);
-        } finally {
-          loginBusy = false;
-          render(context);
-        }
-        return;
-      }
-
-      const code = window.SonaSecurity?.sanitizeAuthCode(codeInput.value) || codeInput.value.trim();
-      let account = null;
-      loginBusy = true;
-      render(context);
-      try {
-        const result = loginChannel === "telegram"
-          ? await verifyTelegramCode(loginTelegramId, code)
-          : await verifyEmailCode(loginEmail, code);
-        if (!result.ok) {
-          loginError = result.warning || result.message || "Неверный код.";
-          loginBusy = false;
-          render(context);
-          return;
-        }
-        account = result.account || null;
-        await window.SonaStore.refresh().catch(() => null);
-      } catch (error) {
-        loginError = "Неверный код.";
-        loginBusy = false;
-        render(context);
-        return;
-      }
-
-      window.SonaStore.update((data) => {
-        const accountEmail = String(account?.email || loginEmail || "").trim().toLowerCase();
-        const adminEmail = String(window.SonaAdmin?.ADMIN_EMAIL || "").trim().toLowerCase();
-        const role = accountEmail === adminEmail ? "admin" : "user";
-        data.profile = {
-          ...(data.profile || {}),
-          isActive: true,
-          email: account?.email || loginEmail,
-          role,
-          registeredAt: account?.createdAt || data.profile?.registeredAt || new Date().toISOString()
-        };
-        if (role === "admin") {
-          data.admin = { ...(data.admin || {}), isAuthenticated: true, email: account?.email || loginEmail };
-          data.profile.name = data.profile.name || "Администратор SONA";
-        } else {
-          data.admin = { ...(data.admin || {}), isAuthenticated: false, email: "" };
-          if (/^Администратор(?:\s+SONA)?$/i.test(String(data.profile.name || "").trim())) {
-            data.profile.name = "Пользователь";
-          }
-        }
-        upsertCurrentSession(data, account);
-        const userRow = {
-          id: account?.id || `USER-${loginEmail.replace(/[^a-z0-9]/gi, "-")}`,
-          name: data.profile.name || "Пользователь",
-          email: account?.email || loginEmail,
-          phone: data.profile.phone || "",
-          role,
-          status: account?.status || "active",
-          registeredAt: data.profile.registeredAt
-        };
-        data.users = [
-          ...(data.users || []).filter((user) => user.email !== userRow.email),
-          userRow
-        ];
-        writeLocalAuth(data.profile);
-      });
-
-      loginCodeSent = false;
-      loginBusy = false;
-      loginEmail = "";
-      loginTelegramId = "";
-      loginError = "";
-      activeSection = "home";
-      context.onAuthChange?.();
-    });
-
+    const [kicker, heading, description] = titles[loginMode];
     visual.append(
       el("span", "sona-profile-kicker", "SONA"),
       el("h2", "", "Кабинет для спокойных покупок"),
       el("p", "", "Заказы, избранное, доставка и поддержка собраны в одном месте.")
     );
-    card.append(
-      visual,
-      el("p", "sona-profile-kicker", "Вход в аккаунт"),
-      el("h1", "", "Войти в SONA"),
-      el("p", "sona-profile-muted", "Войдите по почте или через Telegram-бота. Gmail-почта для входа недоступна."),
-      form
-    );
+    card.append(visual, el("p", "sona-profile-kicker", kicker), el("h1", "", heading), el("p", "sona-profile-muted", description));
+
+    let emailField = null;
+    let codeField = null;
+    let passwordField = null;
+    let passwordConfirmField = null;
+
+    if (loginMode === "login") {
+      const channels = el("div", "sona-login-channels");
+      const emailChannel = button(loginChannel === "email" ? "is-active" : "", "Почта и пароль", () => {
+        loginChannel = "email";
+        loginStep = "credentials";
+        loginCodeSent = false;
+        loginError = "";
+        render(context);
+      });
+      const telegramChannel = button(loginChannel === "telegram" ? "is-active" : "", "Telegram", () => {
+        beginTelegramLogin();
+      });
+      channels.append(emailChannel, telegramChannel);
+      form.append(channels);
+    }
+
+    if (loginChannel === "email" || loginMode !== "login") {
+      if (loginStep !== "password") {
+        emailField = field("Email", "email", loginEmail, "email");
+        emailField.input.disabled = loginStep === "code";
+        emailField.input.addEventListener("input", () => { loginEmail = emailField.input.value; });
+        form.append(emailField.label);
+      }
+    }
+
+    if (loginMode === "login" && loginChannel === "email") {
+      passwordField = field("Пароль", "password", "", "current-password");
+      form.append(passwordField.label);
+    } else if (loginStep === "code") {
+      codeField = field(loginChannel === "telegram" ? "Введите код из Telegram" : "Введите код из письма", "text");
+      codeField.input.inputMode = "numeric";
+      codeField.input.maxLength = 6;
+      codeField.input.placeholder = "000000";
+      form.append(codeField.label);
+    } else if (loginStep === "password") {
+      passwordField = field(loginMode === "reset" ? "Новый пароль" : "Придумайте пароль", "password", "", "new-password");
+      passwordConfirmField = field("Повторите пароль", "password", "", "new-password");
+      form.append(passwordField.label, passwordConfirmField.label, el("p", "sona-login-password-hint", "От 10 символов, минимум одна буква и одна цифра."));
+    }
+
+    const submitLabels = loginMode === "login"
+      ? (loginChannel === "telegram" ? (loginStep === "code" ? "Войти" : "Открыть бота") : "Войти")
+      : (loginStep === "credentials" ? "Получить код" : (loginStep === "code" ? "Подтвердить код" : (loginMode === "reset" ? "Сохранить новый пароль" : "Создать аккаунт")));
+    const submit = button("sona-profile-primary", submitLabels, () => {});
+    submit.type = "submit";
+    submit.disabled = loginBusy;
+    form.append(submit);
+
+    if (loginMode === "login" && loginChannel === "email") {
+      modeLinks.append(
+        button("sona-login-text-button", "Забыли пароль?", () => setMode("reset")),
+        button("sona-login-text-button", "Создать аккаунт", () => setMode("register"))
+      );
+    } else if (loginMode !== "login") {
+      modeLinks.append(button("sona-login-text-button", "Вернуться ко входу", () => setMode("login")));
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (loginBusy) return;
+      if (loginMode === "login" && loginChannel === "telegram" && loginStep !== "code") {
+        await beginTelegramLogin();
+        return;
+      }
+
+      if (emailField && loginStep !== "code") loginEmail = String(emailField.input.value || "").trim();
+      if ((loginChannel === "email" || loginMode !== "login") && loginStep !== "password") {
+        const checked = validEmail(loginEmail);
+        if (!checked.ok) {
+          loginError = checked.message;
+          render(context);
+          return;
+        }
+        loginEmail = checked.email;
+      }
+
+      setBusy(submit, true, submitLabels);
+      try {
+        let result;
+        if (loginMode === "login" && loginChannel === "email") {
+          result = await loginWithPassword(loginEmail, passwordField.input.value);
+          if (!result.ok) throw result;
+          await finishAuth(result.account);
+          return;
+        }
+        if (loginMode === "login" && loginChannel === "telegram") {
+          const code = window.SonaSecurity?.sanitizeAuthCode(codeField.input.value) || codeField.input.value.trim();
+          result = await verifyTelegramCode(loginTelegramId, code);
+          if (!result.ok) throw result;
+          await finishAuth(result.account);
+          return;
+        }
+        if (loginMode === "register" && loginStep === "credentials") {
+          result = await requestLoginCode(loginEmail, "email");
+          if (!result.ok) throw result;
+          loginStep = "code";
+          loginCodeSent = true;
+          loginError = "Код отправлен. Введите код из письма.";
+        } else if (loginMode === "register" && loginStep === "code") {
+          const code = window.SonaSecurity?.sanitizeAuthCode(codeField.input.value) || codeField.input.value.trim();
+          result = await verifyEmailCode(loginEmail, code);
+          if (!result.ok || !result.setupToken) throw result;
+          loginActionToken = result.setupToken;
+          loginStep = "password";
+          loginError = "Почта подтверждена. Теперь придумайте пароль.";
+        } else if (loginMode === "register") {
+          result = await setupPassword(loginActionToken, passwordField.input.value, passwordConfirmField.input.value);
+          if (!result.ok) throw result;
+          await finishAuth(result.account);
+          return;
+        } else if (loginMode === "reset" && loginStep === "credentials") {
+          result = await requestPasswordReset(loginEmail);
+          if (!result.ok) throw result;
+          loginStep = "code";
+          loginError = "Если аккаунт существует, код уже отправлен. Введите код из письма.";
+        } else if (loginMode === "reset" && loginStep === "code") {
+          const code = window.SonaSecurity?.sanitizeAuthCode(codeField.input.value) || codeField.input.value.trim();
+          result = await verifyPasswordReset(loginEmail, code);
+          if (!result.ok || !result.resetToken) throw result;
+          loginActionToken = result.resetToken;
+          loginStep = "password";
+          loginError = "Код принят. Придумайте новый пароль.";
+        } else {
+          result = await completePasswordReset(loginActionToken, passwordField.input.value, passwordConfirmField.input.value);
+          if (!result.ok) throw result;
+          await finishAuth(result.account);
+          return;
+        }
+      } catch (error) {
+        loginError = resultMessage(error, "Не удалось выполнить запрос. Повторите попытку.");
+      } finally {
+        loginBusy = false;
+      }
+      render(context);
+    });
+
+    card.append(form);
+    if (modeLinks.childElementCount) card.append(modeLinks);
     card.append(status);
     root.append(card);
     return root;
@@ -1457,15 +1505,6 @@
     const restoredData = restoreLocalAuth(options.data);
     const context = buildContext({ ...options, data: restoredData });
     const container = context.container;
-    const activeEmail = String(context.data.profile?.email || "").toLowerCase();
-    const knownSessions = (context.data.accountSessions || []).filter((session) => session.email === activeEmail);
-
-    if (context.data.profile?.isActive && knownSessions.length && !knownSessions.some((session) => session.id === context.currentDeviceId)) {
-      clearLocalAuth();
-      window.SonaStore.clearProfile();
-      container.replaceChildren(renderLogin({ ...context, data: window.SonaStore.read() }));
-      return;
-    }
 
     if (!context.data.profile?.isActive) {
       container.replaceChildren(renderLogin(context));
@@ -1480,6 +1519,7 @@
     render,
     currentDeviceId,
     clearLocalAuth,
+    apiUrl: authApiUrl,
     syncLocalAuth: writeLocalAuth,
     setSection(section) {
       activeSection = section || "home";

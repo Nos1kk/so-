@@ -2,7 +2,11 @@
   "use strict";
 
   const STORAGE_KEY = "sona.marketplace.v1";
-  const API_URL = "/api/store";
+  function apiUrl() {
+    const localPreview = window.location.protocol === "file:"
+      || (["127.0.0.1", "localhost"].includes(window.location.hostname) && window.location.port !== "8000");
+    return localPreview ? "http://127.0.0.1:8000/api/store" : "/api/store";
+  }
   const fallbackState = {
     cart: {},
     favorites: [],
@@ -100,8 +104,9 @@
 
   async function syncNow() {
     if (!cache) return cache;
-    const response = await fetch(API_URL, {
+    const response = await fetch(apiUrl(), {
       method: "PUT",
+      credentials: "include",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ state: cache })
     });
@@ -112,7 +117,11 @@
   }
 
   async function refresh() {
-    const response = await fetch(API_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
+    const response = await fetch(apiUrl(), {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
     if (!response.ok) throw new Error("Store refresh failed");
     const payload = await response.json();
     if (payload?.state) cache = normalize(payload.state);
@@ -154,7 +163,11 @@
   async function init() {
     cache = readLocalFallback();
     try {
-      const response = await fetch(API_URL, { headers: { Accept: "application/json" }, cache: "no-store" });
+      const response = await fetch(apiUrl(), {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+        cache: "no-store"
+      });
       if (response.ok) {
         const payload = await response.json();
         if (payload && payload.state) {

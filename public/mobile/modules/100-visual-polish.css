@@ -39,8 +39,10 @@
     touch-action: pan-y !important;
   }
 
+  html.modal-lock,
   body.modal-lock {
     overflow: hidden !important;
+    overscroll-behavior: none !important;
   }
 
   body.modal-lock .product-modal {

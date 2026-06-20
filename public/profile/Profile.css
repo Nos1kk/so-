@@ -1129,6 +1129,42 @@ body.profile-view .sona-profile-content {
   opacity: 0.72;
 }
 
+.sona-login-form input:disabled {
+  color: #5f7187;
+  background: #edf3f8;
+  opacity: 1;
+}
+
+.sona-login-password-hint {
+  color: #687b92;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.sona-login-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sona-login-text-button {
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: #244d78;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.sona-login-text-button:is(:hover, :focus-visible) {
+  color: #102844;
+}
+
 .sona-admin-login-link {
   width: 100%;
   min-height: 48px;
