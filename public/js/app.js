@@ -312,6 +312,7 @@
     mobileCartBadge: document.getElementById("mobileCartBadge"),
     cartCountLabel: document.getElementById("cartCountLabel"),
     cartItems: document.getElementById("cartItems"),
+    cartSummary: document.querySelector(".cart-summary"),
     cartRecommendations: document.getElementById("cartRecommendations"),
     cartSubtotal: document.getElementById("cartSubtotal"),
     deliveryPrice: document.getElementById("deliveryPrice"),
@@ -2243,6 +2244,7 @@
     els.deliveryPrice.textContent = delivery ? money(delivery) : "0 ₽";
     els.cartTotal.textContent = money(total);
     els.checkoutButton.disabled = !rows.length;
+    if (els.cartSummary) els.cartSummary.hidden = !rows.length;
     if (els.profileButtonLabel) {
       els.profileButtonLabel.textContent = window.SonaAdmin?.isAdmin(store.read()) ? "Админ" : (isProfileActive() ? "Профиль" : "Войти");
     }
@@ -3130,9 +3132,23 @@
       );
       button.type = "button";
       button.append(image, copy, createElement("span", "search-result-arrow", "→"));
-      button.addEventListener("click", () => {
+      let handledByTouch = false;
+      const activateResult = () => {
         closeSearchResults();
         openProduct(product.id);
+      };
+      button.addEventListener("touchend", (event) => {
+        handledByTouch = true;
+        event.preventDefault();
+        event.stopPropagation();
+        activateResult();
+      }, { passive: false });
+      button.addEventListener("click", () => {
+        if (handledByTouch) {
+          handledByTouch = false;
+          return;
+        }
+        activateResult();
       });
       return button;
     });

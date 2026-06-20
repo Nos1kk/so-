@@ -220,7 +220,7 @@
   }
 
   .sona-login {
-    min-height: calc(100dvh - 170px) !important;
+    min-height: 0 !important;
     place-items: start stretch !important;
     padding: 0 !important;
   }

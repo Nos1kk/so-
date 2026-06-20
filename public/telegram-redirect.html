@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#102844">
+    <title>Открываем Telegram</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        overflow: hidden;
+        background: linear-gradient(145deg, #102844, #1d4c78 58%, #2a8ca0);
+        color: #fff;
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+      }
+      main { display: grid; justify-items: center; gap: 18px; text-align: center; animation: enter .34s ease both; }
+      .logo { width: 76px; height: 76px; display: grid; place-items: center; border-radius: 24px; background: rgba(255,255,255,.96); color: #173b62; font-size: 34px; font-weight: 900; box-shadow: 0 24px 54px rgba(0,0,0,.22); }
+      h1 { margin: 0; font-size: clamp(24px, 8vw, 34px); }
+      p { margin: 0; color: rgba(255,255,255,.78); font-weight: 700; }
+      .loader { width: 54px; height: 5px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.2); }
+      .loader::after { content: ""; display: block; width: 50%; height: 100%; border-radius: inherit; background: #fff; animation: load .85s ease-in-out infinite alternate; }
+      @keyframes enter { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+      @keyframes load { to { transform: translateX(100%); } }
+      @media (prefers-reduced-motion: reduce) { main, .loader::after { animation-duration: .01ms; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="logo">S</div>
+      <h1>Открываем Telegram</h1>
+      <p>Переходим в @SonaShop_bot</p>
+      <div class="loader" aria-label="Загрузка"></div>
+    </main>
+  </body>
+</html>

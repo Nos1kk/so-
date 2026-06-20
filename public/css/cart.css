@@ -250,6 +250,10 @@
   animation: cartPanelIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) both 80ms;
 }
 
+.cart-summary[hidden] {
+  display: none !important;
+}
+
 @keyframes cartPanelIn {
   from {
     opacity: 0;

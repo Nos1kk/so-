@@ -150,6 +150,12 @@ function methodNotAllowed(res) {
 }
 
 function setApiCorsHeaders(res) {
+  const origin = requestOrigin(res.sonaRequest || { headers: {} });
+  if (/^https?:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/.test(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Vary", "Origin");
+  }
   res.setHeader("Access-Control-Allow-Methods", "GET, PUT, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
 }
@@ -191,7 +197,11 @@ function isSameOriginRequest(req) {
     const originUrl = new URL(origin);
     const trustProxy = process.env.TRUST_PROXY === "true";
     const host = String((trustProxy ? req.headers["x-forwarded-host"] : "") || req.headers.host || "").split(",")[0].trim();
-    return ["http:", "https:"].includes(originUrl.protocol) && originUrl.host === host;
+    if (!["http:", "https:"].includes(originUrl.protocol)) return false;
+    if (originUrl.host === host) return true;
+    const requestHostname = host.replace(/^\[/, "").replace(/\].*$/, "").split(":")[0];
+    return ["127.0.0.1", "localhost"].includes(originUrl.hostname)
+      && ["127.0.0.1", "localhost"].includes(requestHostname);
   } catch {
     return false;
   }
@@ -226,9 +236,11 @@ function createSession(req, res, account) {
     account: safeAccount(account),
     expiresAt: Date.now() + SESSION_TTL_MS
   });
-  const secure = process.env.NODE_ENV === "production"
+  const requestHost = String(req.headers.host || "").split(":")[0];
+  const isLocalhost = ["127.0.0.1", "localhost"].includes(requestHost);
+  const secure = !isLocalhost && (process.env.NODE_ENV === "production"
     || String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim() === "https"
-    || Boolean(req.socket.encrypted);
+    || Boolean(req.socket.encrypted));
   res.setHeader("Set-Cookie", [
     `${SESSION_COOKIE}=${token}`,
     "Path=/",
@@ -570,7 +582,7 @@ function upsertAccount(email, callback) {
       ...(existing || {}),
       id: existing?.id || accountIdFor(normalizedEmail),
       email: normalizedEmail,
-      role: normalizedEmail === ADMIN_EMAIL ? "admin" : (existing?.role || "user"),
+      role: normalizedEmail === ADMIN_EMAIL ? "admin" : "user",
       status: existing?.status || "active",
       createdAt: existing?.createdAt || now,
       lastLoginAt: now
@@ -1058,8 +1070,16 @@ async function processTelegramUpdate(update) {
       await sendTelegramMessage(message.chat.id, "Вход устарел. Нажмите Telegram на сайте ещё раз.");
       return;
     }
-    telegramLoginCodes.delete(token);
-    await sendTelegramMessage(message.chat.id, "Вы открыли бот SONA. Здесь будут уведомления, помощь и коды, если они понадобятся.");
+    const authCode = createAuthCode(`telegram:${token}`);
+    telegramLoginCodes.set(token, {
+      ...login,
+      hash: authCode.hash,
+      attempts: 0,
+      chatId: String(message.chat.id),
+      username: String(message.from?.username || "").slice(0, 80),
+      expiresAt: Date.now() + CODE_TTL_MS
+    });
+    await sendTelegramMessage(message.chat.id, `Код входа в SONA: ${authCode.code}\n\nВведите его на сайте. Код действует 10 минут.`);
     return;
   }
 
@@ -1451,6 +1471,7 @@ function resolveSafePath(urlPath) {
 
 function createServer() {
   return http.createServer((req, res) => {
+  res.sonaRequest = req;
   const isApiRequest = String(req.url || "").startsWith("/api/");
   const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
   if (isApiRequest && isMutation && !isSameOriginRequest(req)) {

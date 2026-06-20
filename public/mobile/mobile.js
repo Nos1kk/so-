@@ -15,6 +15,9 @@
   const supportRoot = document.getElementById("supportChatRoot");
   let lastScrollY = window.scrollY;
   let scrollTicking = false;
+  let quickNavDirection = 0;
+  let quickNavTravel = 0;
+  let quickNavLockedUntil = 0;
 
   filterModal.className = "mobile-filter-modal";
   filterModal.setAttribute("aria-hidden", "true");
@@ -112,14 +115,32 @@
     if (!mobileQuery.matches || !header) return;
     const nextScrollY = Math.max(window.scrollY, 0);
     const delta = nextScrollY - lastScrollY;
+    lastScrollY = nextScrollY;
 
-    if (nextScrollY < 20) {
+    if (nextScrollY < 32) {
       header.classList.remove("is-quick-nav-hidden");
-    } else if (Math.abs(delta) > 5) {
-      header.classList.toggle("is-quick-nav-hidden", delta > 0);
+      quickNavDirection = 0;
+      quickNavTravel = 0;
+      return;
     }
 
-    lastScrollY = nextScrollY;
+    if (Math.abs(delta) < 1.5) return;
+    const direction = delta > 0 ? 1 : -1;
+    if (direction !== quickNavDirection) {
+      quickNavDirection = direction;
+      quickNavTravel = 0;
+    }
+    quickNavTravel += Math.abs(delta);
+
+    if (performance.now() < quickNavLockedUntil) return;
+    const hidden = header.classList.contains("is-quick-nav-hidden");
+    const shouldHide = !hidden && direction > 0 && nextScrollY > 96 && quickNavTravel >= 34;
+    const shouldShow = hidden && direction < 0 && quickNavTravel >= 24;
+    if (!shouldHide && !shouldShow) return;
+
+    header.classList.toggle("is-quick-nav-hidden", shouldHide);
+    quickNavTravel = 0;
+    quickNavLockedUntil = performance.now() + 460;
   }
 
   function handleScroll() {

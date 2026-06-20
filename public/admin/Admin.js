@@ -58,12 +58,15 @@ let adminSearchTimer = 0;
   }
 
   function authApiUrl(path) {
-    return window.location.protocol === "file:" ? `http://127.0.0.1:8000${path}` : path;
+    const localPreview = window.location.protocol === "file:"
+      || (["127.0.0.1", "localhost"].includes(window.location.hostname) && window.location.port !== "8000");
+    return localPreview ? `http://127.0.0.1:8000${path}` : path;
   }
 
   async function requestEmailCode(email) {
     const response = await fetch(authApiUrl("/api/auth/request-email"), {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email })
     });
@@ -73,6 +76,7 @@ let adminSearchTimer = 0;
   async function verifyEmailCode(email, code) {
     const response = await fetch(authApiUrl("/api/auth/verify-email"), {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, code })
     });

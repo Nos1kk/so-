@@ -1088,6 +1088,11 @@ body.profile-view .sona-profile-content {
   gap: 13px;
 }
 
+.sona-login-form [hidden],
+.sona-login-card > [hidden] {
+  display: none !important;
+}
+
 .sona-login-form label {
   display: grid;
   gap: 8px;
