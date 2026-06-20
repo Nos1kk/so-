@@ -3690,4 +3690,120 @@
     object-position: center 54% !important;
     background: #f8f8f7 !important;
   }
+
+  body .detail-stage-shell {
+    position: relative !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  body .detail-stage {
+    touch-action: pan-y !important;
+    will-change: transform !important;
+  }
+
+  body .detail-favorite-button {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+    color: #102844 !important;
+    box-shadow: 0 10px 24px rgba(16, 40, 68, 0.18) !important;
+    z-index: 10040 !important;
+  }
+
+  body .detail-favorite-button.is-active {
+    background: #102844 !important;
+    color: #fff !important;
+  }
+
+  body .detail-price.price--structured {
+    width: 100% !important;
+    display: grid !important;
+    align-items: start !important;
+    gap: 9px !important;
+  }
+
+  body .detail-price.price--structured .price-top {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+  }
+
+  body .detail-price.price--structured .price-old,
+  body .detail-price.price--structured .price-current {
+    color: #102844 !important;
+    font-size: clamp(2rem, 10vw, 2.75rem) !important;
+    font-weight: 1000 !important;
+    line-height: 1 !important;
+  }
+
+  body .detail-price.price--structured .price-old {
+    color: #64758d !important;
+  }
+
+  body .detail-price.price--structured .price-discount {
+    padding: 8px 12px !important;
+    background: #102844 !important;
+    color: #fff !important;
+    font-size: 0.9rem !important;
+  }
+
+  body .detail-price.price--structured .price-benefit {
+    padding: 8px 12px !important;
+    background: #eef2f5 !important;
+    color: #526174 !important;
+    font-size: 0.9rem !important;
+  }
+
+  body :is(#productGrid, .category-product-grid) .product-card.is-sofa-card .price--structured {
+    min-height: 0 !important;
+    display: grid !important;
+    align-items: start !important;
+    gap: 4px !important;
+    overflow: visible !important;
+  }
+
+  body :is(#productGrid, .category-product-grid) .product-card.is-sofa-card .price-top {
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 5px !important;
+  }
+
+  body :is(#productGrid, .category-product-grid) .product-card.is-sofa-card :is(.price-old, .price-current) {
+    display: block !important;
+    color: #102844 !important;
+    font-size: clamp(14px, 4.4vw, 18px) !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  body :is(#productGrid, .category-product-grid) .product-card.is-sofa-card .price-old {
+    color: #718197 !important;
+  }
+
+  body :is(#productGrid, .category-product-grid) .product-card.is-sofa-card .price-discount,
+  body :is(#productGrid, .category-product-grid) .product-card.is-sofa-card .price-benefit {
+    display: block !important;
+    padding: 4px 6px !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
+  }
+
+  body :is(#productGrid, .category-product-grid) .product-card.is-sofa-card .product-footer {
+    min-height: 112px !important;
+    grid-template-rows: auto 42px !important;
+    align-content: end !important;
+    gap: 8px !important;
+    overflow: visible !important;
+  }
 }

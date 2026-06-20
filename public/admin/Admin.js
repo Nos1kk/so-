@@ -63,22 +63,12 @@ let adminSearchTimer = 0;
     return localPreview ? `http://127.0.0.1:8000${path}` : path;
   }
 
-  async function requestEmailCode(email) {
-    const response = await fetch(authApiUrl("/api/auth/request-email"), {
+  async function passwordLogin(email, password) {
+    const response = await fetch(authApiUrl("/api/auth/password-login"), {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email })
-    });
-    return response.json();
-  }
-
-  async function verifyEmailCode(email, code) {
-    const response = await fetch(authApiUrl("/api/auth/verify-email"), {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code })
+      body: JSON.stringify({ email, password })
     });
     return response.json();
   }
@@ -188,22 +178,19 @@ let adminSearchTimer = 0;
     const wrap = el("section", "sona-admin-login");
     const form = el("form", "");
     const input = el("input");
-    const codeInput = el("input");
-    const button = el("button", "", "Получить код");
+    const passwordInput = el("input");
+    const button = el("button", "", "Войти");
     const hint = el("p", "sona-admin-muted", `Доступ разрешён только администратору ${ADMIN_EMAIL}.`);
-    let codeSent = false;
-    let loginEmail = ADMIN_EMAIL;
 
     input.type = "email";
     input.placeholder = ADMIN_EMAIL;
     input.value = ADMIN_EMAIL;
     input.autocomplete = "email";
-    codeInput.inputMode = "numeric";
-    codeInput.placeholder = "000000";
-    codeInput.maxLength = 6;
-    codeInput.hidden = true;
+    passwordInput.type = "password";
+    passwordInput.placeholder = "Пароль";
+    passwordInput.autocomplete = "current-password";
     button.type = "submit";
-    form.append(input, codeInput, button);
+    form.append(input, passwordInput, button);
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const email = cleanEmail(input.value);
@@ -213,36 +200,24 @@ let adminSearchTimer = 0;
         return;
       }
 
-      if (!codeSent) {
-        const result = await requestEmailCode(email).catch(() => null);
-        if (!result?.ok) {
-          hint.textContent = "Не удалось отправить письмо с кодом.";
-          return;
-        }
-        loginEmail = email;
-        codeSent = true;
-        codeInput.hidden = false;
-        button.textContent = "Войти";
-        hint.textContent = "Код отправлен на почту администратора.";
-        codeInput.focus();
-        return;
-      }
-
-      const code = window.SonaSecurity?.sanitizeAuthCode(codeInput.value) || codeInput.value.trim();
-      const result = await verifyEmailCode(loginEmail, code).catch(() => null);
+      button.disabled = true;
+      button.textContent = "Проверяем...";
+      const result = await passwordLogin(email, passwordInput.value).catch(() => null);
+      button.disabled = false;
+      button.textContent = "Войти";
       if (!result?.ok || result.account?.role !== "admin") {
-        hint.textContent = "Неверный код администратора.";
-        codeInput.focus();
+        hint.textContent = "Неверная почта или пароль администратора.";
+        passwordInput.focus();
         return;
       }
 
       await window.SonaStore.refresh().catch(() => null);
       window.SonaStore.update((data) => {
-        data.admin = { ...(data.admin || {}), isAuthenticated: true, email: loginEmail };
+        data.admin = { ...(data.admin || {}), isAuthenticated: true, email };
         data.profile = {
           ...(data.profile || {}),
           isActive: true,
-          email: loginEmail,
+          email,
           role: "admin",
           name: data.profile?.name || "Администратор SONA",
           registeredAt: result.account?.createdAt || data.profile?.registeredAt || new Date().toISOString()

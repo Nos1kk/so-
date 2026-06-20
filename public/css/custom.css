@@ -1411,6 +1411,55 @@ img {
   white-space: nowrap;
 }
 
+.price--structured {
+  width: 100%;
+  display: grid;
+  align-items: start;
+  gap: 5px;
+}
+
+.price-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.price--structured .price-old,
+.price--structured .price-current {
+  color: var(--blue-deep);
+  font-size: 1.28rem;
+  font-weight: 1000;
+  line-height: 1.08;
+}
+
+.price--structured .price-old {
+  color: #718197;
+  text-decoration-thickness: 2px;
+}
+
+.price--structured .price-discount,
+.price--structured .price-benefit {
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.price--structured .price-discount {
+  flex: 0 0 auto;
+  background: var(--blue-deep);
+  color: #fff;
+}
+
+.price--structured .price-benefit {
+  background: #eef2f5;
+  color: #526174;
+}
+
 .service-note,
 .delivery-note {
   color: var(--muted);
@@ -1629,6 +1678,34 @@ img {
   background: #f8f8f7;
 }
 
+.detail-stage-shell {
+  position: relative;
+  min-width: 0;
+  align-self: start;
+}
+
+.detail-stage {
+  width: 100%;
+  touch-action: pan-y;
+  will-change: transform;
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.detail-stage.is-dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.detail-favorite-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 14;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 24px rgba(16, 40, 68, 0.16);
+  backdrop-filter: blur(10px);
+}
+
 .detail-info {
   display: grid;
   align-content: start;
@@ -1743,6 +1820,43 @@ img {
 .detail-price .detail-benefit {
   background: #eef2f5;
   color: #526174;
+}
+
+.detail-price.price--structured {
+  width: min(100%, 430px);
+  display: grid;
+  align-items: start;
+  gap: 9px;
+}
+
+.detail-price.price--structured .price-top {
+  width: 100%;
+}
+
+.detail-price.price--structured .price-old,
+.detail-price.price--structured .price-current {
+  color: var(--blue-deep);
+  font-size: clamp(2.1rem, 4vw, 3.2rem);
+  font-weight: 1000;
+  line-height: 1;
+}
+
+.detail-price.price--structured .price-old {
+  color: #64758d;
+}
+
+.detail-price.price--structured .price-discount {
+  padding: 8px 12px;
+  background: var(--blue-deep);
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.detail-price.price--structured .price-benefit {
+  padding: 8px 12px;
+  background: #eef2f5;
+  color: #526174;
+  font-size: 0.95rem;
 }
 
 .detail-actions {

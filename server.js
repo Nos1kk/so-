@@ -18,7 +18,7 @@ const STORE_FILE = path.join(DATA_DIR, "store.json");
 const ACCOUNTS_DIR = path.join(DATA_DIR, "accounts");
 const ACCOUNTS_FILE = path.join(ACCOUNTS_DIR, "accounts.json");
 const SESSIONS_FILE = path.join(ACCOUNTS_DIR, "sessions.json");
-const ADMIN_EMAIL = normalizeEmail(process.env.SONA_ADMIN_EMAIL || "kcel046@gmail.com");
+const ADMIN_EMAIL = "kcel046@gmail.com";
 const AUTH_SECRET = resolveAuthSecret();
 const emailCodes = new Map();
 const telegramLoginCodes = new Map();
@@ -38,7 +38,11 @@ const SESSION_COOKIE = "sona_session";
 const PASSWORD_SCRYPT = Object.freeze({ N: 16384, r: 8, p: 1, keylen: 64, maxmem: 64 * 1024 * 1024 });
 const DUMMY_PASSWORD_SALT = Buffer.alloc(16, 0x53);
 const DUMMY_PASSWORD_HASH = crypto.scryptSync("sona-invalid-password", DUMMY_PASSWORD_SALT, PASSWORD_SCRYPT.keylen, PASSWORD_SCRYPT);
+const ADMIN_PASSWORD_VERSION = "admin-password-20260621-v1";
+const ADMIN_PASSWORD_HASH = "scrypt$16384$8$1$rZv_NWOYY4yBvVnzoPJ-Ug$pCyzvs15cGESnnsRL47UHHg13E8DjQJ_e9QybbaxIJpt9lL4OAOeLxV80v4Xs_u3Qqb3RpqnwRRgtF85rZz4nw";
+const adminCredentialsChanged = ensureAdminCredentials();
 loadPersistentSessions();
+if (adminCredentialsChanged) revokeSessionsForEmail(ADMIN_EMAIL);
 const securityCleanupTimer = setInterval(() => {
   const now = Date.now();
   let sessionsChanged = false;
@@ -267,6 +271,61 @@ function resolveAuthSecret() {
       throw new Error(`Unable to initialize persistent authentication secret: ${error.message}`);
     }
     return crypto.randomBytes(48).toString("base64url");
+  }
+}
+
+function ensureAdminCredentials() {
+  try {
+    fs.mkdirSync(ACCOUNTS_DIR, { recursive: true });
+    let state = { accounts: [] };
+    try {
+      const parsed = JSON.parse(fs.readFileSync(ACCOUNTS_FILE, "utf8"));
+      state.accounts = Array.isArray(parsed.accounts) ? parsed.accounts : [];
+    } catch (readError) {
+      if (readError.code !== "ENOENT") throw readError;
+    }
+
+    const now = new Date().toISOString();
+    const existing = state.accounts.find((account) => normalizeEmail(account.email) === ADMIN_EMAIL);
+    if (existing?.adminCredentialVersion === ADMIN_PASSWORD_VERSION && existing.passwordHash) {
+      if (existing.role !== "admin") {
+        existing.role = "admin";
+      } else {
+        return false;
+      }
+    }
+
+    const account = {
+      ...(existing || {}),
+      id: existing?.id || accountIdFor(ADMIN_EMAIL),
+      email: ADMIN_EMAIL,
+      name: existing?.name || "Администратор SONA",
+      role: "admin",
+      status: "active",
+      createdAt: existing?.createdAt || now,
+      lastLoginAt: existing?.lastLoginAt || "",
+      passwordHash: ADMIN_PASSWORD_HASH,
+      passwordChangedAt: now,
+      adminCredentialVersion: ADMIN_PASSWORD_VERSION
+    };
+    state.accounts = [
+      ...state.accounts.filter((item) => normalizeEmail(item.email) !== ADMIN_EMAIL),
+      account
+    ].sort((a, b) => String(a.email).localeCompare(String(b.email)));
+
+    const tempPath = `${ACCOUNTS_FILE}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
+    fs.writeFileSync(tempPath, JSON.stringify({ updatedAt: now, accounts: state.accounts }, null, 2), {
+      encoding: "utf8",
+      mode: 0o600
+    });
+    fs.renameSync(tempPath, ACCOUNTS_FILE);
+    return true;
+  } catch (error) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(`Unable to initialize administrator account: ${error.message}`);
+    }
+    console.warn("Unable to initialize administrator account:", error.message);
+    return false;
   }
 }
 

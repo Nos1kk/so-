@@ -533,7 +533,8 @@
       const checked = window.SonaSecurity?.validateAuthEmail(raw) || { ok: false, email: "", message: "Введите email" };
       if (!isAdminShortcut && !checked.ok) return { ok: false, message: checked.message };
       const email = isAdminShortcut ? raw : checked.email;
-      if (!isAdminShortcut && /@(gmail\.com|googlemail\.com)$/i.test(email)) {
+      const adminEmail = String(window.SonaAdmin?.ADMIN_EMAIL || "").trim().toLowerCase();
+      if (!isAdminShortcut && email !== adminEmail && /@(gmail\.com|googlemail\.com)$/i.test(email)) {
         return { ok: false, message: "Gmail-почта для входа недоступна. Используйте другую почту." };
       }
       return { ok: true, email };

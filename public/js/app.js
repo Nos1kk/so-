@@ -398,6 +398,31 @@
     return product.priceMode === "from" ? `от ${money(product.price)}` : money(product.price);
   }
 
+  function productDiscountPercent(product) {
+    if (!Number(product?.oldPrice) || !Number(product?.price)) return 0;
+    return Number(product.discountPercent) || Math.round((1 - product.price / product.oldPrice) * 100);
+  }
+
+  function createStructuredPrice(product, detail = false) {
+    const root = createElement("div", detail ? "detail-price price--structured price--detail" : "price price--structured");
+    const current = createElement("strong", "price-current", productPriceLabel(product));
+    const discount = productDiscountPercent(product);
+
+    if (product.oldPrice) {
+      const top = createElement("div", "price-top");
+      const oldPrice = createElement("del", "price-old", money(product.oldPrice));
+      const discountBadge = createElement("span", "price-discount", `−${discount}%`);
+      const benefit = Math.max(0, Number(product.benefit) || (Number(product.oldPrice) - Number(product.price)));
+      top.append(oldPrice, discountBadge);
+      root.append(top, current);
+      if (benefit) root.append(createElement("span", "price-benefit", `Выгода ${money(benefit)}`));
+      return root;
+    }
+
+    root.append(current);
+    return root;
+  }
+
   function displayText(value) {
     return window.SonaText?.fix(value) || String(value ?? "");
   }
@@ -1560,8 +1585,7 @@
     const meta = createElement("div", "product-meta");
     const swatches = createElement("div", "swatches");
     const footer = createElement("div", "product-footer");
-    const price = createElement("div", "price");
-    const priceStrong = createElement("strong", "", productPriceLabel(product));
+    const price = createStructuredPrice(product);
     const delivery = createElement("div", "delivery-note", product.deliveryDays <= 3 ? "доставим быстро" : `доставка от ${product.deliveryDays} дней`);
     const serviceNote = createElement("div", "service-note", product.category === "услуга" ? "согласуем детали после заявки" : "проверим наличие перед доставкой");
     const defaultCartLabel = product.category === "услуга" ? "Заказать" : "В корзину";
@@ -1573,7 +1597,7 @@
     addButton.append(createSvgIcon("cart", "product-cart-icon"));
     setCartButtonState(addButton, isInCart);
 
-    if (product.oldPrice) {
+    if (product.oldPrice && !isSofaProduct(product)) {
       const discount = product.discountPercent || Math.round((1 - product.price / product.oldPrice) * 100);
       tagWrap.append(createElement("span", "tag discount-tag", `−${discount}%`));
     }
@@ -1612,14 +1636,6 @@
       swatch.style.background = color;
       swatches.append(swatch);
     });
-
-    if (product.oldPrice) {
-      const oldPrice = createElement("del", "", money(product.oldPrice));
-      const economy = createElement("span", "economy", `экономия ${money(product.oldPrice - product.price)}`);
-      price.append(priceStrong, oldPrice, economy);
-    } else {
-      price.append(priceStrong);
-    }
 
     addButton.type = "button";
     addButton.addEventListener("click", (event) => {
@@ -1731,11 +1747,13 @@
   function renderProductDetail(product) {
     const data = store.read();
     const isInCart = Number(data.cart?.[product.id]) > 0;
-    const discount = product.discountPercent || (product.oldPrice ? Math.round((1 - product.price / product.oldPrice) * 100) : 0);
+    const isFavorite = (data.favorites || []).includes(product.id);
     const main = createElement("div", "detail-main");
     const gallery = createElement("div", "detail-gallery");
     const thumbList = createElement("div", "detail-thumbs");
+    const stageShell = createElement("div", "detail-stage-shell");
     const stage = createElement("div", "detail-stage");
+    const favoriteButton = createElement("button", "favorite-button detail-favorite-button");
     const info = createElement("div", "detail-info");
     const close = createElement("button", "detail-close");
     const titleRow = createElement("div", "detail-title-row");
@@ -1743,8 +1761,10 @@
     const title = createElement("h2", "", product.name);
     const code = createElement("span", "", `#${product.id.toUpperCase()}`);
     const rating = createElement("div", "detail-rating", reviewLabel(product.id));
-    const warranty = createElement("span", "detail-warranty", product.category === "услуга" ? "договор и этапы работ" : "гарантия 3 года");
-    const price = createElement("div", "detail-price");
+    const warranty = createElement("span", "detail-warranty", product.category === "услуга"
+      ? "договор и этапы работ"
+      : (isSofaProduct(product) ? "гарантия 10 лет" : "гарантия 3 года"));
+    const price = createStructuredPrice(product, true);
     const actions = createElement("div", "detail-actions");
     const addButton = createElement("button", "primary-button", product.category === "услуга" ? "Заказать услугу" : "В корзину");
     const buyButton = createElement("button", "secondary-action", "Купить в 1 клик");
@@ -1762,8 +1782,23 @@
     close.append(createSvgIcon("close", "detail-close-icon"));
     close.addEventListener("click", closeProduct);
 
-    function setGallery(index) {
-      const item = fallbackGallery[index];
+    favoriteButton.type = "button";
+    favoriteButton.dataset.favoriteProductId = product.id;
+    favoriteButton.setAttribute("aria-label", isFavorite ? "Удалить из избранного" : "Добавить в избранное");
+    favoriteButton.classList.toggle("is-active", isFavorite);
+    favoriteButton.append(createSvgIcon("heart", "favorite-icon"));
+    favoriteButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleFavorite(product.id);
+    });
+
+    let activeGalleryIndex = 0;
+
+    function setGallery(index, direction = 0) {
+      const nextIndex = (index + fallbackGallery.length) % fallbackGallery.length;
+      const item = fallbackGallery[nextIndex];
+      activeGalleryIndex = nextIndex;
       if (item?.src) {
         const holder = createElement("div", "product-placeholder has-image");
         const image = document.createElement(isGalleryVideo(item) ? "video" : "img");
@@ -1777,6 +1812,7 @@
           image.alt = displayText(item.alt || product.name || "");
           image.loading = "eager";
           image.decoding = "async";
+          image.draggable = false;
         }
         if (isSofaProduct(product)) {
           holder.classList.add("is-sofa-image");
@@ -1796,10 +1832,27 @@
         stage.replaceChildren(createProductPlaceholder(product, item?.label || "Фото товара"));
       }
       thumbList.querySelectorAll(".detail-thumb").forEach((button, buttonIndex) => {
-        button.classList.toggle("is-active", buttonIndex === index);
+        button.classList.toggle("is-active", buttonIndex === nextIndex);
       });
-      const activeThumb = thumbList.querySelectorAll(".detail-thumb")[index];
+      const activeThumb = thumbList.querySelectorAll(".detail-thumb")[nextIndex];
       activeThumb?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest", inline: "center" });
+
+      if (direction && !reduceMotion && typeof stage.animate === "function") {
+        stage.animate([
+          { opacity: 0.62, transform: `translate3d(${direction * 26}px, 0, 0) scale(0.992)` },
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" }
+        ], {
+          duration: 360,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)"
+        });
+      }
+
+      [-1, 1].forEach((offset) => {
+        const adjacent = fallbackGallery[(nextIndex + offset + fallbackGallery.length) % fallbackGallery.length];
+        if (!adjacent?.src || isGalleryVideo(adjacent)) return;
+        const preload = new Image();
+        preload.src = safeImageSrc(adjacent.src);
+      });
     }
 
     fallbackGallery.forEach((item, index) => {
@@ -1826,27 +1879,69 @@
         thumb.textContent = item?.label || (index === 0 ? "Фото" : `Вид ${index + 1}`);
       }
       if (index === 0) thumb.classList.add("is-active");
-      thumb.addEventListener("click", () => setGallery(index));
+      thumb.addEventListener("click", () => setGallery(index, index > activeGalleryIndex ? 1 : -1));
       thumbList.append(thumb);
     });
 
+    let swipePointerId = null;
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let swipeDeltaX = 0;
+    let horizontalSwipe = false;
+
+    const finishSwipe = (event) => {
+      if (swipePointerId === null || event.pointerId !== swipePointerId) return;
+      try {
+        if (stage.hasPointerCapture(swipePointerId)) stage.releasePointerCapture(swipePointerId);
+      } catch (captureError) {
+        // The pointer may already be released by the browser.
+      }
+      stage.classList.remove("is-dragging");
+      stage.style.transform = "";
+      const shouldChange = horizontalSwipe && Math.abs(swipeDeltaX) >= Math.min(72, stage.clientWidth * 0.16);
+      const direction = swipeDeltaX < 0 ? 1 : -1;
+      swipePointerId = null;
+      horizontalSwipe = false;
+      if (shouldChange && fallbackGallery.length > 1) {
+        setGallery(activeGalleryIndex + direction, direction);
+      }
+    };
+
+    stage.addEventListener("pointerdown", (event) => {
+      if (fallbackGallery.length < 2 || event.button > 0 || event.target.closest("video")) return;
+      swipePointerId = event.pointerId;
+      swipeStartX = event.clientX;
+      swipeStartY = event.clientY;
+      swipeDeltaX = 0;
+      horizontalSwipe = false;
+      try {
+        stage.setPointerCapture?.(event.pointerId);
+      } catch (captureError) {
+        // Pointer capture is optional on older mobile browsers.
+      }
+    });
+    stage.addEventListener("pointermove", (event) => {
+      if (event.pointerId !== swipePointerId) return;
+      const deltaX = event.clientX - swipeStartX;
+      const deltaY = event.clientY - swipeStartY;
+      if (!horizontalSwipe && Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 8) return;
+      if (Math.abs(deltaX) < 8) return;
+      horizontalSwipe = true;
+      swipeDeltaX = deltaX;
+      event.preventDefault();
+      stage.classList.add("is-dragging");
+      stage.style.transform = `translate3d(${deltaX * 0.34}px, 0, 0)`;
+    });
+    stage.addEventListener("pointerup", finishSwipe);
+    stage.addEventListener("pointercancel", finishSwipe);
+    stage.addEventListener("dragstart", (event) => event.preventDefault());
+
     setGallery(0);
-    gallery.append(thumbList, stage);
+    stageShell.append(stage, favoriteButton);
+    gallery.append(thumbList, stageShell);
 
     titleWrap.append(title, code);
     titleRow.append(titleWrap, close);
-
-    const priceMain = createElement("div", "detail-price-main");
-    const priceMeta = createElement("div", "detail-price-meta");
-    priceMain.append(createElement("strong", "", productPriceLabel(product)));
-    if (product.oldPrice) {
-      priceMeta.append(
-        createElement("span", "detail-discount", `−${discount}%`),
-        createElement("del", "", money(product.oldPrice))
-      );
-    }
-    if (product.benefit) priceMeta.append(createElement("span", "detail-benefit", `Выгода ${money(product.benefit)}`));
-    price.append(priceMain, priceMeta);
 
     addButton.type = "button";
     addButton.classList.add("product-cart-button");
