@@ -4077,3 +4077,39 @@
     grid-column: auto !important;
   }
 }
+
+/* Keep the replacement category renders seamless on their white canvases. */
+@media (max-width: 760px) {
+  body .catalog-hub-card--hero,
+  body .catalog-hub-card--bed,
+  body .catalog-hub-card--chair,
+  body .catalog-hub-card--hero .catalog-hub-photo,
+  body .catalog-hub-card--bed .catalog-hub-photo,
+  body .catalog-hub-card--chair .catalog-hub-photo,
+  body .catalog-hub-card--hero .catalog-hub-photo img,
+  body .catalog-hub-card--bed .catalog-hub-photo img,
+  body .catalog-hub-card--chair .catalog-hub-photo img {
+    background: #ffffff !important;
+  }
+
+  body .catalog-hub-card--bed {
+    --category-photo-shift-y: 8px;
+    --category-photo-scale: 1.48;
+    --category-photo-active-scale: 1.53;
+  }
+
+  body .catalog-hub-card--chair {
+    --category-photo-shift-y: 6px;
+    --category-photo-scale: 1.45;
+    --category-photo-active-scale: 1.5;
+  }
+
+  body :is(.catalog-hub-card--bed, .catalog-hub-card--chair) .catalog-hub-photo img {
+    padding: 0 !important;
+    transform: translateY(var(--category-photo-shift-y)) scale(var(--category-photo-scale)) !important;
+  }
+
+  body :is(.catalog-hub-card--bed, .catalog-hub-card--chair):is(:hover, :focus-visible, :active) .catalog-hub-photo img {
+    transform: translateY(var(--category-photo-shift-y)) scale(var(--category-photo-active-scale)) !important;
+  }
+}
