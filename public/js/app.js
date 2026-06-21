@@ -13,6 +13,7 @@
     "accent-lagoon-sofa",
     "compact-nova-sofa"
   ]);
+  const FEATURED_HOME_PRODUCT_IDS = ["sona-paula", "sona-boston"];
   const SOFA_IMAGE_BY_NAME = {
     "аляска мд": "assets/фотографии диванов/аляска МД бф.png",
     "аляска": "assets/фотографии диванов/аляска бф.png",
@@ -1164,14 +1165,15 @@
       .filter((product) => product.oldPrice)
       .sort((a, b) => ((b.oldPrice || 0) - (b.price || 0)) - ((a.oldPrice || 0) - (a.price || 0)))
       .slice(0, 4);
-    const popular = visible
-      .slice()
-      .sort((a, b) => {
-        const aHit = (a.tags || []).some((tag) => displayText(tag).toLowerCase() === "хит") ? 1 : 0;
-        const bHit = (b.tags || []).some((tag) => displayText(tag).toLowerCase() === "хит") ? 1 : 0;
-        return bHit - aHit || (Number(b.reviews || b.reviewsCount) || 0) - (Number(a.reviews || a.reviewsCount) || 0);
-      })
-      .slice(0, 2);
+    const popular = FEATURED_HOME_PRODUCT_IDS
+      .map((id) => visible.find((product) => product.id === id))
+      .filter(Boolean);
+    if (popular.length < 2) {
+      visible
+        .filter((product) => isSofaProduct(product) && !popular.some((featured) => featured.id === product.id))
+        .slice(0, 2 - popular.length)
+        .forEach((product) => popular.push(product));
+    }
     const newItems = visible
       .filter((product) => (product.tags || []).some((tag) => displayText(tag).toLowerCase() === "новинка") || ["Диваны", "Услуги"].includes(product.marketSection))
       .slice(0, 2);
