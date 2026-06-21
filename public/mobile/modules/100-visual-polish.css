@@ -3816,3 +3816,205 @@
     overflow: hidden !important;
   }
 }
+
+/* Mobile editorial layout for the wide "Чаще выбирают" cards. */
+@media (max-width: 760px) {
+  body .home-picks-group .product-card {
+    position: relative !important;
+    height: 224px !important;
+    min-height: 224px !important;
+    grid-template-columns: minmax(0, 50%) minmax(0, 50%) !important;
+    grid-template-rows: 224px !important;
+  }
+
+  body .home-picks-group .product-media {
+    position: static !important;
+    width: 100% !important;
+    height: 224px !important;
+    min-height: 224px !important;
+    padding: 8px 5px 14px !important;
+    overflow: visible !important;
+  }
+
+  body .home-picks-group .product-placeholder,
+  body .home-picks-group .product-placeholder.has-image {
+    width: 100% !important;
+    height: 202px !important;
+    min-height: 202px !important;
+    overflow: hidden !important;
+  }
+
+  body .home-picks-group .product-placeholder.has-image img {
+    width: 112% !important;
+    max-width: none !important;
+    height: 112% !important;
+    margin: -6% !important;
+    padding: 0 !important;
+    object-fit: contain !important;
+    object-position: center !important;
+    transform: none !important;
+  }
+
+  body .hits-showcase .home-picks-group .product-card::after {
+    left: 10px !important;
+    top: 10px !important;
+    min-height: 23px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+  }
+
+  body .hits-showcase .home-picks-group .product-tags {
+    left: 10px !important;
+    top: 39px !important;
+    max-width: 76px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+
+  body .hits-showcase .home-picks-group .product-tags .tag {
+    min-height: 22px !important;
+    padding: 0 7px !important;
+    font-size: 9.5px !important;
+  }
+
+  body .home-picks-group .favorite-button {
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 50% !important;
+    z-index: 10 !important;
+  }
+
+  body .home-picks-group .product-body {
+    height: 224px !important;
+    min-height: 224px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: 17px 40px 18px minmax(0, 1fr) !important;
+    align-content: start !important;
+    gap: 5px !important;
+    padding: 11px 10px 11px 8px !important;
+    overflow: hidden !important;
+  }
+
+  body .home-picks-group .product-top-line {
+    grid-row: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    min-width: 0 !important;
+    padding-right: 42px !important;
+  }
+
+  body .home-picks-group .product-brand {
+    display: none !important;
+  }
+
+  body .home-picks-group .rating {
+    color: #f39a16 !important;
+    font-size: 9.5px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+  }
+
+  body .home-picks-group .product-title-row {
+    grid-row: 2 !important;
+    min-width: 0 !important;
+    padding-right: 42px !important;
+  }
+
+  body .home-picks-group .product-title-row h3,
+  body .home-picks-group .product-card h3 {
+    min-height: 36px !important;
+    max-height: 36px !important;
+    display: -webkit-box !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    color: #10223d !important;
+    font-size: 15px !important;
+    font-weight: 950 !important;
+    line-height: 1.08 !important;
+    white-space: normal !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+  }
+
+  body .home-picks-group .product-meta {
+    grid-row: 3 !important;
+    display: block !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+    overflow: hidden !important;
+    color: #8a98aa !important;
+    font-size: 11px !important;
+    line-height: 18px !important;
+  }
+
+  body .home-picks-group .product-meta span {
+    display: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  body .home-picks-group .product-meta span:first-child {
+    display: inline !important;
+  }
+
+  body .home-picks-group :is(.swatches, .service-note, .delivery-note) {
+    display: none !important;
+  }
+
+  body .home-picks-group .product-footer {
+    position: static !important;
+    inset: auto !important;
+    grid-row: 4 !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: 26px 36px !important;
+    align-content: end !important;
+    align-self: stretch !important;
+    gap: 10px !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    transform: none !important;
+  }
+
+  body .home-picks-group .price--compact {
+    min-height: 26px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0 !important;
+    overflow: visible !important;
+  }
+
+  body .home-picks-group .price--compact .price-current {
+    color: #102844 !important;
+    font-size: 20px !important;
+    font-weight: 1000 !important;
+    line-height: 1 !important;
+  }
+
+  body .home-picks-group .price--compact :is(.price-discount, .price-old) {
+    display: none !important;
+  }
+
+  body .home-picks-group .product-cart-button {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 12px !important;
+    border-radius: 999px !important;
+    font-size: 11.5px !important;
+    box-shadow: 0 8px 18px rgba(16, 40, 68, 0.17) !important;
+  }
+}
