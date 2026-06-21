@@ -40,6 +40,8 @@
     "томас": "assets/фотографии диванов/томас бф.png"
   };
   const SOFA_IMAGE_BY_ID = {
+    "sona-broadway-2": "assets/фотографии диванов/бродвей 2 бф.png",
+    "sona-charlie": "assets/фотографии диванов/чарли бф.png",
     "sona-mark-large": "assets/фотографии диванов/марк бф.png",
     "sona-mark-compact": "assets/фотографии диванов/марк маленький бф.png"
   };
