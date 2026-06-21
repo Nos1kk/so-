@@ -4078,20 +4078,8 @@
   }
 }
 
-/* Keep the replacement category renders seamless on their white canvases. */
+/* Scale the transparent replacement renders without changing the cards. */
 @media (max-width: 760px) {
-  body .catalog-hub-card--hero,
-  body .catalog-hub-card--bed,
-  body .catalog-hub-card--chair,
-  body .catalog-hub-card--hero .catalog-hub-photo,
-  body .catalog-hub-card--bed .catalog-hub-photo,
-  body .catalog-hub-card--chair .catalog-hub-photo,
-  body .catalog-hub-card--hero .catalog-hub-photo img,
-  body .catalog-hub-card--bed .catalog-hub-photo img,
-  body .catalog-hub-card--chair .catalog-hub-photo img {
-    background: #ffffff !important;
-  }
-
   body .catalog-hub-card--bed {
     --category-photo-shift-y: 8px;
     --category-photo-scale: 1.48;
