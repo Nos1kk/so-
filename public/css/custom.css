@@ -1315,17 +1315,6 @@ img {
   display: block;
 }
 
-.product-card .favorite-button {
-  right: 56px;
-}
-
-:is(#productGrid, .category-product-grid) .product-cart-button {
-  right: 100px;
-}
-
-:is(#productGrid, .category-product-grid) .product-tags {
-  max-width: calc(100% - 154px);
-}
 
 .product-body {
   display: grid;
@@ -1783,15 +1772,6 @@ img {
   backdrop-filter: blur(10px);
 }
 
-.lookbook-share {
-  right: 12px;
-  top: 12px;
-  z-index: 3;
-}
-
-.lookbook-favorite {
-  right: 56px;
-}
 
 .detail-info {
   display: grid;
@@ -8002,29 +7982,4 @@ img {
     transform: none !important;
     will-change: auto;
   }
-}
-
-/* Final product-card control positions after compact catalog overrides. */
-.product-card .product-share-button {
-  right: 12px;
-}
-
-.product-card .favorite-button {
-  right: 56px;
-}
-
-:is(#productGrid, .category-product-grid) .product-cart-button {
-  right: 100px;
-}
-
-:is(#productGrid, .category-product-grid) .product-tags {
-  max-width: calc(100% - 154px);
-}
-
-.lookbook-share {
-  right: 12px;
-}
-
-.lookbook-favorite {
-  right: 56px;
 }

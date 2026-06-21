@@ -44,6 +44,33 @@
     "sona-mark-compact": "assets/фотографии диванов/марк маленький бф.png"
   };
   const SOFA_LAYOUTS_DIR = "assets/sofa-layouts";
+  const SOFA_INTERIORS_DIR = "assets/sofa-interiors";
+  const SOFA_INTERIOR_BY_ID = {
+    "sona-alaska-md": "аляска мд.png",
+    "sona-alaska": "аляска.png",
+    "sona-andreas": "андреас.png",
+    "sona-boston": "бостон.png",
+    "sona-broadway-2": "бродвей 2.png",
+    "sona-valencia": "валенсия.png",
+    "sona-victoria": "виктория.png",
+    "sona-hudson": "гудзон.png",
+    "sona-dublin": "дублин.png",
+    "sona-infinity": "инфинити.png",
+    "sona-kansas-8-md": "канзас 8 мд.png",
+    "sona-malta-k": "мальта к.png",
+    "sona-mark-large": "марк большой.png",
+    "sona-milan": "милан.png",
+    "sona-montana": "монтана.png",
+    "sona-naples-md-white": "неаполь мд белый.png",
+    "sona-naples-md": "неаполь мд.png",
+    "sona-nice": "ницца.png",
+    "sona-numo": "нумо.png",
+    "sona-paula": "паула.png",
+    "sona-rhine": "рейн.png",
+    "sona-seattle-m": "сиэтл м.png",
+    "sona-thomas": "томас.png",
+    "sona-charlie": "чарли.png"
+  };
   const SOFA_LAYOUTS_BY_ID = {
     "sona-alaska-md": ["аляска мд.png", "аляска мд 1.png"],
     "sona-alaska": ["аляска.png"],
@@ -56,7 +83,7 @@
     "sona-infinity": ["инфинити.png"],
     "sona-malta-k": ["мальта к.png", "мальта к 1.png"],
     "sona-mark-compact": ["марк (3).png"],
-    "sona-mark-large": ["марк большой.png", "марк большой 1.png"],
+    "sona-mark-large": ["марк большой 1.png"],
     "sona-milan": ["милан (4).png"],
     "sona-naples-md": ["неаполь мд.png", "неаполь мд 1.png", "неаполь мд 2.png"],
     "sona-naples-md-white": ["неаполь мд белый.png", "неаполь мд белый 1.png"],
@@ -103,7 +130,19 @@
       alt: `${product.name}: вариант раскладки ${index + 1}`,
       main: false
     }));
+    const interiorFileName = SOFA_INTERIOR_BY_ID[product.id] || "";
+    const interiorImages = interiorFileName ? [{
+      id: "interior",
+      src: `${SOFA_INTERIORS_DIR}/${interiorFileName}`,
+      alt: `${product.name} в интерьере`,
+      main: false
+    }] : [];
     const galleryMainImage = image || (layoutImages.length ? "assets/source/диван в категории-no-bg-preview (carve.photos).png" : "");
+    const galleryImages = [
+      ...(galleryMainImage ? [{ id: "main", src: galleryMainImage, alt: product.name, main: true }] : []),
+      ...layoutImages,
+      ...interiorImages
+    ];
 
     return {
       brand: "SONA",
@@ -124,12 +163,7 @@
       ].filter(Boolean),
       ...product,
       image,
-      ...(galleryMainImage ? {
-        gallery: [
-          { id: "main", src: galleryMainImage, alt: product.name, main: true },
-          ...layoutImages
-        ]
-      } : {})
+      ...(galleryImages.length ? { gallery: galleryImages } : {})
     };
   });
 
@@ -1263,7 +1297,6 @@
     const number = createElement("span", "lookbook-number", String(index + 1).padStart(2, "0"));
     const collection = createElement("span", "", product.marketSection || product.category || "SONA");
     const favorite = createElement("button", "lookbook-favorite");
-    const share = createProductShareButton(product, "lookbook-share");
     const title = createElement("h3", "", product.name);
     const price = createElement("div", "lookbook-price");
     const meta = createElement("div", "lookbook-meta");
@@ -1307,7 +1340,7 @@
     cart.addEventListener("click", () => toggleCart(product.id, cart));
     actions.append(details, cart);
     copy.append(top, title, price, meta, actions);
-    card.append(media, favorite, share, copy);
+    card.append(media, favorite, copy);
     return card;
   }
 
@@ -1662,7 +1695,6 @@
     const placeholder = createProductPlaceholder(product);
     const tagWrap = createElement("div", "product-tags");
     const favoriteButton = createElement("button", "favorite-button");
-    const shareButton = createProductShareButton(product);
     const body = createElement("div", "product-body");
     const topLine = createElement("div", "product-top-line");
     const brand = createElement("span", "product-brand", productCategoryLabel(product));
@@ -1734,7 +1766,7 @@
     topLine.append(brand, rating);
     titleRow.append(title);
     footer.append(price, serviceNote, delivery, addButton);
-    media.append(placeholder, tagWrap, favoriteButton, shareButton);
+    media.append(placeholder, tagWrap, favoriteButton);
     body.append(topLine, titleRow, meta, swatches, footer);
     card.append(media, body);
 
