@@ -18,7 +18,7 @@ const STORE_FILE = path.join(DATA_DIR, "store.json");
 const ACCOUNTS_DIR = path.join(DATA_DIR, "accounts");
 const ACCOUNTS_FILE = path.join(ACCOUNTS_DIR, "accounts.json");
 const SESSIONS_FILE = path.join(ACCOUNTS_DIR, "sessions.json");
-const ADMIN_EMAIL = "kcel046@gmail.com";
+const ADMIN_EMAIL = String(process.env.SONA_ADMIN_EMAIL || "kcel046@gmail.com").trim().toLowerCase();
 const AUTH_SECRET = resolveAuthSecret();
 const emailCodes = new Map();
 const telegramLoginCodes = new Map();
@@ -173,7 +173,7 @@ function setApiCorsHeaders(res) {
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Vary", "Origin");
   }
-  res.setHeader("Access-Control-Allow-Methods", "GET, PUT, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, PUT, POST, PATCH, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
 }
 
@@ -1752,6 +1752,160 @@ function handleAuthVerify(req, res) {
   });
 }
 
+function orderEmailLines(order) {
+  const paid = Math.max(0, Number(order.paidAmount) || 0);
+  const total = Math.max(0, Number(order.total) || 0);
+  return [
+    `Заказ: ${order.id}`,
+    `Клиент: ${order.profile?.name || "Не указано"}`,
+    `Телефон: ${order.profile?.phone || "Не указан"}`,
+    `Почта: ${order.profile?.email || "Не указана"}`,
+    `Адрес: ${order.profile?.address || "Будет уточнен"}`,
+    `Сумма: ${total.toLocaleString("ru-RU")} руб.`,
+    `Оплачено: ${paid.toLocaleString("ru-RU")} руб.`,
+    `Долг: ${Math.max(0, total - paid).toLocaleString("ru-RU")} руб.`,
+    "",
+    "Состав:",
+    ...(order.items || []).map((item) => `- ${item.name || item.id} x ${item.quantity || 1}`)
+  ];
+}
+
+function handleOrderCreate(req, res) {
+  const account = requireAuth(req, res);
+  if (!account) return;
+  if (account.role === "admin") {
+    sendJson(res, 403, { ok: false, error: "Customer account required" });
+    return;
+  }
+  readJsonBody(req, (bodyError, body) => {
+    const phone = String(body?.profile?.phone || "").replace(/[^\d+]/g, "").slice(0, 18);
+    const items = (Array.isArray(body?.items) ? body.items : []).slice(0, 50).map((item) => ({
+      id: String(item?.id || "").slice(0, 100),
+      name: String(item?.name || "").slice(0, 160),
+      quantity: Math.max(1, Math.min(20, Math.floor(Number(item?.quantity) || 1)))
+    })).filter((item) => item.id);
+    const total = Math.max(0, Math.min(100000000, Math.round(Number(body?.total) || 0)));
+    if (bodyError || !items.length || phone.replace(/\D/g, "").length < 10 || !isValidEmail(account.email) || !total) {
+      sendJson(res, 400, { ok: false, error: "Order requires a valid phone, email and items" });
+      return;
+    }
+    const now = new Date();
+    const order = {
+      id: `SONA-${Date.now()}-${crypto.randomInt(100, 1000)}`,
+      date: now.toLocaleDateString("ru-RU"),
+      createdAt: now.getTime(),
+      status: "pending",
+      total,
+      paidAmount: 0,
+      profile: {
+        name: String(body.profile?.name || account.name || "").slice(0, 80),
+        email: account.email,
+        phone,
+        userId: account.id,
+        address: String(body.profile?.address || "").slice(0, 200)
+      },
+      items
+    };
+    readStore((readError, current) => {
+      if (readError) {
+        sendJson(res, 500, { ok: false, error: "Store unavailable" });
+        return;
+      }
+      const next = current || {};
+      next.orders = [...(next.orders || []), order];
+      writeStore(next, (writeError) => {
+        if (writeError) {
+          sendJson(res, 500, { ok: false, error: "Order write failed" });
+          return;
+        }
+        sendSmtpMail({
+          to: ADMIN_EMAIL,
+          subject: `Новая заявка ${order.id}`,
+          text: ["Поступила новая заявка. Позвоните клиенту для уточнения и подтвердите заказ в админ-панели.", "", ...orderEmailLines(order)].join("\n")
+        }).then(() => sendJson(res, 201, { ok: true, order, notified: true }))
+          .catch(() => sendJson(res, 201, { ok: true, order, notified: false }));
+      });
+    });
+  }, { maxBytes: 100000 });
+}
+
+function handleOrderUpdate(req, res, orderId) {
+  const account = requireAuth(req, res);
+  if (!account || account.role !== "admin") {
+    if (account) sendJson(res, 403, { ok: false, error: "Admin access required" });
+    return;
+  }
+  readJsonBody(req, (bodyError, body) => {
+    if (bodyError) {
+      sendJson(res, 400, { ok: false, error: "Invalid order update" });
+      return;
+    }
+    readStore((readError, current) => {
+      const orders = current?.orders || [];
+      const index = orders.findIndex((order) => order.id === orderId);
+      if (readError || index < 0) {
+        sendJson(res, index < 0 ? 404 : 500, { ok: false, error: "Order not found" });
+        return;
+      }
+      const allowedStatuses = ["pending", "confirmed", "new", "processing", "paid", "assembling", "delivering", "arrived", "received", "completed", "canceled", "return"];
+      const previous = orders[index];
+      const status = allowedStatuses.includes(body.status) ? body.status : previous.status;
+      const paidAmount = Math.max(0, Math.min(Number(previous.total) || 0, Math.round(Number(body.paidAmount ?? previous.paidAmount) || 0)));
+      const updated = {
+        ...previous,
+        status,
+        paidAmount,
+        updatedAt: new Date().toISOString(),
+        ...(status === "confirmed" && previous.status !== "confirmed" ? { confirmedAt: new Date().toISOString() } : {}),
+        ...(status === "arrived" && previous.status !== "arrived" ? { arrivedAt: new Date().toISOString() } : {})
+      };
+      orders[index] = updated;
+      writeStore({ ...current, orders }, (writeError) => {
+        if (writeError) {
+          sendJson(res, 500, { ok: false, error: "Order write failed" });
+          return;
+        }
+        if (status === "arrived" && previous.status !== "arrived" && isValidEmail(updated.profile?.email)) {
+          sendSmtpMail({
+            to: updated.profile.email,
+            subject: `Ваш заказ ${updated.id} прибыл`,
+            text: [`Ваш заказ ${updated.id} прибыл.`, "Пожалуйста, подтвердите получение в личном кабинете после фактической передачи заказа.", "", ...orderEmailLines(updated)].join("\n")
+          }).then(() => sendJson(res, 200, { ok: true, order: updated, notified: true }))
+            .catch(() => sendJson(res, 200, { ok: true, order: updated, notified: false }));
+          return;
+        }
+        sendJson(res, 200, { ok: true, order: updated });
+      });
+    });
+  }, { maxBytes: 20000 });
+}
+
+function handleOrderReceive(req, res, orderId) {
+  const account = requireAuth(req, res);
+  if (!account) return;
+  if (account.role === "admin") {
+    sendJson(res, 403, { ok: false, error: "Customer account required" });
+    return;
+  }
+  readStore((readError, current) => {
+    const orders = current?.orders || [];
+    const index = orders.findIndex((order) => order.id === orderId && normalizeEmail(order.profile?.email) === normalizeEmail(account.email));
+    if (readError || index < 0) {
+      sendJson(res, index < 0 ? 404 : 500, { ok: false, error: "Order not found" });
+      return;
+    }
+    if (orders[index].status !== "arrived") {
+      sendJson(res, 409, { ok: false, error: "Order has not arrived yet" });
+      return;
+    }
+    orders[index] = { ...orders[index], status: "received", receivedAt: new Date().toISOString() };
+    writeStore({ ...current, orders }, (writeError) => {
+      if (writeError) sendJson(res, 500, { ok: false, error: "Order write failed" });
+      else sendJson(res, 200, { ok: true, order: orders[index] });
+    });
+  });
+}
+
 function handlePasswordSetup(req, res) {
   readJsonBody(req, async (error, body) => {
     if (error) {
@@ -2097,6 +2251,23 @@ function createServer() {
 
   if (req.method === "PUT" && req.url === "/api/store") {
     handleStorePut(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/orders") {
+    handleOrderCreate(req, res);
+    return;
+  }
+
+  const orderUpdateMatch = String(req.url || "").match(/^\/api\/orders\/([^/?]+)$/);
+  if (req.method === "PATCH" && orderUpdateMatch) {
+    handleOrderUpdate(req, res, orderUpdateMatch[1]);
+    return;
+  }
+
+  const orderReceiveMatch = String(req.url || "").match(/^\/api\/orders\/([^/?]+)\/receive$/);
+  if (req.method === "POST" && orderReceiveMatch) {
+    handleOrderReceive(req, res, orderReceiveMatch[1]);
     return;
   }
 

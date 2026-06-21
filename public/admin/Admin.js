@@ -232,7 +232,7 @@ let adminSearchTimer = 0;
 
   function homeView(context) {
     const { products, orders, completedOrders, revenue, users, reviews, support } = context;
-    const newOrders = orders.filter((order) => ["new", "processing"].includes(order.status)).length;
+    const newOrders = orders.filter((order) => ["pending", "new", "confirmed", "processing"].includes(order.status)).length;
     const canceled = orders.filter((order) => ["canceled", "return"].includes(order.status)).length;
     const avg = completedOrders.length ? revenue / completedOrders.length : 0;
     const unread = support.filter((message) => message.role === "user" && message.status === "new").length;
@@ -243,7 +243,7 @@ let adminSearchTimer = 0;
     const stats = el("section", "sona-admin-stats");
     stats.append(
       stat("Всего заказов", orders.length, `${newOrders} новых`, "blue", () => { orderStatusFilter = "all"; activeSection = "orders"; context.render(); }),
-      stat("В обработке", orders.filter((order) => ["processing", "paid", "assembling", "delivering"].includes(order.status)).length, "активные статусы", "", () => { orderStatusFilter = "processing"; activeSection = "orders"; context.render(); }),
+      stat("В обработке", orders.filter((order) => ["pending", "confirmed", "processing", "paid", "assembling", "delivering", "arrived"].includes(order.status)).length, "активные статусы", "", () => { orderStatusFilter = "processing"; activeSection = "orders"; context.render(); }),
       stat("Завершено", completedOrders.length, `${canceled} отмен/возвратов`, "green", () => { orderStatusFilter = "completed"; activeSection = "orders"; context.render(); }),
       stat("Товары", products.length, `${stockOut} без остатка`, "", () => { activeSection = "products"; context.render(); }),
       stat("Пользователи", users.length, "зарегистрированные", "", () => { activeSection = "users"; context.render(); }),
@@ -324,7 +324,7 @@ let adminSearchTimer = 0;
       .filter((order) => {
         const q = orderQuery.toLowerCase();
         const productNames = (order.items || []).map((item) => context.byId?.(item.id)?.name || item.id).join(" ");
-        const activeStatuses = ["processing", "paid", "assembling", "delivering"];
+        const activeStatuses = ["pending", "confirmed", "processing", "paid", "assembling", "delivering", "arrived"];
         const matchesStatus = orderStatusFilter === "all"
           || order.status === orderStatusFilter
           || (orderStatusFilter === "processing" && activeStatuses.includes(order.status));
@@ -366,6 +366,24 @@ let adminSearchTimer = 0;
       const status = select(Object.entries(window.SonaOrders?.STATUS || {}), order.status || "new", (value) => {
         context.actions.updateOrder(order.id, { status: value });
       });
+      const total = Math.max(0, Number(order.total) || 0);
+      const paid = Math.max(0, Math.min(total, Number(order.paidAmount) || 0));
+      const payment = el("label", "sona-admin-order-payment");
+      const paidInput = el("input", "");
+      paidInput.type = "number";
+      paidInput.min = "0";
+      paidInput.max = String(total);
+      paidInput.step = "1";
+      paidInput.value = String(paid);
+      paidInput.setAttribute("aria-label", "Оплаченная сумма");
+      paidInput.addEventListener("change", () => {
+        context.actions.updateOrder(order.id, { paidAmount: Number(paidInput.value) || 0 });
+      });
+      payment.append(
+        el("span", "", "Оплачено"),
+        paidInput,
+        el("strong", "", `Долг: ${money(Math.max(0, total - paid))}`)
+      );
       head.append(el("strong", "", order.id || "Заказ"), el("span", "", order.date || shortDate(order.createdAt)), el("b", "", money(order.total)));
       customer.append(
         el("strong", "", order.profile?.name || "Покупатель"),
@@ -378,11 +396,11 @@ let adminSearchTimer = 0;
         const image = document.createElement("img");
         image.src = window.SonaSecurity?.safeMediaUrl(product?.image || product?.gallery?.find((photo) => photo.main)?.src, "assets/sona-logo.png") || "assets/sona-logo.png";
         image.alt = "";
-        row.append(image, el("span", "", `${product?.name || item.id} × ${item.quantity || 1}`));
+        row.append(image, el("span", "", `${product?.name || item.name || item.id} × ${item.quantity || 1}`));
         items.append(row);
       });
       const controls = el("div", "sona-admin-order-controls");
-      controls.append(status);
+      controls.append(status, payment);
       if (!options.compact) controls.append(actionButtons([["Удалить заказ", () => context.actions.deleteOrder(order.id), "danger"]]));
       card.append(head, customer, items, controls);
       list.append(card);

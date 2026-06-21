@@ -54,6 +54,7 @@
 
   let cache = null;
   let syncTimer = 0;
+  let syncPromise = Promise.resolve();
 
   function normalize(parsed) {
     return {
@@ -102,18 +103,27 @@
     return clone(cache);
   }
 
-  async function syncNow() {
-    if (!cache) return cache;
-    const response = await fetch(apiUrl(), {
-      method: "PUT",
-      credentials: "include",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ state: cache })
+  function syncNow() {
+    if (!cache) return Promise.resolve(cache);
+    const snapshot = clone(cache);
+    syncPromise = syncPromise.catch(() => null).then(async () => {
+      const response = await fetch(apiUrl(), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ state: snapshot })
+      });
+      if (!response.ok) throw new Error("Store sync failed");
+      return cache;
     });
-    if (!response.ok) {
-      throw new Error("Store sync failed");
-    }
-    return cache;
+    return syncPromise;
+  }
+
+  async function flushSync() {
+    window.clearTimeout(syncTimer);
+    syncTimer = 0;
+    await syncPromise.catch(() => null);
+    return syncNow();
   }
 
   async function refresh() {
@@ -153,6 +163,20 @@
     return state;
   }
 
+  function updateFromServer(recipe) {
+    window.clearTimeout(syncTimer);
+    syncTimer = 0;
+    const state = read();
+    recipe(state);
+    cache = normalize(state);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
+    } catch (error) {
+      // The server is authoritative; local persistence is only a fast fallback.
+    }
+    return read();
+  }
+
   function clearProfile() {
     return update((state) => {
       state.profile = clone(fallbackState.profile);
@@ -189,7 +213,9 @@
     refresh,
     write,
     syncNow,
+    flushSync,
     update,
+    updateFromServer,
     clearProfile
   };
 })();

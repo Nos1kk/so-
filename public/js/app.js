@@ -581,13 +581,26 @@
     showToast("Товар удалён с витрины");
   }
 
-  function updateAdminOrder(orderId, patch) {
-    store.update((data) => {
-      data.orders = (data.orders || []).map((order) => (
-        order.id === orderId ? { ...order, ...patch } : order
-      ));
-    });
-    render();
+  async function updateAdminOrder(orderId, patch) {
+    try {
+      const response = await fetch(apiUrl(`/api/orders/${encodeURIComponent(orderId)}`), {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(patch)
+      });
+      const result = await response.json();
+      if (!response.ok || !result.order) throw new Error(result.error || "Order update failed");
+      store.update((data) => {
+        data.orders = (data.orders || []).map((order) => order.id === orderId ? result.order : order);
+      });
+      render();
+      showToast(result.notified === false && result.order.status === "arrived"
+        ? "Статус сохранён, но письмо клиенту отправить не удалось"
+        : "Заказ обновлён");
+    } catch (error) {
+      showToast("Не удалось обновить заказ");
+    }
   }
 
   function deleteAdminOrder(orderId) {
@@ -2849,17 +2862,25 @@
     });
   }
 
-  function completeOrder(orderId) {
-    store.update((data) => {
-      data.orders = (data.orders || []).map((order) => (
-        order.id === orderId
-          ? { ...order, status: "completed", completedAt: new Date().toISOString() }
-          : order
-      ));
-    });
-
-    render();
-    showToast("Заказ отмечен как полученный. Теперь можно оставить отзыв.");
+  async function completeOrder(orderId) {
+    try {
+      await store.flushSync?.();
+      const response = await fetch(apiUrl(`/api/orders/${encodeURIComponent(orderId)}/receive`), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: "{}"
+      });
+      const result = await response.json();
+      if (!response.ok || !result.order) throw new Error(result.error || "Order receive failed");
+      (store.updateFromServer || store.update)((data) => {
+        data.orders = (data.orders || []).map((order) => order.id === orderId ? result.order : order);
+      });
+      render();
+      showToast("Получение подтверждено. Теперь можно оставить отзыв.");
+    } catch (error) {
+      showToast("Подтвердить получение можно только после прибытия заказа");
+    }
   }
 
   function deleteOrder(orderId) {
@@ -3699,7 +3720,7 @@
     return { message: channels.length ? `Уведомление отправлено ${channels.join(" и ")}.` : "Сначала включите хотя бы один способ уведомлений." };
   }
 
-  function checkout() {
+  async function checkout() {
     const rows = cartRows();
     if (!rows.length) {
       showToast("Корзина пустая");
@@ -3711,37 +3732,51 @@
       return;
     }
 
+    const profile = store.read().profile || {};
+    const email = security.sanitizeEmail(profile.email || "");
+    const phone = security.sanitizePhone(profile.phone || "");
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(email) || phone.replace(/\D/g, "").length < 10) {
+      navigateTo("profile");
+      showToast("Для оформления укажите в профиле корректные телефон и почту");
+      return;
+    }
+
     const subtotal = rows.reduce((sum, row) => sum + row.product.price * row.quantity, 0);
     const delivery = subtotal > 120000 ? 0 : 2500;
     const total = subtotal + delivery;
 
-    store.update((nextData) => {
-      nextData.orders.push({
-        id: `SONA-${Date.now()}`,
-        date: new Date().toLocaleDateString("ru-RU"),
-        createdAt: Date.now(),
-        status: "new",
-        total,
-        profile: {
-          name: security.sanitizeText(nextData.profile?.name, 40),
-          email: security.sanitizeEmail(nextData.profile?.email),
-          phone: security.sanitizePhone(nextData.profile?.phone),
-          userId: `USER-${String(nextData.profile?.phone || "").replace(/\D/g, "")}`,
-          address: security.sanitizeText(nextData.profile?.address, 120)
-        },
-        items: rows.map((row) => ({
-          id: row.product.id,
-          quantity: row.quantity
-        }))
+    els.checkoutButton.disabled = true;
+    try {
+      const response = await fetch(apiUrl("/api/orders"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          total,
+          profile: {
+            name: security.sanitizeText(profile.name, 40),
+            email,
+            phone,
+            address: security.sanitizeText(profile.address, 120)
+          },
+          items: rows.map((row) => ({ id: row.product.id, name: row.product.name, quantity: row.quantity }))
+        })
       });
-      nextData.cart = {};
-    });
-
-    renderCart();
-    renderProfilePage();
-    renderFavoritesPage();
-    navigateTo("profile");
-    showToast("Заказ создан");
+      const result = await response.json();
+      if (!response.ok || !result.order) throw new Error(result.error || "Checkout failed");
+      store.update((nextData) => {
+        nextData.orders = [...(nextData.orders || []).filter((order) => order.id !== result.order.id), result.order];
+        nextData.cart = {};
+      });
+      renderCart();
+      renderProfilePage();
+      renderFavoritesPage();
+      navigateTo("profile");
+      showToast("Заявка оформлена. В ближайшее время сотрудник позвонит для уточнения заказа.");
+    } catch (error) {
+      showToast("Не удалось оформить заказ. Попробуйте ещё раз.");
+      renderCart();
+    }
   }
 
   function resetFilters() {

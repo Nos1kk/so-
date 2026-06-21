@@ -411,6 +411,28 @@ button.sona-admin-stat {
   background: #f3f7fb;
 }
 
+.sona-admin-order-payment {
+  display: grid;
+  grid-template-columns: auto minmax(110px, 160px) auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.sona-admin-order-payment input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: inherit;
+}
+
+.sona-admin-order-payment strong {
+  color: #b42318;
+}
+
 .sona-admin-pagination {
   justify-content: center;
 }
@@ -657,6 +679,11 @@ button.sona-admin-stat {
   }
 
   .sona-admin-ad-slots {
+    grid-template-columns: 1fr;
+  }
+
+  .sona-admin-order-payment {
+    width: 100%;
     grid-template-columns: 1fr;
   }
 }

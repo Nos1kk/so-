@@ -78,6 +78,25 @@
   font-weight: 800;
 }
 
+.sona-order-payment {
+  display: grid;
+  gap: 3px;
+}
+
+.sona-order-payment span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.sona-order-payment b.is-debt {
+  color: #b42318;
+}
+
+.sona-order-payment b.is-paid {
+  color: #08784f;
+}
+
 .sona-profile-danger {
   min-height: 42px;
   padding: 0 14px;

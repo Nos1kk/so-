@@ -2706,16 +2706,16 @@ img {
   height: 100%;
   display: block;
   object-fit: cover;
-  object-position: center 60%;
+  object-position: center 72%;
 }
 
 .sofa-collection-photo--spacious img,
 .sofa-collection-photo--style img {
-  object-position: center 64%;
+  object-position: center 76%;
 }
 
 .sofa-collection-photo--kids img {
-  object-position: center 58%;
+  object-position: center 70%;
 }
 
 .catalog-collection-card.is-bed .catalog-collection-photo {

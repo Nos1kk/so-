@@ -1054,6 +1054,10 @@
     const items = el("div", "sona-order-items");
     const footer = el("div", "sona-order-card__footer");
     const actions = el("div", "sona-order-card__actions");
+    const payment = el("div", "sona-order-payment");
+    const total = Math.max(0, Number(order.total) || 0);
+    const paid = Math.max(0, Math.min(total, Number(order.paidAmount) || 0));
+    const debt = Math.max(0, total - paid);
 
     status.dataset.tone = window.SonaOrders?.statusTone(order) || "progress";
     title.append(el("strong", "", `Заказ ${order.id || ""}`), el("small", "", order.date || formatDate(order.createdAt)));
@@ -1063,18 +1067,28 @@
       const product = context.byId(item.id);
       const productRow = el("div", "sona-order-item");
       productRow.append(
-        el("strong", "", product?.name || item.id),
+        el("strong", "", product?.name || item.name || item.id),
         el("span", "", `${Number(item.quantity) || 1} шт.`)
       );
       items.append(productRow);
     });
 
-    if (!window.SonaOrders?.isCompleted(order)) {
+    payment.append(
+      el("span", "", paid <= 0 ? "Не оплачен" : debt > 0 ? "Внесена предоплата" : "Оплачен полностью"),
+      el("strong", "", `Оплачено: ${money(paid)}`),
+      el("b", debt > 0 ? "is-debt" : "is-paid", debt > 0 ? `Долг: ${money(debt)}` : "Долг: 0 ₽")
+    );
+
+    if (order.status === "arrived") {
       actions.append(button("sona-profile-primary", "Подтвердить получение", () => context.completeOrder(order.id)));
+    } else if (!window.SonaOrders?.isCompleted(order) && !["canceled", "return"].includes(order.status)) {
+      actions.append(el("span", "sona-order-lock", order.status === "pending"
+        ? "Сотрудник скоро позвонит для уточнения"
+        : "Подтверждение станет доступно после прибытия"));
     } else {
       actions.append(el("span", "sona-order-lock", "Заказ сохранён в истории"));
     }
-    footer.append(el("strong", "", money(order.total)), actions);
+    footer.append(payment, actions);
     row.append(head, items, footer);
     return row;
   }

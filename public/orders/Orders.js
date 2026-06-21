@@ -2,6 +2,14 @@
   "use strict";
 
   const STATUS = {
+    pending: {
+      label: "Заявка оформлена",
+      tone: "new"
+    },
+    confirmed: {
+      label: "Заказ подтверждён",
+      tone: "progress"
+    },
     new: {
       label: "Новый",
       tone: "new"
@@ -21,6 +29,14 @@
     delivering: {
       label: "Передан в доставку",
       tone: "progress"
+    },
+    arrived: {
+      label: "Заказ прибыл",
+      tone: "progress"
+    },
+    received: {
+      label: "Получен клиентом",
+      tone: "done"
     },
     completed: {
       label: "Доставлен",
@@ -55,7 +71,7 @@
   }
 
   function isCompleted(order) {
-    return normalize(order).status === "completed";
+    return ["received", "completed"].includes(normalize(order).status);
   }
 
   function hasReview(reviews, orderId, productId) {
