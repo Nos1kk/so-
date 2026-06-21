@@ -1460,6 +1460,40 @@ img {
   color: #526174;
 }
 
+.price--compact {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.price--compact .price-current {
+  flex: 0 0 auto;
+  color: var(--blue-deep);
+  font-size: 1.28rem;
+  font-weight: 1000;
+  line-height: 1;
+}
+
+.price--compact .price-discount {
+  flex: 0 0 auto;
+  color: #f00052;
+  font-size: 0.94rem;
+  line-height: 1;
+}
+
+.price--compact .price-old {
+  min-width: 0;
+  overflow: hidden;
+  color: #9aa5b5;
+  font-size: 0.82rem;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .service-note,
 .delivery-note {
   color: var(--muted);
@@ -1831,9 +1865,12 @@ img {
 
 .detail-price.price--structured .price-top {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
 }
 
-.detail-price.price--structured .price-old,
 .detail-price.price--structured .price-current {
   color: var(--blue-deep);
   font-size: clamp(2.1rem, 4vw, 3.2rem);
@@ -1843,6 +1880,9 @@ img {
 
 .detail-price.price--structured .price-old {
   color: #64758d;
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+  font-weight: 900;
+  line-height: 1;
 }
 
 .detail-price.price--structured .price-discount {

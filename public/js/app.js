@@ -4,7 +4,15 @@
   const security = window.SonaSecurity;
   const store = window.SonaStore;
   const ALL_VALUE = "все";
-  const REMOVED_PRODUCT_IDS = new Set(["breeze-mini", "compact-nova-sofa"]);
+  const REMOVED_PRODUCT_IDS = new Set([
+    "luna-cloud",
+    "nord-bay",
+    "sona-island",
+    "breeze-mini",
+    "azure-room",
+    "accent-lagoon-sofa",
+    "compact-nova-sofa"
+  ]);
   const SOFA_IMAGE_BY_NAME = {
     "аляска мд": "assets/фотографии диванов/аляска МД бф.png",
     "аляска": "assets/фотографии диванов/аляска бф.png",
@@ -403,16 +411,26 @@
     return Number(product.discountPercent) || Math.round((1 - product.price / product.oldPrice) * 100);
   }
 
+  function apiUrl(path) {
+    const localPreview = window.location.protocol === "file:"
+      || (["127.0.0.1", "localhost"].includes(window.location.hostname) && window.location.port !== "8000");
+    return localPreview ? `http://127.0.0.1:8000${path}` : path;
+  }
+
   function createStructuredPrice(product, detail = false) {
-    const root = createElement("div", detail ? "detail-price price--structured price--detail" : "price price--structured");
+    const root = createElement("div", detail ? "detail-price price--structured price--detail" : "price price--compact");
     const current = createElement("strong", "price-current", productPriceLabel(product));
     const discount = productDiscountPercent(product);
 
     if (product.oldPrice) {
-      const top = createElement("div", "price-top");
       const oldPrice = createElement("del", "price-old", money(product.oldPrice));
       const discountBadge = createElement("span", "price-discount", `−${discount}%`);
       const benefit = Math.max(0, Number(product.benefit) || (Number(product.oldPrice) - Number(product.price)));
+      if (!detail) {
+        root.append(current, discountBadge, oldPrice);
+        return root;
+      }
+      const top = createElement("div", "price-top");
       top.append(oldPrice, discountBadge);
       root.append(top, current);
       if (benefit) root.append(createElement("span", "price-benefit", `Выгода ${money(benefit)}`));
@@ -552,8 +570,9 @@
   }
 
   async function updateAdminUser(identifier, patch) {
-    await fetch("/api/accounts", {
+    await fetch(apiUrl("/api/accounts"), {
       method: "PUT",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier, ...patch })
     }).catch(() => null);
@@ -2100,7 +2119,7 @@
       const empty = createElement("div", "sona-review-empty");
       empty.append(
         createElement("strong", "", "Отзывов пока нет"),
-        createElement("span", "", "Оставить отзыв можно только после получения заказа. Когда покупатель подтвердит доставку, форма появится в личном кабинете.")
+        createElement("span", "", "Оставить отзыв можно только после получения заказа.")
       );
       section.append(head, empty);
       return section;
@@ -3438,15 +3457,20 @@
   }
 
   async function getTelegramStatus() {
-    const response = await fetch("/api/telegram/status", { headers: { Accept: "application/json" }, cache: "no-store" });
+    const response = await fetch(apiUrl("/api/telegram/status"), {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
     return response.json();
   }
 
   async function connectTelegram() {
     const popup = window.open("about:blank", "_blank");
     if (popup) popup.opener = null;
-    const response = await fetch("/api/telegram/link", {
+    const response = await fetch(apiUrl("/api/telegram/link"), {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: "{}"
     });
@@ -3461,8 +3485,9 @@
   }
 
   async function unlinkTelegram() {
-    const response = await fetch("/api/telegram/unlink", {
+    const response = await fetch(apiUrl("/api/telegram/unlink"), {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: "{}"
     });
@@ -3481,8 +3506,9 @@
     }
     if (email || telegram) {
       try {
-        const response = await fetch("/api/notifications/test", {
+        const response = await fetch(apiUrl("/api/notifications/test"), {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, telegram })
         });
@@ -3638,7 +3664,7 @@
     if (!els.searchInput || reduceMotion) return;
 
     const phrases = [
-      "Искать диван Luna Cloud",
+      "Искать диван SONA",
       "Искать кровать с хранением",
       "Искать кресло для гостиной",
       "Искать услугу дизайна"

@@ -525,7 +525,8 @@
         "Reset token expired": "Время восстановления истекло. Запросите новый код.",
         "Email provider failed": "Письмо не отправилось. Повторите попытку позже."
       };
-      return result?.warning || result?.message || messages[result?.error] || fallback;
+      if (result instanceof Error || result?.name === "TypeError") return fallback;
+      return result?.warning || messages[result?.error] || result?.message || fallback;
     }
 
     function validEmail(raw) {
@@ -1337,7 +1338,7 @@
     const requests = context.reviewableItems.map((entry) => reviewRequestRow(entry, context));
     const published = (context.reviews || []).map((review) => publishedReviewRow(review, context));
 
-    panel.append(sectionHeader("Отзывы и вопросы", "Отзыв можно оставить только после подтверждения получения заказа."));
+    panel.append(sectionHeader("Отзывы и вопросы", "Оставить отзыв можно только после получения заказа."));
     if (requests.length) {
       panel.append(el("h3", "sona-profile-subtitle", "Ждут отзыва"));
       requests.forEach((row) => panel.append(row));

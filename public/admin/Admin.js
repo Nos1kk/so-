@@ -83,7 +83,7 @@ let adminSearchTimer = 0;
   }
 
   function logoutAdmin(onChange) {
-    fetch(authApiUrl("/api/auth/logout"), { method: "POST" }).catch(() => null);
+    fetch(authApiUrl("/api/auth/logout"), { method: "POST", credentials: "include" }).catch(() => null);
     window.SonaStore.update((state) => {
       state.admin = { ...(state.admin || {}), isAuthenticated: false, email: "" };
       state.profile = { ...(state.profile || {}), role: "user", isActive: false };
@@ -828,7 +828,7 @@ let adminSearchTimer = 0;
     sync.type = "button";
     health.addEventListener("click", async () => {
       status.textContent = "Проверяем сервер...";
-      const response = await fetch("/health", { cache: "no-store" }).catch(() => null);
+      const response = await fetch(authApiUrl("/health"), { credentials: "include", cache: "no-store" }).catch(() => null);
       status.textContent = response?.ok ? "Сервер работает. Подключение активно." : "Сервер сейчас недоступен.";
     });
     sync.addEventListener("click", async () => {
