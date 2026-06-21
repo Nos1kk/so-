@@ -758,6 +758,10 @@
     return decodeURI(String(value || "")).includes("assets/фотографии диванов/");
   }
 
+  function isSofaInteriorPhoto(value) {
+    return decodeURI(String(value || "")).includes("assets/sofa-interiors/");
+  }
+
   function productShareUrl(product) {
     const url = new URL(window.location.href);
     url.hash = "";
@@ -784,28 +788,90 @@
     return copied;
   }
 
-  async function shareProduct(product) {
+  function closeProductShareMenu() {
+    const menu = document.querySelector(".product-share-menu");
+    if (!menu) return false;
+    menu.classList.remove("is-open");
+    window.setTimeout(() => menu.remove(), 180);
+    return true;
+  }
+
+  async function copyProductShareUrl(url) {
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
+      else if (!copyTextFallback(url)) throw new Error("Copy failed");
+      closeProductShareMenu();
+      showToast("Ссылка на товар скопирована");
+    } catch (error) {
+      showToast("Не удалось скопировать ссылку");
+    }
+  }
+
+  function shareProduct(product) {
     const url = productShareUrl(product);
     const shareData = {
       title: `${product.name} — SONA`,
       text: `Посмотри ${product.name} в SONA`,
       url
     };
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareData.text)}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareData.text}\n${url}`)}`;
+    closeProductShareMenu();
+
+    const menu = createElement("div", "product-share-menu");
+    const panel = createElement("section", "product-share-panel");
+    const head = createElement("div", "product-share-head");
+    const titleWrap = createElement("div");
+    const title = createElement("strong", "", "Поделиться товаром");
+    const subtitle = createElement("span", "", product.name);
+    const close = createElement("button", "product-share-close", "×");
+    const options = createElement("div", "product-share-options");
+    const telegram = createElement("a", "product-share-option", "Telegram");
+    const whatsapp = createElement("a", "product-share-option", "WhatsApp");
+    const copy = createElement("button", "product-share-option", "Копировать ссылку");
+
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-modal", "true");
+    panel.setAttribute("aria-label", `Поделиться товаром ${product.name}`);
+    close.type = "button";
+    close.setAttribute("aria-label", "Закрыть меню отправки");
+    close.addEventListener("click", closeProductShareMenu);
+
+    [telegram, whatsapp].forEach((link) => {
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.addEventListener("click", () => closeProductShareMenu());
+    });
+    telegram.href = telegramUrl;
+    whatsapp.href = whatsappUrl;
+    copy.type = "button";
+    copy.addEventListener("click", () => copyProductShareUrl(url));
+
+    titleWrap.append(title, subtitle);
+    head.append(titleWrap, close);
+    options.append(telegram, whatsapp, copy);
+
     if (typeof navigator.share === "function") {
-      try {
-        await navigator.share(shareData);
-        return;
-      } catch (error) {
-        if (error?.name === "AbortError") return;
-      }
+      const nativeShare = createElement("button", "product-share-option product-share-native", "Другие приложения");
+      nativeShare.type = "button";
+      nativeShare.addEventListener("click", async () => {
+        try {
+          await navigator.share(shareData);
+          closeProductShareMenu();
+        } catch (error) {
+          if (error?.name !== "AbortError") showToast("Системное меню недоступно");
+        }
+      });
+      options.append(nativeShare);
     }
-    try {
-      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
-      else if (!copyTextFallback(url)) throw new Error("Copy failed");
-      showToast("Ссылка на товар скопирована");
-    } catch (error) {
-      showToast("Не удалось скопировать ссылку");
-    }
+
+    panel.append(head, options);
+    menu.append(panel);
+    menu.addEventListener("click", (event) => {
+      if (event.target === menu) closeProductShareMenu();
+    });
+    document.body.append(menu);
+    window.requestAnimationFrame(() => menu.classList.add("is-open"));
   }
 
   function createProductShareButton(product, extraClass = "") {
@@ -1850,6 +1916,7 @@
   }
 
   function closeProduct() {
+    closeProductShareMenu();
     els.productModal.classList.remove("is-open");
     els.productModal.setAttribute("aria-hidden", "true");
     unlockProductModalScroll();
@@ -1943,6 +2010,9 @@
         if (isAttachedSofaPhoto(item.src)) {
           holder.classList.add("is-attached-sofa-photo");
         }
+        if (isSofaInteriorPhoto(item.src)) {
+          holder.classList.add("is-sofa-interior-photo");
+        }
         if (isSofaLayoutPhoto(item.src)) {
           holder.classList.add("is-sofa-layout-photo");
         }
@@ -1990,6 +2060,9 @@
         }
         if (isAttachedSofaPhoto(item.src)) {
           thumb.classList.add("is-attached-sofa-photo");
+        }
+        if (isSofaInteriorPhoto(item.src)) {
+          thumb.classList.add("is-sofa-interior-photo");
         }
         if (isSofaLayoutPhoto(item.src)) {
           thumb.classList.add("is-sofa-layout-photo");
@@ -4013,6 +4086,7 @@
     els.profileButton.addEventListener("click", () => navigateTo(window.SonaAdmin?.isAdmin(store.read()) ? "admin" : "profile"));
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
+        if (closeProductShareMenu()) return;
         closeMobileConsultMenu();
         closeSortMenu();
         closeCart();

@@ -3691,6 +3691,16 @@
     background: #f8f8f7 !important;
   }
 
+  body .detail-stage .product-placeholder.is-sofa-interior-photo img,
+  body .detail-thumb.is-sofa-interior-photo img {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    background: #fff !important;
+  }
+
   body .detail-stage-shell {
     position: relative !important;
     width: 100% !important;
@@ -4042,5 +4052,28 @@
     border-radius: 999px !important;
     font-size: 11.5px !important;
     box-shadow: 0 8px 18px rgba(16, 40, 68, 0.17) !important;
+  }
+}
+
+/* Reliable mobile fallback for sharing from embedded and preview browsers. */
+@media (max-width: 760px) {
+  body .product-share-menu {
+    place-items: end center !important;
+    padding: 12px !important;
+  }
+
+  body .product-share-panel {
+    width: 100% !important;
+    padding: 18px !important;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+    border-radius: 24px 24px 18px 18px !important;
+  }
+
+  body .product-share-options {
+    grid-template-columns: 1fr !important;
+  }
+
+  body .product-share-native {
+    grid-column: auto !important;
   }
 }
