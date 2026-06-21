@@ -1292,6 +1292,41 @@ img {
   stroke: currentColor !important;
 }
 
+.product-share-button {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--ink);
+  box-shadow: 0 8px 18px rgba(26, 55, 92, 0.12);
+  z-index: 9;
+}
+
+.share-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.product-card .favorite-button {
+  right: 56px;
+}
+
+:is(#productGrid, .category-product-grid) .product-cart-button {
+  right: 100px;
+}
+
+:is(#productGrid, .category-product-grid) .product-tags {
+  max-width: calc(100% - 154px);
+}
+
 .product-body {
   display: grid;
   grid-template-rows: auto auto auto auto minmax(0, 1fr);
@@ -1733,11 +1768,29 @@ img {
 .detail-favorite-button {
   position: absolute;
   top: 14px;
-  right: 14px;
+  right: 64px;
   z-index: 14;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 10px 24px rgba(16, 40, 68, 0.16);
   backdrop-filter: blur(10px);
+}
+
+.detail-share-button {
+  top: 14px;
+  right: 14px;
+  z-index: 15;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+}
+
+.lookbook-share {
+  right: 12px;
+  top: 12px;
+  z-index: 3;
+}
+
+.lookbook-favorite {
+  right: 56px;
 }
 
 .detail-info {
@@ -7949,4 +8002,29 @@ img {
     transform: none !important;
     will-change: auto;
   }
+}
+
+/* Final product-card control positions after compact catalog overrides. */
+.product-card .product-share-button {
+  right: 12px;
+}
+
+.product-card .favorite-button {
+  right: 56px;
+}
+
+:is(#productGrid, .category-product-grid) .product-cart-button {
+  right: 100px;
+}
+
+:is(#productGrid, .category-product-grid) .product-tags {
+  max-width: calc(100% - 154px);
+}
+
+.lookbook-share {
+  right: 12px;
+}
+
+.lookbook-favorite {
+  right: 56px;
 }

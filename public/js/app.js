@@ -11,7 +11,8 @@
     "breeze-mini",
     "azure-room",
     "accent-lagoon-sofa",
-    "compact-nova-sofa"
+    "compact-nova-sofa",
+    "sona-malta-2"
   ]);
   const FEATURED_HOME_PRODUCT_IDS = ["sona-paula", "sona-boston"];
   const SOFA_IMAGE_BY_NAME = {
@@ -73,7 +74,6 @@
     { id: "sona-infinity", name: "Инфинити", category: "модульный", dimensions: "4000 × 1210 × 1800", sleepingPlace: "1400 × 3500", mechanism: "Пума / Еврокнижка", price: 167200, priceMode: "from" },
     { id: "sona-valencia", name: "Валенсия", category: "диван-кровать", dimensions: "2200 × 1100 × 1000", sleepingPlace: "1600 × 2000", mechanism: "Еврокнижка / Тик-так", oldPrice: 80000, price: 59900, discountPercent: 25, benefit: 20000 },
     { id: "sona-malta-k", name: "Мальта К", category: "диван-кровать", dimensions: "1670 × 1100 × 1000", sleepingPlace: "1630 × 2080", mechanism: "Аккордеон", oldPrice: 95000, price: 66500, discountPercent: 30, benefit: 23500 },
-    { id: "sona-malta-2", name: "Мальта 2", category: "диван-кровать", dimensions: "1740 × 1100 × 1000", sleepingPlace: "1500 × 2080", mechanism: "Аккордеон", oldPrice: 83500, price: 66800, discountPercent: 20, benefit: 16700 },
     { id: "sona-alaska-md", name: "Аляска Мд", category: "угловой", dimensions: "3630 × 1840 × 1950", sleepingPlace: "1720 × 2050", mechanism: "Высоковыкатной", price: 141900, priceMode: "from" },
     { id: "sona-seattle-m", name: "Сиэтл М", category: "угловой", dimensions: "2530 × 1590 × 930", sleepingPlace: "2000 × 1450", mechanism: "Дельфин", oldPrice: 95000, price: 79900, discountPercent: 15, benefit: 15000 },
     { id: "sona-nice", name: "Ницца", category: "угловой", dimensions: "2800 × 1800 × 940", sleepingPlace: "2410 × 1600", mechanism: "Дельфин", oldPrice: 112000, price: 89600, discountPercent: 20, benefit: 22400 },
@@ -662,6 +662,7 @@
     const icons = {
       heart: ["M12 20.1s-7.4-4.4-8.9-9.2C2 7.4 4.1 4.2 7.6 4.2c2 0 3.4 1 4.4 2.4 1-1.4 2.4-2.4 4.4-2.4 3.5 0 5.6 3.2 4.5 6.7-1.5 4.8-8.9 9.2-8.9 9.2Z"],
       cart: ["M4 5h2l1.7 9.2a2 2 0 0 0 2 1.6h6.9a2 2 0 0 0 2-1.6L20 8H7", "M10 20h.1", "M17 20h.1"],
+      share: ["M12 15V3", "m7 8 5-5 5 5", "M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"],
       close: ["M6.5 6.5 17.5 17.5", "M17.5 6.5 6.5 17.5"],
       image: ["M5 6.2h14a1.8 1.8 0 0 1 1.8 1.8v8a1.8 1.8 0 0 1-1.8 1.8H5A1.8 1.8 0 0 1 3.2 16V8A1.8 1.8 0 0 1 5 6.2Z", "m6.8 15 3.2-3.2 2.4 2.4 1.7-1.7 3.1 3.1", "M15.8 9.4h.1"]
     };
@@ -721,6 +722,69 @@
 
   function isAttachedSofaPhoto(value) {
     return decodeURI(String(value || "")).includes("assets/фотографии диванов/");
+  }
+
+  function productShareUrl(product) {
+    const url = new URL(window.location.href);
+    url.hash = "";
+    url.search = "";
+    if (/\/(?:public\/)?index\.html$/i.test(url.pathname)) {
+      url.searchParams.set("route", "product");
+    } else {
+      url.pathname = "/product";
+    }
+    url.searchParams.set("id", product.id);
+    return url.href;
+  }
+
+  function copyTextFallback(value) {
+    const field = document.createElement("textarea");
+    field.value = value;
+    field.setAttribute("readonly", "");
+    field.style.position = "fixed";
+    field.style.opacity = "0";
+    document.body.append(field);
+    field.select();
+    const copied = document.execCommand("copy");
+    field.remove();
+    return copied;
+  }
+
+  async function shareProduct(product) {
+    const url = productShareUrl(product);
+    const shareData = {
+      title: `${product.name} — SONA`,
+      text: `Посмотри ${product.name} в SONA`,
+      url
+    };
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (error) {
+        if (error?.name === "AbortError") return;
+      }
+    }
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
+      else if (!copyTextFallback(url)) throw new Error("Copy failed");
+      showToast("Ссылка на товар скопирована");
+    } catch (error) {
+      showToast("Не удалось скопировать ссылку");
+    }
+  }
+
+  function createProductShareButton(product, extraClass = "") {
+    const button = createElement("button", `share-button product-share-button ${extraClass}`.trim());
+    button.type = "button";
+    button.setAttribute("aria-label", `Поделиться товаром ${product.name}`);
+    button.append(createSvgIcon("share", "share-icon"));
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      shareProduct(product);
+    });
+    return button;
   }
 
   function isSofaLayoutPhoto(value) {
@@ -1199,6 +1263,7 @@
     const number = createElement("span", "lookbook-number", String(index + 1).padStart(2, "0"));
     const collection = createElement("span", "", product.marketSection || product.category || "SONA");
     const favorite = createElement("button", "lookbook-favorite");
+    const share = createProductShareButton(product, "lookbook-share");
     const title = createElement("h3", "", product.name);
     const price = createElement("div", "lookbook-price");
     const meta = createElement("div", "lookbook-meta");
@@ -1242,7 +1307,7 @@
     cart.addEventListener("click", () => toggleCart(product.id, cart));
     actions.append(details, cart);
     copy.append(top, title, price, meta, actions);
-    card.append(media, favorite, copy);
+    card.append(media, favorite, share, copy);
     return card;
   }
 
@@ -1597,6 +1662,7 @@
     const placeholder = createProductPlaceholder(product);
     const tagWrap = createElement("div", "product-tags");
     const favoriteButton = createElement("button", "favorite-button");
+    const shareButton = createProductShareButton(product);
     const body = createElement("div", "product-body");
     const topLine = createElement("div", "product-top-line");
     const brand = createElement("span", "product-brand", productCategoryLabel(product));
@@ -1668,7 +1734,7 @@
     topLine.append(brand, rating);
     titleRow.append(title);
     footer.append(price, serviceNote, delivery, addButton);
-    media.append(placeholder, tagWrap, favoriteButton);
+    media.append(placeholder, tagWrap, favoriteButton, shareButton);
     body.append(topLine, titleRow, meta, swatches, footer);
     card.append(media, body);
 
@@ -1775,6 +1841,7 @@
     const stageShell = createElement("div", "detail-stage-shell");
     const stage = createElement("div", "detail-stage");
     const favoriteButton = createElement("button", "favorite-button detail-favorite-button");
+    const shareButton = createProductShareButton(product, "detail-share-button");
     const info = createElement("div", "detail-info");
     const close = createElement("button", "detail-close");
     const titleRow = createElement("div", "detail-title-row");
@@ -1958,7 +2025,7 @@
     stage.addEventListener("dragstart", (event) => event.preventDefault());
 
     setGallery(0);
-    stageShell.append(stage, favoriteButton);
+    stageShell.append(stage, favoriteButton, shareButton);
     gallery.append(thumbList, stageShell);
 
     titleWrap.append(title, code);
