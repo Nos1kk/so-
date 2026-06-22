@@ -34,13 +34,14 @@
     customProducts: [],
     deletedProducts: [],
     supportMessages: [],
+    analytics: { events: [] },
     admin: {
       isAuthenticated: false
     },
     shopSettings: {
       name: "Soна",
       supportPhone: "8 800 200-40-90",
-      supportEmail: "support@sona.local",
+      supportEmail: "sonahome@yandex.ru",
       address: "Москва",
       baseDiscount: 15,
       returnsPolicy: "Возврат и обмен по правилам магазина Soна."
@@ -72,6 +73,9 @@
       customProducts: Array.isArray(parsed.customProducts) ? parsed.customProducts : [],
       deletedProducts: Array.isArray(parsed.deletedProducts) ? parsed.deletedProducts : [],
       supportMessages: Array.isArray(parsed.supportMessages) ? parsed.supportMessages : [],
+      analytics: parsed.analytics && typeof parsed.analytics === "object"
+        ? { ...parsed.analytics, events: Array.isArray(parsed.analytics.events) ? parsed.analytics.events : [] }
+        : clone(fallbackState.analytics),
       admin: parsed.admin && typeof parsed.admin === "object"
         ? { ...clone(fallbackState.admin), ...parsed.admin }
         : clone(fallbackState.admin),

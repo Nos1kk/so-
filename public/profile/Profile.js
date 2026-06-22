@@ -32,6 +32,8 @@
   ];
 
   let activeSection = "home";
+  let preserveNextRender = false;
+  let checkoutRequirements = [];
   let loginEmail = "";
   let loginCodeSent = false;
   let loginBusy = false;
@@ -337,6 +339,7 @@
 
   function setSection(section, context) {
     activeSection = section || "home";
+    preserveNextRender = true;
     render({
       ...context,
       data: window.SonaStore?.read?.() || context.data
@@ -1102,7 +1105,7 @@
     const textLabel = el("label", "", "Отзыв");
     const text = el("textarea");
     const actions = el("div", "sona-review-form__actions");
-    const submit = el("button", "sona-profile-primary", "Опубликовать отзыв");
+    const submit = el("button", "sona-profile-primary", "Отправить на модерацию");
 
     [5, 4, 3, 2, 1].forEach((value) => {
       const option = el("option", "", `${value} из 5`);
@@ -1146,8 +1149,9 @@
     const rating = Number(review.rating) || 5;
     const stars = "★★★★★".slice(0, rating);
     const date = window.SonaReviews?.displayMoment(review) || review.date || "";
+    const statuses = { moderation: "На модерации", published: "Опубликован", rejected: "Отклонён", hidden: "Скрыт" };
 
-    head.append(el("strong", "", product?.name || "Товар Soна"), el("span", "", date));
+    head.append(el("strong", "", product?.name || "Товар Soна"), el("span", "", `${statuses[review.status] || "Опубликован"} · ${date}`));
     card.append(head, el("b", "", `${stars} ${rating}/5`), el("p", "", review.text || ""));
     return card;
   }
@@ -1284,6 +1288,15 @@
       saveButton.disabled = true;
       saveButton.lastChild.textContent = "Сохраняем...";
       saveStatus.textContent = "";
+      const phoneDigits = String(form.elements.phone.value || "").replace(/\D/g, "");
+      if (checkoutRequirements.includes("номер телефона") && phoneDigits.length < 10) {
+        saveButton.disabled = false;
+        saveButton.lastChild.textContent = "Сохранить изменения";
+        saveStatus.textContent = "Введите корректный номер телефона: не менее 10 цифр.";
+        form.elements.phone.setAttribute("aria-invalid", "true");
+        return;
+      }
+      checkoutRequirements = [];
       try {
         await context.saveProfile?.({
           name: form.elements.name.value,
@@ -1316,6 +1329,23 @@
       button("sona-profile-soft", "Вернуться в профиль", () => setSection("home", context), "home"),
       button("sona-profile-soft sona-profile-danger", "Выйти", context.logout, "logout")
     ]));
+    if (checkoutRequirements.length) {
+      const notice = el("div", "sona-profile-checkout-notice");
+      notice.append(
+        el("strong", "", "Заполните профиль для оформления заказа"),
+        el("span", "", `Необходимо указать: ${checkoutRequirements.join(" и ")}. После сохранения вернитесь в корзину.`)
+      );
+      panel.append(notice);
+      form.classList.add("has-checkout-requirement");
+      if (checkoutRequirements.includes("номер телефона")) {
+        form.elements.phone.required = true;
+        form.elements.phone.setAttribute("aria-invalid", "true");
+      }
+      if (checkoutRequirements.includes("корректную почту")) {
+        form.elements.email.required = true;
+        form.elements.email.setAttribute("aria-invalid", "true");
+      }
+    }
     panel.append(form);
     panel.append(el("h3", "sona-profile-subtitle", "Активные сеансы"));
     sessionList.forEach((session) => panel.append(sessionRow(session, context)));
@@ -1361,7 +1391,7 @@
     }
 
     if (published.length) {
-      panel.append(el("h3", "sona-profile-subtitle", "Опубликованные отзывы"));
+      panel.append(el("h3", "sona-profile-subtitle", "Мои отзывы"));
       published.forEach((row) => panel.append(row));
     }
 
@@ -1520,6 +1550,9 @@
     const restoredData = restoreLocalAuth(options.data);
     const context = buildContext({ ...options, data: restoredData });
     const container = context.container;
+    const preserveScroll = preserveNextRender && Boolean(container.firstElementChild);
+    const stableScrollY = window.scrollY;
+    preserveNextRender = false;
 
     if (!context.data.profile?.isActive) {
       container.replaceChildren(renderLogin(context));
@@ -1528,6 +1561,9 @@
 
     const content = activeSection === "home" ? renderHome(context) : renderSimpleSection(context);
     container.replaceChildren(renderShell(context, content));
+    if (preserveScroll) {
+      window.requestAnimationFrame(() => window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" }));
+    }
   }
 
   window.SonaProfile = {
@@ -1536,6 +1572,10 @@
     clearLocalAuth,
     apiUrl: authApiUrl,
     syncLocalAuth: writeLocalAuth,
+    showCheckoutRequirements(missing = []) {
+      checkoutRequirements = Array.isArray(missing) ? missing.filter(Boolean) : [];
+      activeSection = "settings";
+    },
     setSection(section) {
       activeSection = section || "home";
     }

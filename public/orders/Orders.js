@@ -3,57 +3,47 @@
 
   const STATUS = {
     pending: {
-      label: "Заявка оформлена",
+      label: "Заявка получена",
       tone: "new"
     },
     confirmed: {
-      label: "Заказ подтверждён",
-      tone: "progress"
-    },
-    new: {
-      label: "Новый",
-      tone: "new"
-    },
-    processing: {
-      label: "В обработке",
-      tone: "progress"
-    },
-    paid: {
-      label: "Оплачен",
+      label: "Подтверждён",
       tone: "progress"
     },
     assembling: {
-      label: "Собирается",
+      label: "Комплектуется",
       tone: "progress"
     },
     delivering: {
-      label: "Передан в доставку",
+      label: "В пути",
       tone: "progress"
     },
     arrived: {
-      label: "Заказ прибыл",
+      label: "Прибыл",
       tone: "progress"
     },
     received: {
-      label: "Получен клиентом",
-      tone: "done"
-    },
-    completed: {
-      label: "Доставлен",
+      label: "Получен",
       tone: "done"
     },
     canceled: {
       label: "Отменён",
       tone: "muted"
-    },
-    return: {
-      label: "Возврат",
-      tone: "muted"
     }
   };
 
+  const LEGACY_STATUS = {
+    new: "pending",
+    processing: "confirmed",
+    paid: "confirmed",
+    completed: "received",
+    return: "canceled"
+  };
+
   function normalize(order) {
-    const status = order?.status && STATUS[order.status] ? order.status : "delivering";
+    const status = STATUS[order?.status]
+      ? order.status
+      : (LEGACY_STATUS[order?.status] || "pending");
 
     return {
       ...order,

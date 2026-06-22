@@ -2090,3 +2090,29 @@ body.profile-view .sona-profile-content {
     margin-inline: -12px;
   }
 }
+
+.sona-profile-checkout-notice {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid #f1c36d;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff9e8, #fff3cf);
+  color: #694600;
+  box-shadow: 0 10px 24px rgba(151, 102, 0, 0.1);
+}
+
+.sona-profile-checkout-notice strong {
+  font-size: 1rem;
+}
+
+.sona-profile-checkout-notice span {
+  line-height: 1.45;
+}
+
+.sona-profile-settings-form.has-checkout-requirement input[name="phone"]:invalid,
+.sona-profile-settings-form input[aria-invalid="true"] {
+  border-color: #d97706;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.14);
+}

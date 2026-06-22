@@ -110,3 +110,164 @@
     outline: 0 !important;
   }
 }
+
+@media (max-width: 760px) {
+  body .home-picks-group .product-card.is-sofa-card .product-brand {
+    display: none !important;
+  }
+
+  body .home-picks-group .product-card.is-sofa-card .product-category-copy {
+    grid-row: 3 !important;
+    display: block !important;
+    align-self: center !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    color: #a3afbd !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 20px !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  body .home-picks-group {
+    overflow: hidden !important;
+  }
+
+  body .home-picks-group .home-product-grid {
+    display: flex !important;
+    grid-template-columns: none !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 0 0 6px !important;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body .home-picks-group .home-product-grid::-webkit-scrollbar,
+  body :is(.catalog-switcher, .category-switcher, .category-page-switcher)::-webkit-scrollbar {
+    display: none;
+  }
+
+  body .home-picks-group .home-product-grid > .product-card {
+    width: calc(100vw - 32px) !important;
+    min-width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    flex: 0 0 calc(100vw - 32px) !important;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  body :is(.catalog-switcher, .category-switcher, .category-page-switcher) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-behavior: smooth;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none !important;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body :is(.catalog-switcher, .category-switcher, .category-page-switcher) > :is(button, a) {
+    flex: 0 0 auto !important;
+    scroll-snap-align: start;
+  }
+
+  body .quick-nav .quick-link,
+  body .quick-nav .quick-link:is(:hover, :focus, :active, .is-active, .is-sale) {
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  body.profile-view .account-page.app-shell:has(.sona-login) {
+    padding-bottom: 10px !important;
+  }
+
+  body.profile-view:has(.sona-login) .site-footer.app-shell {
+    margin-top: 0 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body .site-header .quick-nav {
+    height: 72px !important;
+    min-height: 72px !important;
+    max-height: 72px !important;
+    align-items: stretch !important;
+    gap: 1px !important;
+    padding: 4px 6px 6px !important;
+    overflow-x: hidden !important;
+  }
+
+  body .quick-nav .quick-link {
+    width: auto !important;
+    min-width: 0 !important;
+    height: 62px !important;
+    min-height: 62px !important;
+    flex: 1 1 0 !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    padding: 2px 1px 4px !important;
+    border-color: transparent !important;
+    border-radius: 15px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-size: 9.5px !important;
+  }
+
+  body .quick-nav .quick-icon {
+    width: 44px !important;
+    height: 40px !important;
+    flex: 0 0 40px !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  body .quick-nav .quick-icon img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 4px rgba(25, 42, 58, 0.12));
+  }
+
+  body .quick-nav .quick-link span:last-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 760px) {
+  body .detail-similar .similar-card .product-placeholder,
+  body .detail-similar .similar-card .product-placeholder.has-image,
+  body .detail-similar .similar-card .product-placeholder.is-white-media-image,
+  body .detail-similar .similar-card .product-placeholder.is-sofa-image {
+    background:
+      radial-gradient(ellipse at 50% 82%, rgba(64, 91, 119, 0.18), transparent 58%),
+      linear-gradient(145deg, #f3f8fc, #e4eff8 55%, #f7fbff) !important;
+  }
+
+  body .detail-similar .similar-card .product-placeholder img {
+    padding: 6px 8px 2px !important;
+    background: transparent !important;
+    mix-blend-mode: multiply;
+    filter: drop-shadow(0 7px 7px rgba(27, 48, 70, 0.15));
+  }
+}

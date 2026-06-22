@@ -278,7 +278,7 @@
     },
     sale: {
       key: "sale",
-      title: "Распродажа SONA",
+      title: "Скидки SONA",
       eyebrow: "выгода",
       text: "Товары и услуги со скидками в одной подборке.",
       section: ALL_VALUE,
@@ -308,7 +308,7 @@
       { key: "production", label: "Продакшен", title: "Продакшен", section: "Услуги", category: ALL_VALUE, group: "", query: "продакшен", text: "Комплексное производство и сопровождение контента." }
     ],
     sale: [
-      { key: "sale", label: "Все скидки", title: "Распродажа SONA", section: ALL_VALUE, category: ALL_VALUE, group: "", saleOnly: true, text: "Товары и услуги со скидками в одной подборке." },
+      { key: "sale", label: "Все скидки", title: "Скидки SONA", section: ALL_VALUE, category: ALL_VALUE, group: "", saleOnly: true, text: "Товары и услуги со скидками в одной подборке." },
       { key: "sale-sofas", label: "Диваны", title: "Диваны со скидкой", section: "Мебель", category: ALL_VALUE, group: "sofas", saleOnly: true, text: "Все диваны с актуальной сниженной ценой." },
       { key: "sale-beds", label: "Кровати", title: "Кровати со скидкой", section: "Мебель", category: "кровать", group: "", saleOnly: true, text: "Кровати для спальни по специальной цене." },
       { key: "sale-chairs", label: "Кресла", title: "Кресла со скидкой", section: "Мебель", category: "кресло", group: "", saleOnly: true, text: "Акцентные и комфортные кресла со скидкой." },
@@ -361,6 +361,7 @@
   let particlesStarted = false;
   let activeAdIndex = 0;
   let adTimer = 0;
+  const homeRailAutoplay = new WeakMap();
 
   const els = {
     marketplace: document.querySelector(".marketplace"),
@@ -452,6 +453,39 @@
     const localPreview = window.location.protocol === "file:"
       || (["127.0.0.1", "localhost"].includes(window.location.hostname) && window.location.port !== "8000");
     return localPreview ? `http://127.0.0.1:8000${path}` : path;
+  }
+
+  function analyticsSessionId() {
+    const key = "sona.analytics.session.v1";
+    const now = Date.now();
+    try {
+      const stored = JSON.parse(localStorage.getItem(key) || "null");
+      if (stored?.id && now - Number(stored.lastAt || 0) < 30 * 60 * 1000) {
+        localStorage.setItem(key, JSON.stringify({ id: stored.id, lastAt: now }));
+        return stored.id;
+      }
+      const id = crypto.randomUUID?.() || `${now}-${Math.random().toString(16).slice(2)}`;
+      localStorage.setItem(key, JSON.stringify({ id, lastAt: now }));
+      return id;
+    } catch (_error) {
+      return `session-${now}-${Math.random().toString(16).slice(2)}`;
+    }
+  }
+
+  function trackAnalytics(type, details = {}) {
+    const body = JSON.stringify({
+      type,
+      sessionId: analyticsSessionId(),
+      path: `${window.location.pathname}${window.location.search}`,
+      ...details
+    });
+    fetch(apiUrl("/api/analytics/event"), {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true
+    }).catch(() => null);
   }
 
   function createStructuredPrice(product, detail = false) {
@@ -591,15 +625,18 @@
       });
       const result = await response.json();
       if (!response.ok || !result.order) throw new Error(result.error || "Order update failed");
-      store.update((data) => {
+      (store.updateFromServer || store.update)((data) => {
         data.orders = (data.orders || []).map((order) => order.id === orderId ? result.order : order);
       });
-      render();
+      window.SonaAdmin?.preserveScroll?.();
+      renderAdminPage();
       showToast(result.notified === false && result.order.status === "arrived"
         ? "Статус сохранён, но письмо клиенту отправить не удалось"
         : "Заказ обновлён");
+      return true;
     } catch (error) {
       showToast("Не удалось обновить заказ");
+      return false;
     }
   }
 
@@ -1040,6 +1077,9 @@
     closeProduct();
     closeSortMenu();
     renderRoute();
+    trackAnalytics(route === "category" ? "category_view" : "route_view", {
+      category: route === "category" ? String(state.categoryPage?.key || "all") : route
+    });
 
     if (syncUrl) {
       const currentPath = `${window.location.pathname}${window.location.search}`;
@@ -1366,6 +1406,40 @@
     if (els.newProductGrid) {
       els.newProductGrid.replaceChildren(...(newItems.length ? newItems : visible.slice(4, 8)).map((product) => createProductCard(product, data)));
     }
+
+    [els.popularProductGrid, els.newProductGrid].forEach(setupHomeRailAutoplay);
+  }
+
+  function setupHomeRailAutoplay(rail) {
+    if (!rail || homeRailAutoplay.has(rail)) return;
+
+    let pauseUntil = 0;
+    const pause = () => {
+      pauseUntil = Date.now() + 8000;
+    };
+
+    rail.addEventListener("pointerdown", pause, { passive: true });
+    rail.addEventListener("touchstart", pause, { passive: true });
+    rail.addEventListener("wheel", pause, { passive: true });
+
+    const timer = window.setInterval(() => {
+      if (
+        window.innerWidth > 760
+        || document.hidden
+        || reduceMotion
+        || Date.now() < pauseUntil
+        || rail.scrollWidth <= rail.clientWidth + 4
+      ) return;
+
+      const firstCard = rail.querySelector(".product-card");
+      if (!firstCard) return;
+      const gap = Number.parseFloat(getComputedStyle(rail).columnGap || getComputedStyle(rail).gap) || 0;
+      const step = firstCard.getBoundingClientRect().width + gap;
+      const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 8;
+      rail.scrollTo({ left: atEnd ? 0 : rail.scrollLeft + step, behavior: "smooth" });
+    }, 4200);
+
+    homeRailAutoplay.set(rail, timer);
   }
 
   function createLookbookDealCard(product, data, index) {
@@ -1431,7 +1505,7 @@
     if (state.filters.favoritesOnly) {
       title = "Лайки SONA";
     } else if (state.filters.saleOnly) {
-      title = "Распродажа SONA";
+      title = "Скидки SONA";
     } else if (state.filters.group === "sofas") {
       title = "Диваны SONA";
     } else if (state.filters.category === "кровать") {
@@ -1782,6 +1856,7 @@
     const rating = createElement("span", "rating", reviewLabel(product.id, data));
     const titleRow = createElement("div", "product-title-row");
     const title = createElement("h3", "", product.name);
+    const categoryCopy = createElement("span", "product-category-copy", productCategoryLabel(product));
     const meta = createElement("div", "product-meta");
     const swatches = createElement("div", "swatches");
     const footer = createElement("div", "product-footer");
@@ -1848,7 +1923,7 @@
     titleRow.append(title);
     footer.append(price, serviceNote, delivery, addButton);
     media.append(placeholder, tagWrap, favoriteButton);
-    body.append(topLine, titleRow, meta, swatches, footer);
+    body.append(topLine, titleRow, categoryCopy, meta, swatches, footer);
     card.append(media, body);
 
     return card;
@@ -1899,6 +1974,7 @@
   function openProduct(productId) {
     const product = byId(productId);
     if (!product) return;
+    trackAnalytics("product_view", { productId: product.id, category: productCategoryLabel(product) });
     store.update((data) => {
       data.viewedProductIds = [
         product.id,
@@ -2515,6 +2591,7 @@
       window.requestAnimationFrame(() => window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" }));
     }
     showToast(added ? "В корзине" : "Удалено из корзины");
+    if (added) trackAnalytics("cart_add", { productId: id });
   }
 
   function syncCartButtons(productId) {
@@ -2928,7 +3005,7 @@
       const product = byId(payload.productId);
       if (product) renderProductDetail(product);
     }
-    showToast(added ? "Отзыв опубликован" : "Отзыв можно оставить только после получения заказа");
+    showToast(added ? "Отзыв отправлен на модерацию" : "Отзыв можно оставить только после получения заказа");
   }
 
   function renderProfilePage() {
@@ -3736,8 +3813,12 @@
     const email = security.sanitizeEmail(profile.email || "");
     const phone = security.sanitizePhone(profile.phone || "");
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(email) || phone.replace(/\D/g, "").length < 10) {
+      const missing = [];
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(email)) missing.push("корректную почту");
+      if (phone.replace(/\D/g, "").length < 10) missing.push("номер телефона");
+      window.SonaProfile?.showCheckoutRequirements?.(missing);
       navigateTo("profile");
-      showToast("Для оформления укажите в профиле корректные телефон и почту");
+      showToast(`Для оформления укажите ${missing.join(" и ")}`);
       return;
     }
 
@@ -4196,6 +4277,7 @@
       refreshProductsFromAdmin();
       state.route = routeFromLocation();
       render();
+      trackAnalytics("visit", { category: state.route });
       bindPassiveStoreRefresh();
     } catch (error) {
       els.emptyState.hidden = false;

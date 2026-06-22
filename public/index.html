@@ -8,16 +8,16 @@
     <title>Soна - товары и услуги для дома</title>
     <link rel="icon" type="image/png" href="assets/sona-logo.png">
     <link rel="apple-touch-icon" href="assets/sona-logo.png">
-    <link rel="stylesheet" href="css/custom.css?v=20260621-6">
+    <link rel="stylesheet" href="css/custom.css?v=20260622-7">
     <link rel="stylesheet" href="css/cart.css?v=20260620-3">
     <link rel="stylesheet" href="orders/Orders.css?v=20260614-2">
     <link rel="stylesheet" href="reviews/Reviews.css?v=20260614-2">
     <link rel="stylesheet" href="support/Support.css?v=20260614-2">
-    <link rel="stylesheet" href="admin/Admin.css?v=20260614-2">
+    <link rel="stylesheet" href="admin/Admin.css?v=20260622-3">
     <link rel="stylesheet" href="admin/products/ProductsPage.css?v=20260614-2">
     <link rel="stylesheet" href="profile/Profile.css?v=20260620-6">
-    <link rel="stylesheet" href="css/desktop-refresh.css?v=20260620-2" media="(min-width: 761px)">
-    <link rel="stylesheet" href="mobile/mobile.css?v=20260621-8" media="(max-width: 760px)">
+    <link rel="stylesheet" href="css/desktop-refresh.css?v=20260622-4" media="(min-width: 761px)">
+    <link rel="stylesheet" href="mobile/mobile.css?v=20260622-10" media="(max-width: 760px)">
   </head>
   <body>
     <div class="top-promo">
@@ -91,49 +91,34 @@
       <div class="app-shell quick-nav" aria-label="Разделы маркетплейса">
         <a class="quick-link" href="#catalog" data-quick-filter data-nav-key="sofas" data-group="sofas" data-section="Мебель">
           <span class="quick-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M5 18h14M7 18v-5a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v5"/>
-              <path d="M8 10V7.8A2.8 2.8 0 0 1 10.8 5h2.4A2.8 2.8 0 0 1 16 7.8V10"/>
-            </svg>
+            <img src="assets/source/диван.png" alt="" loading="eager">
           </span>
           <span>Диваны</span>
         </a>
         <a class="quick-link" href="#catalog" data-quick-filter data-nav-key="beds" data-section="Мебель" data-category="кровать">
           <span class="quick-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M4.5 12.5h15v5h-15zM6 12.5V8.8A2.8 2.8 0 0 1 8.8 6h6.4A2.8 2.8 0 0 1 18 8.8v3.7M6 17.5v2M18 17.5v2"/>
-            </svg>
+            <img src="assets/source/кровать.png" alt="" loading="eager">
           </span>
           <span>Кровати</span>
         </a>
         <a class="quick-link" href="#catalog" data-quick-filter data-nav-key="chairs" data-section="Мебель" data-category="кресло">
           <span class="quick-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M7 19V8.5A3.5 3.5 0 0 1 10.5 5h3A3.5 3.5 0 0 1 17 8.5V19"/>
-              <path d="M5 19h14M8.5 12h7"/>
-            </svg>
+            <img src="assets/source/кресла.png" alt="" loading="eager">
           </span>
           <span>Кресла</span>
         </a>
         <a class="quick-link" href="#catalog" data-quick-filter data-nav-key="services" data-section="Услуги">
           <span class="quick-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M6 8h12M6 12h12M6 16h8"/>
-              <path d="M17 16l2 2 3-4"/>
-            </svg>
+            <img src="assets/source/услуги.png" alt="" loading="eager">
           </span>
           <span>Услуги</span>
         </a>
         <a class="quick-link is-sale" href="#catalog" data-quick-filter data-nav-key="sale" data-sale="true">
           <span class="quick-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M20 12l-8 8-8-8 8-8 8 8z"/>
-              <path d="M9 15l6-6M9.5 9.5h.1M14.5 14.5h.1"/>
-            </svg>
+            <img src="assets/source/скидки.png" alt="" loading="eager">
           </span>
-          <span>Распродажа</span>
+          <span>Скидки</span>
         </a>
-        <a class="quick-phone" href="tel:88002004090">8 800 200-40-90</a>
       </div>
     </header>
 
@@ -278,7 +263,7 @@
             <button type="button" aria-label="Закрыть фильтры" data-close-mobile-filters>×</button>
           </div>
           <label class="sale-switch">
-            <span>Распродажа</span>
+            <span>Скидки</span>
             <input id="saleOnly" type="checkbox">
             <i aria-hidden="true"></i>
           </label>
@@ -354,7 +339,7 @@
               <button type="button" data-catalog-switch="bedCollections">Кровати</button>
               <button type="button" data-catalog-switch="chairCollections">Кресла</button>
               <button type="button" data-catalog-switch="serviceCollections">Услуги</button>
-              <button type="button" data-catalog-switch="sale">Распродажа</button>
+              <button type="button" data-catalog-switch="sale">Скидки</button>
             </div>
             <div class="catalog-view is-active" data-catalog-view="sofaCollections">
               <div class="catalog-title-row">
@@ -531,7 +516,7 @@
 
             <div class="catalog-view" data-catalog-view="sale">
               <div class="catalog-title-row">
-                <h3>Распродажа</h3>
+                <h3>Скидки</h3>
                 <span>Скидки на мебель, диваны и услуги Soна</span>
               </div>
               <div class="sale-catalog-panel">
@@ -630,7 +615,7 @@
           <a href="/category?type=all" data-category-page="all">Все товары</a>
           <a href="#catalog" data-quick-filter data-open-sofa-collections data-group="sofas" data-section="Мебель">Диваны</a>
           <a href="#catalog" data-quick-filter data-open-catalog-tab="bedCollections" data-section="Мебель" data-category="кровать">Кровати</a>
-          <a href="#catalog" data-quick-filter data-open-catalog-tab="sale" data-sale="true">Распродажа</a>
+          <a href="#catalog" data-quick-filter data-open-catalog-tab="sale" data-sale="true">Скидки</a>
         </div>
         <div>
           <span>Услуги</span>
@@ -645,9 +630,9 @@
           <span>Телефон</span>
           <strong>8 800 200-40-90</strong>
         </a>
-        <a class="footer-contact-card" href="mailto:support@sona.local">
+        <a class="footer-contact-card" href="mailto:sonahome@yandex.ru">
           <span>Поддержка</span>
-          <strong>support@sona.local</strong>
+          <strong>sonahome@yandex.ru</strong>
         </a>
       </section>
     </footer>
@@ -686,9 +671,9 @@
     <div class="support-chat-root" id="supportChatRoot"></div>
 
     <script src="js/security.js?v=20260614-2" defer></script>
-    <script src="js/store.js?v=20260620-4" defer></script>
+    <script src="js/store.js?v=20260622-6" defer></script>
     <script src="orders/Orders.js?v=20260614-2" defer></script>
-    <script src="reviews/Reviews.js?v=20260614-2" defer></script>
+    <script src="reviews/Reviews.js?v=20260622-3" defer></script>
     <script src="support/Support.js?v=20260614-2" defer></script>
     <script src="admin/products/productSchemas.js?v=20260614-2" defer></script>
     <script src="admin/products/ProductCategorySelect.js?v=20260614-2" defer></script>
@@ -697,10 +682,10 @@
     <script src="admin/products/ProductPreview.js?v=20260614-2" defer></script>
     <script src="admin/products/ProductEditor.js?v=20260614-2" defer></script>
     <script src="admin/products/ProductsPage.js?v=20260614-2" defer></script>
-    <script src="admin/Admin.js?v=20260621-2" defer></script>
-    <script src="profile/Profile.js?v=20260621-2" defer></script>
+    <script src="admin/Admin.js?v=20260622-5" defer></script>
+    <script src="profile/Profile.js?v=20260622-3" defer></script>
     <script src="js/optimization.js?v=20260614-2" defer></script>
-    <script src="js/app.js?v=20260621-7" defer></script>
+    <script src="js/app.js?v=20260622-9" defer></script>
     <script src="mobile/mobile.js?v=20260620-4" defer></script>
   </body>
 </html>

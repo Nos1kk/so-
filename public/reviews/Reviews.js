@@ -67,7 +67,7 @@
       author: authorName(profile),
       date: new Date(now).toLocaleDateString("ru-RU", { day: "2-digit", month: "long" }),
       time: new Date(now).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-      status: "published",
+      status: "moderation",
       verified: false,
       reply: "",
       createdAt: now

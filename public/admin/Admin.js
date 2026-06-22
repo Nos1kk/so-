@@ -15,6 +15,7 @@ let adminSearchTimer = 0;
   let supportDialog = "";
   let editingProductId = "";
   let editingAdId = "";
+  let preserveNextRender = false;
 
   const menu = [
     ["home", "Главная", "M4 5h16v14H4z M8 9h8 M8 13h5"],
@@ -121,27 +122,42 @@ let adminSearchTimer = 0;
 
   function buildUsers(data, orders) {
     const map = new Map();
+    const userKey = (user = {}) => cleanEmail(user.email) || digits(user.phone) || String(user.id || "guest").toLowerCase();
+    const mergeUser = (incoming = {}) => {
+      const key = userKey(incoming);
+      const current = map.get(key) || {};
+      map.set(key, {
+        ...current,
+        ...incoming,
+        id: current.id || incoming.id,
+        name: incoming.name || current.name,
+        email: cleanEmail(incoming.email || current.email),
+        phone: incoming.phone || current.phone,
+        role: current.role === "admin" || incoming.role === "admin" ? "admin" : (incoming.role || current.role || "user"),
+        status: incoming.status || current.status || "active"
+      });
+      return key;
+    };
+
     (data.users || []).forEach((user) => {
       const realAccount = user.email && !String(user.email).endsWith("@sona.local") && !String(user.id || "").includes("TEMPORARY");
-      if (realAccount) map.set(user.phone || user.email || user.id, { ...user });
+      if (realAccount) mergeUser(user);
     });
     if (data.profile?.phone || data.profile?.email) {
-      const key = data.profile.phone || data.profile.email;
-      map.set(key, {
+      mergeUser({
         id: `USER-${digits(data.profile.phone) || "local"}`,
         name: data.profile.name || "Пользователь",
         email: data.profile.email || "",
         phone: data.profile.phone || "",
         role: data.profile.role || "user",
         status: data.profile.status || "active",
-        registeredAt: data.profile.registeredAt || "",
-        ...(map.get(key) || {})
+        registeredAt: data.profile.registeredAt || ""
       });
     }
     orders.forEach((order) => {
       const phone = order.profile?.phone || "";
       const email = order.profile?.email || "";
-      const key = phone || email || order.profile?.userId || "guest";
+      const key = userKey({ email, phone, id: order.profile?.userId });
       const current = map.get(key) || {
         id: order.profile?.userId || `USER-${digits(phone) || key}`,
         name: order.profile?.name || "Пользователь",
@@ -151,6 +167,9 @@ let adminSearchTimer = 0;
         status: "active",
         registeredAt: order.createdAt ? new Date(order.createdAt).toISOString() : ""
       };
+      current.name = current.name || order.profile?.name || "Пользователь";
+      current.email = cleanEmail(current.email || email);
+      current.phone = current.phone || phone;
       current.ordersCount = (current.ordersCount || 0) + 1;
       current.totalSpent = (current.totalSpent || 0) + (Number(order.total) || 0);
       map.set(key, current);
@@ -237,17 +256,17 @@ let adminSearchTimer = 0;
     const avg = completedOrders.length ? revenue / completedOrders.length : 0;
     const unread = support.filter((message) => message.role === "user" && message.status === "new").length;
     const stockOut = products.filter((product) => Number(product.stock) <= 0 && product.stock !== undefined).length;
-    const hiddenReviews = reviews.filter((review) => review.status === "hidden").length;
+    const pendingReviews = reviews.filter((review) => review.status === "moderation").length;
 
     const page = el("div", "sona-admin-section");
     const stats = el("section", "sona-admin-stats");
     stats.append(
       stat("Всего заказов", orders.length, `${newOrders} новых`, "blue", () => { orderStatusFilter = "all"; activeSection = "orders"; context.render(); }),
-      stat("В обработке", orders.filter((order) => ["pending", "confirmed", "processing", "paid", "assembling", "delivering", "arrived"].includes(order.status)).length, "активные статусы", "", () => { orderStatusFilter = "processing"; activeSection = "orders"; context.render(); }),
-      stat("Завершено", completedOrders.length, `${canceled} отмен/возвратов`, "green", () => { orderStatusFilter = "completed"; activeSection = "orders"; context.render(); }),
+      stat("В обработке", orders.filter((order) => !window.SonaOrders?.isCompleted(order) && !["canceled", "return"].includes(order.status)).length, "активные статусы", "", () => { orderStatusFilter = "active"; activeSection = "orders"; context.render(); }),
+      stat("Завершено", completedOrders.length, `${canceled} отмен/возвратов`, "green", () => { orderStatusFilter = "received"; activeSection = "orders"; context.render(); }),
       stat("Товары", products.length, `${stockOut} без остатка`, "", () => { activeSection = "products"; context.render(); }),
       stat("Пользователи", users.length, "зарегистрированные", "", () => { activeSection = "users"; context.render(); }),
-      stat("Отзывы", reviews.length, `${hiddenReviews} скрыто`, "", () => { activeSection = "reviews"; context.render(); }),
+      stat("Отзывы", reviews.length, `${pendingReviews} ждут модерации`, "", () => { activeSection = "reviews"; context.render(); }),
       stat("Поддержка", support.length, `${unread} непрочитано`, "blue", () => { activeSection = "support"; context.render(); }),
       stat("Выручка", money(revenue), `средний чек ${money(avg)}`, "green", () => { activeSection = "stats"; context.render(); })
     );
@@ -276,39 +295,109 @@ let adminSearchTimer = 0;
 
     const now = Date.now();
     const periodDays = { today: 1, week: 7, month: 31, year: 366 }[statsPeriod] || 31;
+    const cutoff = now - periodDays * 86400000;
+    const timestamp = (value, fallback = "") => {
+      const numeric = Number(value);
+      if (Number.isFinite(numeric) && numeric > 0) return numeric;
+      const parsed = Date.parse(value || fallback || "");
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
     const periodOrders = context.orders.filter((order) => {
-      const time = Number(order.createdAt) || Date.parse(order.date || "");
-      return !time || now - time <= periodDays * 86400000;
+      const time = timestamp(order.createdAt, order.date);
+      return !time || time >= cutoff;
     });
-    const periodRevenue = periodOrders.filter((order) => window.SonaOrders?.isCompleted(order)).reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+    const completed = periodOrders.filter((order) => window.SonaOrders?.isCompleted(order));
+    const periodRevenue = completed.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
+    const events = (context.data.analytics?.events || []).filter((event) => Number(event.at) >= cutoff);
+    const visits = events.filter((event) => event.type === "visit");
+    const productViews = events.filter((event) => event.type === "product_view");
+    const visitorCounts = visits.reduce((map, event) => map.set(event.sessionId, (map.get(event.sessionId) || 0) + 1), new Map());
+    const uniqueVisitors = visitorCounts.size;
+    const returningVisitors = [...visitorCounts.values()].filter((count) => count > 1).length;
+    const customerOrders = context.orders.reduce((map, order) => {
+      const key = cleanEmail(order.profile?.email) || digits(order.profile?.phone) || order.profile?.userId;
+      if (!key) return map;
+      const row = map.get(key) || { key, name: order.profile?.name || key, orders: 0, spent: 0 };
+      row.orders += 1;
+      row.spent += Number(order.total) || 0;
+      map.set(key, row);
+      return map;
+    }, new Map());
+    const repeatCustomers = [...customerOrders.values()].filter((row) => row.orders >= 2).length;
+    const conversion = uniqueVisitors ? (periodOrders.length / uniqueVisitors) * 100 : 0;
+    const averageCheck = periodOrders.length ? periodOrders.reduce((sum, order) => sum + (Number(order.total) || 0), 0) / periodOrders.length : 0;
+    const newCustomers = new Set(periodOrders.map((order) => cleanEmail(order.profile?.email) || digits(order.profile?.phone)).filter(Boolean)).size;
     const summary = el("div", "sona-admin-stats sona-admin-stats-compact");
     summary.append(
+      stat("Визиты", visits.length, "загрузки сайта", "blue"),
+      stat("Посетители", uniqueVisitors, "уникальные сессии"),
+      stat("Вернувшиеся", returningVisitors, "повторные визиты", "green"),
+      stat("Просмотры товаров", productViews.length, "переходы в карточки"),
       stat("Заказы", periodOrders.length, `за ${periodDays === 1 ? "сегодня" : `${periodDays} дней`}`, "blue"),
       stat("Выручка", money(periodRevenue), "по завершённым заказам", "green"),
-      stat("Средний чек", money(periodOrders.length ? periodOrders.reduce((sum, order) => sum + (Number(order.total) || 0), 0) / periodOrders.length : 0), "по всем заказам"),
-      stat("Новые клиенты", new Set(periodOrders.map((order) => order.profile?.email || order.profile?.phone).filter(Boolean)).size, "уникальные контакты")
+      stat("Постоянные покупатели", repeatCustomers, "два заказа и более"),
+      stat("Конверсия", `${conversion.toFixed(1)}%`, "заказы / посетители"),
+      stat("Средний чек", money(averageCheck), "по всем заказам"),
+      stat("Новые покупатели", newCustomers, "уникальные контакты")
     );
-    const chart = el("div", "sona-admin-chart");
-    const ordersByDay = periodOrders.slice(-8);
-    const max = Math.max(1, ...ordersByDay.map((order) => Number(order.total) || 0));
-    ordersByDay.forEach((order) => {
-      const bar = el("span");
-      bar.style.height = `${Math.max(10, ((Number(order.total) || 0) / max) * 100)}%`;
-      bar.title = `${order.id}: ${money(order.total)}`;
-      chart.append(bar);
+    const bucketCount = statsPeriod === "today" ? 12 : statsPeriod === "week" ? 7 : statsPeriod === "month" ? 10 : 12;
+    const bucketSize = (periodDays * 86400000) / bucketCount;
+    const buckets = Array.from({ length: bucketCount }, (_, index) => {
+      const start = cutoff + index * bucketSize;
+      const end = start + bucketSize;
+      return {
+        start,
+        visits: visits.filter((event) => event.at >= start && event.at < end).length,
+        orders: periodOrders.filter((order) => {
+          const time = timestamp(order.createdAt, order.date);
+          return time >= start && time < end;
+        }).length
+      };
     });
+    const maxActivity = Math.max(1, ...buckets.flatMap((bucket) => [bucket.visits, bucket.orders]));
+    const chart = el("div", "sona-admin-chart sona-admin-activity-chart");
+    buckets.forEach((bucket) => {
+      const column = el("article", "sona-admin-chart-column");
+      const value = el("strong", "", `${bucket.visits}/${bucket.orders}`);
+      const bars = el("div", "sona-admin-chart-bars");
+      const visitBar = el("i", "is-visits");
+      const orderBar = el("i", "is-orders");
+      visitBar.style.height = `${Math.max(bucket.visits ? 8 : 2, bucket.visits / maxActivity * 100)}%`;
+      orderBar.style.height = `${Math.max(bucket.orders ? 8 : 2, bucket.orders / maxActivity * 100)}%`;
+      bars.append(visitBar, orderBar);
+      column.append(value, bars, el("small", "", new Date(bucket.start).toLocaleDateString("ru-RU", statsPeriod === "today" ? { hour: "2-digit" } : { day: "2-digit", month: "2-digit" })));
+      chart.append(column);
+    });
+    const legend = el("div", "sona-admin-chart-legend");
+    legend.append(el("span", "is-visits", "Визиты"), el("span", "is-orders", "Заказы"));
 
-    const popular = [...context.products]
-      .sort((a, b) => (window.SonaReviews?.summary(context.data.reviews, b.id).count || 0) - (window.SonaReviews?.summary(context.data.reviews, a.id).count || 0))
+    const viewCounts = productViews.reduce((map, event) => map.set(event.productId, (map.get(event.productId) || 0) + 1), new Map());
+    const popular = [...viewCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
       .slice(0, 6)
-      .map((product) => infoRow(product.name, `${product.category || "Категория"} · ${money(product.price)}`));
-    const categories = Object.entries(context.products.reduce((acc, product) => {
-      const key = product.category || product.marketSection || "Без категории";
+      .map(([productId, count]) => {
+        const product = context.byId?.(productId);
+        return infoRow(product?.name || productId || "Неизвестный товар", `${count} просмотров${product ? ` · ${money(product.price)}` : ""}`);
+      });
+    const loyal = [...customerOrders.values()]
+      .sort((a, b) => b.orders - a.orders || b.spent - a.spent)
+      .slice(0, 6)
+      .map((customer) => infoRow(customer.name, `${customer.orders} заказов · ${money(customer.spent)}`));
+    const statuses = Object.entries(periodOrders.reduce((acc, order) => {
+      const key = window.SonaOrders?.statusLabel(order) || order.status || "Без статуса";
       acc[key] = (acc[key] || 0) + 1;
       return acc;
-    }, {})).map(([name, count]) => infoRow(name, `${count} товаров`));
+    }, {})).sort((a, b) => b[1] - a[1]).map(([name, count]) => infoRow(name, `${count} заказов`));
+    const insights = el("div", "sona-admin-insights");
+    const popularPanel = el("section", "sona-admin-insight");
+    const loyalPanel = el("section", "sona-admin-insight");
+    const statusPanel = el("section", "sona-admin-insight");
+    popularPanel.append(el("h3", "", "Товары по просмотрам"), ...(popular.length ? popular : [el("p", "sona-admin-muted", "Просмотры начнут появляться после визитов покупателей.")]));
+    loyalPanel.append(el("h3", "", "Постоянные покупатели"), ...(loyal.length ? loyal : [el("p", "sona-admin-muted", "Повторных заказов пока нет.")]));
+    statusPanel.append(el("h3", "", "Статусы заказов"), ...(statuses.length ? statuses : [el("p", "sona-admin-muted", "Заказов за период пока нет.")]));
+    insights.append(popularPanel, loyalPanel, statusPanel);
 
-    page.append(el("h2", "", "Статистика"), filters, summary, el("h3", "", "Динамика заказов"), chart, el("h3", "", "Популярные товары"), ...popular.slice(0, 4), el("h3", "", "Категории"), ...categories.slice(0, 5));
+    page.append(el("h2", "", "Статистика бизнеса"), filters, summary, el("h3", "", "Активность: визиты и заказы"), legend, chart, insights);
     return page;
   }
 
@@ -324,10 +413,11 @@ let adminSearchTimer = 0;
       .filter((order) => {
         const q = orderQuery.toLowerCase();
         const productNames = (order.items || []).map((item) => context.byId?.(item.id)?.name || item.id).join(" ");
-        const activeStatuses = ["pending", "confirmed", "processing", "paid", "assembling", "delivering", "arrived"];
+        const normalizedStatus = window.SonaOrders?.normalize(order)?.status || order.status;
+        const activeStatuses = ["pending", "confirmed", "assembling", "delivering", "arrived"];
         const matchesStatus = orderStatusFilter === "all"
-          || order.status === orderStatusFilter
-          || (orderStatusFilter === "processing" && activeStatuses.includes(order.status));
+          || normalizedStatus === orderStatusFilter
+          || (orderStatusFilter === "active" && activeStatuses.includes(normalizedStatus));
         const matchesQuery = !q || [order.id, order.profile?.name, order.profile?.phone, order.profile?.email, productNames, order.date].join(" ").toLowerCase().includes(q);
         const orderDate = order.createdAt ? new Date(order.createdAt).toISOString().slice(0, 10) : "";
         return matchesStatus && matchesQuery && (!orderDateFilter || orderDate === orderDateFilter);
@@ -349,7 +439,7 @@ let adminSearchTimer = 0;
       panel.append(filterBar([
         searchInput("Диван, номер заказа, телефон или почта", orderQuery, (value) => { orderQuery = value; orderPage = 1; context.render(); }),
         date,
-        select([["all", "Все статусы"], ...Object.entries(window.SonaOrders?.STATUS || {})], orderStatusFilter, (value) => { orderStatusFilter = value; orderPage = 1; context.render(); })
+        select([["all", "Все статусы"], ["active", "Активные"], ...Object.entries(window.SonaOrders?.STATUS || {})], orderStatusFilter, (value) => { orderStatusFilter = value; orderPage = 1; context.render(); })
       ]));
     }
     if (!rows.length) {
@@ -363,9 +453,9 @@ let adminSearchTimer = 0;
       const head = el("div", "sona-admin-order-head");
       const customer = el("div", "sona-admin-order-customer");
       const items = el("div", "sona-admin-order-items");
-      const status = select(Object.entries(window.SonaOrders?.STATUS || {}), order.status || "new", (value) => {
-        context.actions.updateOrder(order.id, { status: value });
-      });
+      const normalizedOrder = window.SonaOrders?.normalize(order) || order;
+      let dirty = false;
+      const status = select(Object.entries(window.SonaOrders?.STATUS || {}), normalizedOrder.status || "pending", () => markDirty());
       const total = Math.max(0, Number(order.total) || 0);
       const paid = Math.max(0, Math.min(total, Number(order.paidAmount) || 0));
       const payment = el("label", "sona-admin-order-payment");
@@ -376,13 +466,34 @@ let adminSearchTimer = 0;
       paidInput.step = "1";
       paidInput.value = String(paid);
       paidInput.setAttribute("aria-label", "Оплаченная сумма");
-      paidInput.addEventListener("change", () => {
-        context.actions.updateOrder(order.id, { paidAmount: Number(paidInput.value) || 0 });
+      const debt = el("strong", "", `Долг: ${money(Math.max(0, total - paid))}`);
+      const save = el("button", "sona-admin-order-save", "Сохранить");
+      save.type = "button";
+      save.disabled = true;
+      function markDirty() {
+        dirty = true;
+        save.disabled = false;
+        const nextPaid = Math.max(0, Math.min(total, Number(paidInput.value) || 0));
+        debt.textContent = `Долг: ${money(total - nextPaid)}`;
+      }
+      paidInput.addEventListener("input", markDirty);
+      save.addEventListener("click", async () => {
+        if (!dirty) return;
+        save.disabled = true;
+        save.textContent = "Сохраняем...";
+        const saved = await context.actions.updateOrder(order.id, {
+          status: status.value,
+          paidAmount: Number(paidInput.value) || 0
+        });
+        if (saved === false) {
+          save.disabled = false;
+          save.textContent = "Повторить сохранение";
+        }
       });
       payment.append(
         el("span", "", "Оплачено"),
         paidInput,
-        el("strong", "", `Долг: ${money(Math.max(0, total - paid))}`)
+        debt
       );
       head.append(el("strong", "", order.id || "Заказ"), el("span", "", order.date || shortDate(order.createdAt)), el("b", "", money(order.total)));
       customer.append(
@@ -400,7 +511,7 @@ let adminSearchTimer = 0;
         items.append(row);
       });
       const controls = el("div", "sona-admin-order-controls");
-      controls.append(status, payment);
+      controls.append(status, payment, save);
       if (!options.compact) controls.append(actionButtons([["Удалить заказ", () => context.actions.deleteOrder(order.id), "danger"]]));
       card.append(head, customer, items, controls);
       list.append(card);
@@ -550,7 +661,7 @@ let adminSearchTimer = 0;
     panel.append(el("h2", "", "Пользователи"));
     const table = tableWrap(["ID", "Имя", "Контакты", "Заказы", "Покупки", "Статус", "Роль"]);
     context.users.forEach((user) => {
-      const userKey = user.phone || user.email || user.id;
+      const userKey = user.email || user.phone || user.id;
       const role = select([["user", "user"], ["admin", "admin"]], user.role || "user", (value) => context.actions.updateUser(userKey, { role: value }));
       const status = select([["active", "Активен"], ["blocked", "Заблокирован"]], user.status || "active", (value) => context.actions.updateUser(userKey, { status: value }));
       const tr = document.createElement("tr");
@@ -585,7 +696,7 @@ let adminSearchTimer = 0;
     if (!options.compact) {
       panel.append(filterBar([
         searchInput("Поиск отзыва", reviewQuery, (value) => { reviewQuery = value; context.render(); }),
-        select([["all", "Все статусы"], ["published", "Опубликован"], ["moderation", "На модерации"], ["hidden", "Скрыт"], ["deleted", "Удалён"]], reviewStatusFilter, (value) => { reviewStatusFilter = value; context.render(); })
+        select([["all", "Все статусы"], ["published", "Опубликован"], ["moderation", "На модерации"], ["rejected", "Отклонён"], ["hidden", "Скрыт"]], reviewStatusFilter, (value) => { reviewStatusFilter = value; context.render(); })
       ]));
     }
     if (!rows.length) {
@@ -596,7 +707,7 @@ let adminSearchTimer = 0;
     rows.forEach((review) => {
       const product = context.byId?.(review.productId);
       const tr = document.createElement("tr");
-      const status = select([["published", "Опубликован"], ["moderation", "На модерации"], ["hidden", "Скрыт"], ["deleted", "Удалён"]], review.status || "published", (value) => {
+      const status = select([["published", "Опубликован"], ["moderation", "На модерации"], ["rejected", "Отклонён"], ["hidden", "Скрыт"]], review.status || "moderation", (value) => {
         context.actions.updateReview(review.id, { status: value });
       });
       tr.append(
@@ -606,13 +717,13 @@ let adminSearchTimer = 0;
         td(review.text || ""),
         td(status),
         td(actionButtons([
-          ["Проверен", () => context.actions.updateReview(review.id, { verified: true })],
+          ["Опубликовать", () => context.actions.updateReview(review.id, { status: "published", verified: true, moderatedAt: Date.now() })],
+          ["Отклонить", () => context.actions.updateReview(review.id, { status: "rejected", moderatedAt: Date.now() }), "danger"],
           ["Ответить", () => {
             const reply = window.prompt("Ответ магазина на отзыв", review.reply || "");
             if (reply !== null) context.actions.updateReview(review.id, { reply });
           }],
-          ["Скрыть", () => context.actions.updateReview(review.id, { status: "hidden" })],
-          ["Удалить", () => context.actions.updateReview(review.id, { status: "deleted" }), "danger"]
+          ["Скрыть", () => context.actions.updateReview(review.id, { status: "hidden" })]
         ]))
       );
       table.querySelector("tbody").append(tr);
@@ -946,6 +1057,9 @@ let adminSearchTimer = 0;
     const container = options.container;
     const onChange = options.onChange || (() => render(options));
     if (!container) return;
+    const preserveScroll = preserveNextRender && Boolean(container.firstElementChild);
+    preserveNextRender = false;
+    const stableScrollY = window.scrollY;
 
     const raw = window.SonaStore.read();
     if (!isAdmin(raw)) {
@@ -957,7 +1071,10 @@ let adminSearchTimer = 0;
       ...dataSet(options),
       actions: options.actions || {},
       byId: (id) => (options.products || []).find((product) => product.id === id),
-      render: () => render(options)
+      render: () => {
+        preserveNextRender = true;
+        render(options);
+      }
     };
     const root = el("div", "sona-admin sona-profile");
     const topbar = el("section", "sona-profile-topbar sona-admin-topbar");
@@ -985,12 +1102,9 @@ let adminSearchTimer = 0;
           return;
         }
         activeSection = id;
+        preserveNextRender = true;
         render(options);
         window.requestAnimationFrame(() => {
-          const selector = window.matchMedia("(max-width: 760px)").matches
-            ? ".sona-admin-tabs-wrap"
-            : ".sona-admin-main";
-          document.querySelector(selector)?.scrollIntoView({ block: "start", behavior: "auto" });
           const activeItem = document.querySelector(`.sona-admin-menu [data-admin-section="${id}"]`);
           const activeNav = activeItem?.closest(".sona-admin-menu");
           if (activeItem && activeNav) {
@@ -1024,6 +1138,7 @@ let adminSearchTimer = 0;
     root.append(topbar, tabsWrap, main);
     container.replaceChildren(root);
     window.requestAnimationFrame(() => {
+      if (preserveScroll) window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" });
       const activeItem = nav.querySelector(`[data-admin-section="${activeSection}"]`);
       if (activeItem) {
         nav.style.scrollBehavior = "auto";
@@ -1036,6 +1151,9 @@ let adminSearchTimer = 0;
   window.SonaAdmin = {
     render,
     isAdmin,
-    ADMIN_EMAIL
+    ADMIN_EMAIL,
+    preserveScroll() {
+      preserveNextRender = true;
+    }
   };
 })();

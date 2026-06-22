@@ -572,7 +572,13 @@ function mergeCustomerStoreState(current, incoming, account) {
     normalizeEmail(order?.profile?.email) === email
     && ["delivered", "completed", "received"].includes(order.status)
   )).map((order) => order.id));
-  const reviews = mergeNewRows(current.reviews, incoming.reviews, (review) => reviewableOrderIds.has(review.orderId));
+  const incomingReviews = (Array.isArray(incoming.reviews) ? incoming.reviews : []).map((review) => ({
+    ...review,
+    status: "moderation",
+    verified: false,
+    submittedAt: Number(review?.submittedAt) || Date.now()
+  }));
+  const reviews = mergeNewRows(current.reviews, incomingReviews, (review) => reviewableOrderIds.has(review.orderId));
   const incomingSupport = (Array.isArray(incoming.supportMessages) ? incoming.supportMessages : []).map((message) => {
     const attachments = (Array.isArray(message?.attachments) ? message.attachments : [])
       .slice(0, 3)
@@ -1752,6 +1758,54 @@ function handleAuthVerify(req, res) {
   });
 }
 
+function handleAnalyticsEvent(req, res) {
+  if (!checkRateLimit(`analytics:${clientIp(req)}`, 180, 60 * 1000)) {
+    sendJson(res, 429, { ok: false, error: "Too many analytics events" });
+    return;
+  }
+
+  readJsonBody(req, (error, body) => {
+    const allowedTypes = new Set(["visit", "route_view", "category_view", "product_view", "cart_add"]);
+    const type = String(body?.type || "").trim();
+    const sessionId = String(body?.sessionId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80);
+    if (error || !allowedTypes.has(type) || sessionId.length < 8) {
+      sendJson(res, 400, { ok: false, error: "Invalid analytics event" });
+      return;
+    }
+
+    const event = {
+      id: `AE-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
+      type,
+      sessionId,
+      path: String(body?.path || "/").slice(0, 160),
+      productId: String(body?.productId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80),
+      category: String(body?.category || "").slice(0, 80),
+      at: Date.now()
+    };
+
+    readStore((readError, state) => {
+      if (readError) {
+        sendJson(res, 500, { ok: false, error: "Store unavailable" });
+        return;
+      }
+      const next = state || {};
+      const events = Array.isArray(next.analytics?.events) ? next.analytics.events : [];
+      next.analytics = {
+        ...(next.analytics || {}),
+        events: [...events.slice(-4999), event],
+        updatedAt: event.at
+      };
+      writeStore(next, (writeError) => {
+        if (writeError) {
+          sendJson(res, 500, { ok: false, error: "Analytics write failed" });
+          return;
+        }
+        sendJson(res, 202, { ok: true });
+      });
+    });
+  }, { maxBytes: 16 * 1024 });
+}
+
 function orderEmailLines(order) {
   const paid = Math.max(0, Number(order.paidAmount) || 0);
   const total = Math.max(0, Number(order.total) || 0);
@@ -2251,6 +2305,11 @@ function createServer() {
 
   if (req.method === "PUT" && req.url === "/api/store") {
     handleStorePut(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/analytics/event") {
+    handleAnalyticsEvent(req, res);
     return;
   }
 
