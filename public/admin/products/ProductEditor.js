@@ -5,6 +5,12 @@
   const tabs = () => schemas().commonTabs;
   const categoryTitle = (id) => schemas().categories.find((item) => item[0] === id)?.[1] || "Товар";
   const fixedText = (value) => window.SonaText?.fix(value) || String(value ?? "");
+  const mainGroups = [
+    ["Описание", ["name", "shortDescription", "description", "categoryLabel", "subcategory", "brand"]],
+    ["Цены и склад", ["sku", "priceMode", "price", "oldPrice", "discount", "stock", "availability"]],
+    ["Характеристики на странице товара", ["dimensions", "sleepingPlace", "mechanism"]],
+    ["Статус и теги", ["status", "tags"]]
+  ];
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -82,11 +88,16 @@
     } else {
       input = el("input");
       input.type = type || "text";
-      input.value = value ?? "";
+      input.value = Array.isArray(value) ? value.join(", ") : (value ?? "");
       input.addEventListener("input", () => onChange(name, input.value));
     }
 
     input.name = name;
+    if (name === "discount") input.readOnly = true;
+    if (name === "tags") input.placeholder = "Например: гарантия 10 лет, новинка, скидка";
+    if (name === "dimensions") input.placeholder = "2300 × 950 × 1000";
+    if (name === "sleepingPlace") input.placeholder = "1950 × 1400";
+    if (name === "mechanism") input.placeholder = "Книжка";
     wrap.append(caption, input);
     if (error) wrap.append(el("small", "sona-field-error", error));
     return wrap;
@@ -94,11 +105,35 @@
 
   function fieldsFor(tab, product) {
     if (tab === "main") return schemas().commonFields.main;
-    if (tab === "price") return schemas().commonFields.price;
     if (tab === "delivery") return schemas().commonFields.delivery;
-    if (tab === "seo") return schemas().commonFields.seo;
-    if (tab === "specs") return schemas().schemas[product.productType] || schemas().schemas.other;
     return [];
+  }
+
+  function renderMainFields(draft, setValue, errors) {
+    const wrap = el("div", "sona-editor-sections");
+    const fields = new Map(fieldsFor("main", draft).map((field) => [field[0], field]));
+
+    mainGroups.forEach(([title, names]) => {
+      const section = el("section", "sona-editor-section");
+      const grid = el("div", "sona-editor-grid");
+      section.append(el("h3", "", title));
+      names.forEach((name) => {
+        const field = fields.get(name);
+        if (!field) return;
+        const node = renderField({
+          field,
+          value: draft[field[0]],
+          onChange: setValue,
+          error: errors[field[0]]
+        });
+        if (["shortDescription", "description", "tags"].includes(name)) node.classList.add("is-wide");
+        grid.append(node);
+      });
+      section.append(grid);
+      wrap.append(section);
+    });
+
+    return wrap;
   }
 
   function validate(product, photos, allProducts) {
@@ -124,12 +159,19 @@
   function toProductPayload(product, photos, variants, status) {
     const main = photos.find((item) => item.main && !String(item.type || "").startsWith("video/"))
       || photos.find((item) => !String(item.type || "").startsWith("video/"));
+    const {
+      seoTitle,
+      seoDescription,
+      seoKeywords,
+      slug,
+      ...cleanProduct
+    } = product;
     const price = Number(product.price) || 0;
     const oldPrice = Number(product.oldPrice) || 0;
     const discount = oldPrice > price && price > 0 ? Math.round((1 - price / oldPrice) * 100) : 0;
 
     return {
-      ...product,
+      ...cleanProduct,
       status: status || product.status || "active",
       hidden: (status || product.status) === "hidden",
       price,
@@ -151,7 +193,7 @@
       })),
       materials: String(product.materials || "").split(",").map((item) => item.trim()).filter(Boolean),
       colors: String(product.colors || "").split(",").map((item) => item.trim()).filter(Boolean),
-      tags: String(product.tags || "").split(",").map((item) => item.trim()).filter(Boolean),
+      tags: (Array.isArray(product.tags) ? product.tags : String(product.tags || "").split(",")).map((item) => String(item).trim()).filter(Boolean),
       updatedAt: new Date().toISOString()
     };
   }
@@ -191,7 +233,11 @@
         errors = { ...errors, [key]: "" };
       };
 
-      if (["main", "specs", "price", "delivery", "seo"].includes(activeTab)) {
+      if (activeTab === "main") {
+        content.append(renderMainFields(draft, setValue, errors));
+      }
+
+      if (activeTab === "delivery") {
         const grid = el("div", "sona-editor-grid");
         fieldsFor(activeTab, draft).forEach((field) => grid.append(renderField({
           field,
@@ -234,15 +280,15 @@
       };
 
       [
-        ["Сохранить", () => saveWithStatus(draft.status || "active")],
-        ["Сохранить как черновик", () => saveWithStatus("draft")],
-        ["Опубликовать", () => saveWithStatus("active")],
-        ["Предпросмотр", () => { activeTab = "preview"; rerender(); }],
-        ["Дублировать товар", () => onDuplicate?.(toProductPayload({ ...draft, id: "", sku: "" }, photos, variants, "draft"))],
-        ["Очистить форму", () => { draft = createDraft({}, type); photos = []; variants = []; errors = {}; activeTab = "main"; rerender(); }],
-        ["Отменить изменения", onCancel]
-      ].forEach(([title, action], index) => {
-        const button = el("button", index === 6 ? "sona-admin-soft" : "", title);
+        ["Опубликовать", () => saveWithStatus("active"), "is-primary"],
+        ["Сохранить", () => saveWithStatus(draft.status || "active"), ""],
+        ["Черновик", () => saveWithStatus("draft"), ""],
+        ["Предпросмотр", () => { activeTab = "preview"; rerender(); }, ""],
+        ["Дублировать", () => onDuplicate?.(toProductPayload({ ...draft, id: "", sku: "" }, photos, variants, "draft")), ""],
+        ["Очистить форму", () => { draft = createDraft({}, type); photos = []; variants = []; errors = {}; activeTab = "main"; rerender(); }, "is-danger"],
+        ["Отмена", onCancel, "sona-admin-soft"]
+      ].forEach(([title, action, className]) => {
+        const button = el("button", className, title);
         button.type = "button";
         button.addEventListener("click", action);
         actions.append(button);

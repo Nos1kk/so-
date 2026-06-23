@@ -670,6 +670,35 @@ function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function normalizePhone(value) {
+  const clean = String(value || "").replace(/\D/g, "");
+  return clean.length === 11 && clean.startsWith("8") ? `7${clean.slice(1)}` : clean;
+}
+
+function isGenericCustomerName(value) {
+  return /^(покупатель|пользователь)(\s+sona|\s+soна)?$/i.test(String(value || "").trim());
+}
+
+function resolveCustomerName(state, account, profile = {}) {
+  const incomingName = String(profile.name || "").trim();
+  const accountName = String(account?.name || "").trim();
+  const email = normalizeEmail(account?.email || profile.email);
+  const phone = normalizePhone(profile.phone);
+  const savedOrder = (state?.orders || []).find((order) => {
+    const orderEmail = normalizeEmail(order?.profile?.email);
+    const orderPhone = normalizePhone(order?.profile?.phone);
+    return (email && orderEmail === email) || (phone && orderPhone === phone);
+  });
+  const savedName = String(savedOrder?.profile?.name || "").trim();
+
+  return [incomingName, accountName, savedName]
+    .find((name) => name && !isGenericCustomerName(name))
+    || incomingName
+    || accountName
+    || savedName
+    || "";
+}
+
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(normalizeEmail(value));
 }
@@ -1866,6 +1895,7 @@ function handleOrderCreate(req, res) {
         return;
       }
       const next = current || {};
+      order.profile.name = resolveCustomerName(next, account, { ...(body.profile || {}), phone });
       next.orders = [...(next.orders || []), order];
       writeStore(next, (writeError) => {
         if (writeError) {

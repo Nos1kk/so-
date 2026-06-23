@@ -58,6 +58,18 @@ let adminSearchTimer = 0;
     return window.SonaSecurity?.sanitizeEmail(value) || String(value || "").trim().toLowerCase();
   }
 
+  function isGenericCustomerName(value) {
+    return /^(покупатель|пользователь)(\s+sona|\s+soна)?$/i.test(String(value || "").trim());
+  }
+
+  function preferredCustomerName(currentName, nextName) {
+    const current = String(currentName || "").trim();
+    const next = String(nextName || "").trim();
+    if (next && isGenericCustomerName(current)) return next;
+    if (next && !isGenericCustomerName(next) && !current) return next;
+    return current || next || "Покупатель";
+  }
+
   function authApiUrl(path) {
     const localPreview = window.location.protocol === "file:"
       || (["127.0.0.1", "localhost"].includes(window.location.hostname) && window.location.port !== "8000");
@@ -122,15 +134,23 @@ let adminSearchTimer = 0;
 
   function buildUsers(data, orders) {
     const map = new Map();
-    const userKey = (user = {}) => cleanEmail(user.email) || digits(user.phone) || String(user.id || "guest").toLowerCase();
+    const contactKey = (user = {}) => cleanEmail(user.email) || digits(user.phone) || String(user.id || "guest").toLowerCase();
+    const findExistingKey = (user = {}) => {
+      const email = cleanEmail(user.email);
+      const phone = digits(user.phone);
+      for (const [key, row] of map.entries()) {
+        if ((email && cleanEmail(row.email) === email) || (phone && digits(row.phone) === phone)) return key;
+      }
+      return "";
+    };
     const mergeUser = (incoming = {}) => {
-      const key = userKey(incoming);
+      const key = findExistingKey(incoming) || contactKey(incoming);
       const current = map.get(key) || {};
       map.set(key, {
         ...current,
         ...incoming,
         id: current.id || incoming.id,
-        name: incoming.name || current.name,
+        name: preferredCustomerName(current.name, incoming.name),
         email: cleanEmail(incoming.email || current.email),
         phone: incoming.phone || current.phone,
         role: current.role === "admin" || incoming.role === "admin" ? "admin" : (incoming.role || current.role || "user"),
@@ -157,7 +177,7 @@ let adminSearchTimer = 0;
     orders.forEach((order) => {
       const phone = order.profile?.phone || "";
       const email = order.profile?.email || "";
-      const key = userKey({ email, phone, id: order.profile?.userId });
+      const key = findExistingKey({ email, phone, id: order.profile?.userId }) || contactKey({ email, phone, id: order.profile?.userId });
       const current = map.get(key) || {
         id: order.profile?.userId || `USER-${digits(phone) || key}`,
         name: order.profile?.name || "Пользователь",
@@ -167,7 +187,7 @@ let adminSearchTimer = 0;
         status: "active",
         registeredAt: order.createdAt ? new Date(order.createdAt).toISOString() : ""
       };
-      current.name = current.name || order.profile?.name || "Пользователь";
+      current.name = preferredCustomerName(current.name, order.profile?.name || "Пользователь");
       current.email = cleanEmail(current.email || email);
       current.phone = current.phone || phone;
       current.ordersCount = (current.ordersCount || 0) + 1;
@@ -175,6 +195,31 @@ let adminSearchTimer = 0;
       map.set(key, current);
     });
     return [...map.values()];
+  }
+
+  function resolveOrderCustomer(context, order) {
+    const email = cleanEmail(order.profile?.email);
+    const phone = digits(order.profile?.phone);
+    const matchesContact = (profile = {}) => (
+      (email && cleanEmail(profile.email) === email) ||
+      (phone && digits(profile.phone) === phone)
+    );
+    const candidates = [
+      ...(context.users || []),
+      ...(context.data?.users || []),
+      context.data?.profile || {},
+      ...(context.orders || []).map((row) => row.profile || {})
+    ].filter(matchesContact);
+
+    return candidates.reduce((customer, candidate) => ({
+      name: preferredCustomerName(customer.name, candidate.name),
+      phone: customer.phone || candidate.phone || "",
+      email: customer.email || candidate.email || ""
+    }), {
+      name: order.profile?.name || "Покупатель",
+      phone: order.profile?.phone || "",
+      email: order.profile?.email || ""
+    });
   }
 
   function stat(title, value, text, tone = "", action) {
@@ -315,9 +360,11 @@ let adminSearchTimer = 0;
     const uniqueVisitors = visitorCounts.size;
     const returningVisitors = [...visitorCounts.values()].filter((count) => count > 1).length;
     const customerOrders = context.orders.reduce((map, order) => {
-      const key = cleanEmail(order.profile?.email) || digits(order.profile?.phone) || order.profile?.userId;
+      const customer = resolveOrderCustomer(context, order);
+      const key = cleanEmail(customer.email) || digits(customer.phone) || order.profile?.userId;
       if (!key) return map;
-      const row = map.get(key) || { key, name: order.profile?.name || key, orders: 0, spent: 0 };
+      const row = map.get(key) || { key, name: customer.name || key, orders: 0, spent: 0 };
+      row.name = preferredCustomerName(row.name, customer.name);
       row.orders += 1;
       row.spent += Number(order.total) || 0;
       map.set(key, row);
@@ -495,11 +542,12 @@ let adminSearchTimer = 0;
         paidInput,
         debt
       );
+      const resolvedCustomer = resolveOrderCustomer(context, order);
       head.append(el("strong", "", order.id || "Заказ"), el("span", "", order.date || shortDate(order.createdAt)), el("b", "", money(order.total)));
       customer.append(
-        el("strong", "", order.profile?.name || "Покупатель"),
-        el("span", "", order.profile?.phone || "Телефон не указан"),
-        el("span", "", order.profile?.email || "Почта не указана")
+        el("strong", "", resolvedCustomer.name || "Покупатель"),
+        el("span", "", resolvedCustomer.phone || "Телефон не указан"),
+        el("span", "", resolvedCustomer.email || "Почта не указана")
       );
       (order.items || []).forEach((item) => {
         const product = context.byId?.(item.id);

@@ -45,6 +45,7 @@
 }
 
 .sona-products-toolbar button,
+.sona-editor-actions button.is-primary,
 .sona-editor-actions button:first-child {
   border: 0;
   background: var(--blue);
@@ -67,6 +68,11 @@
   background: #fff;
   color: var(--ink);
   font: inherit;
+}
+
+.sona-editor-field input[readonly] {
+  background: #edf3f9;
+  color: var(--muted);
 }
 
 .sona-category-grid {
@@ -162,6 +168,30 @@
   gap: 12px;
 }
 
+.sona-editor-sections {
+  display: grid;
+  gap: 14px;
+}
+
+.sona-editor-section {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fbfdff;
+}
+
+.sona-editor-section h3 {
+  margin: 0;
+  color: var(--blue-deep);
+  font-size: 1rem;
+}
+
+.sona-editor-field.is-wide {
+  grid-column: 1 / -1;
+}
+
 .sona-editor-field {
   display: grid;
   gap: 6px;
@@ -213,6 +243,16 @@
   border: 1px solid var(--line);
   background: #fff;
   color: var(--blue-deep);
+}
+
+.sona-editor-actions button.is-danger {
+  border-color: #ffd0d0;
+  background: #fff7f7;
+  color: #b42318;
+}
+
+.sona-editor-actions button.sona-admin-soft {
+  margin-left: auto;
 }
 
 .sona-editor-summary {
@@ -634,6 +674,10 @@
     min-height: 46px;
     padding: 6px 8px;
     font-size: 0.76rem;
+  }
+
+  .sona-editor-actions button.sona-admin-soft {
+    margin-left: 0;
   }
 
   .sona-editor-summary {
