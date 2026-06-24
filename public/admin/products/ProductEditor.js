@@ -5,9 +5,11 @@
   const tabs = () => schemas().commonTabs;
   const categoryTitle = (id) => schemas().categories.find((item) => item[0] === id)?.[1] || "Товар";
   const fixedText = (value) => window.SonaText?.fix(value) || String(value ?? "");
-  const fabricProductTypes = new Set(["sofa", "sofaCollection", "chair", "bed"]);
+  const allowedProductTypes = new Set(["sofa", "bed", "chair", "service"]);
+  const fabricProductTypes = new Set(["sofa", "chair", "bed"]);
+  const defaultDeliveryText = "Все зависит от вашего региона";
   const mainGroups = [
-    ["Описание", ["name", "description", "categoryLabel", "subcategory", "brand"]],
+    ["Описание", ["name", "subcategory", "description", "brand"]],
     ["Цены и склад", ["sku", "priceMode", "price", "oldPrice", "discount", "stock", "availability"]],
     ["Характеристики на странице товара", ["dimensions", "sleepingPlace", "mechanism"]],
     ["Статус и теги", ["status", "tags"]]
@@ -36,19 +38,62 @@
     return variant.photos ? [{ id: "FAB-legacy", name: "Фото ткани", type: "image/*", src: variant.photos }] : [];
   }
 
+  function subcategoryOptions(type) {
+    return schemas().subcategories?.[type] || [];
+  }
+
+  function defaultSubcategory(type, category) {
+    const options = subcategoryOptions(type);
+    if (!options.length) return "";
+    if (type === "sofa") {
+      const match = options.find(([id, , productCategory]) => id === category || productCategory === category);
+      if (match) return match[0];
+    }
+    return options[0][0];
+  }
+
+  function categoryFromSubcategory(type, subcategory) {
+    const options = subcategoryOptions(type);
+    const match = options.find(([id]) => id === subcategory) || options[0];
+    if (match?.[2]) return match[2];
+    if (type === "bed") return "кровать";
+    if (type === "chair") return "кресло";
+    if (type === "service") return "услуга";
+    return "диван-кровать";
+  }
+
+  function normalizedProductType(productType) {
+    return allowedProductTypes.has(productType) ? productType : "sofa";
+  }
+
+  function normalizeClassification(product) {
+    const productType = normalizedProductType(product.productType);
+    const subcategory = product.subcategory || defaultSubcategory(productType, product.category);
+    return {
+      productType,
+      subcategory,
+      category: categoryFromSubcategory(productType, subcategory),
+      categoryLabel: categoryTitle(productType),
+      marketSection: productType === "service" ? "Услуги" : "Мебель"
+    };
+  }
+
   function createDraft(product, type) {
-    const productType = inferProductType(product, type);
+    const productType = normalizedProductType(inferProductType(product, type));
+    const classification = normalizeClassification({ ...product, productType });
     const categoryLabel = categoryTitle(productType);
     return {
       productType,
       categoryLabel: product.categoryLabel || categoryLabel,
-      category: product.category || categoryLabel,
-      marketSection: product.marketSection || (type === "service" ? "Услуги" : "Мебель"),
+      category: product.category || classification.category,
+      subcategory: product.subcategory || classification.subcategory,
+      marketSection: product.marketSection || classification.marketSection,
       status: product.status || (product.hidden ? "hidden" : "draft"),
-      priceMode: product.priceMode || (type === "sofaCollection" ? "from" : "fixed"),
+      priceMode: product.priceMode || "fixed",
       availability: product.availability || "in_stock",
       stock: product.stock ?? 1,
       deliveryDays: product.deliveryDays ?? 3,
+      deliveryText: product.deliveryText || defaultDeliveryText,
       rating: product.rating ?? 0,
       reviewsCount: product.reviewsCount ?? 0,
       sleepingPlace: product.sleepingPlace || product.sleepingSize || "",
@@ -103,6 +148,7 @@
 
     input.name = name;
     if (name === "discount") input.readOnly = true;
+    if (name === "deliveryText") input.placeholder = defaultDeliveryText;
     if (name === "tags") input.placeholder = "Например: гарантия 10 лет, новинка, скидка";
     if (name === "dimensions") input.placeholder = "2300 × 950 × 1000";
     if (name === "sleepingPlace") input.placeholder = "1950 × 1400";
@@ -113,7 +159,12 @@
   }
 
   function fieldsFor(tab, product) {
-    if (tab === "main") return schemas().commonFields.main;
+    if (tab === "main") {
+      return schemas().commonFields.main.map((field) => {
+        if (field[0] !== "subcategory") return field;
+        return [field[0], "Категория на витрине", "select", true, subcategoryOptions(product.productType).map(([id, title]) => [id, title])];
+      });
+    }
     if (tab === "delivery") return schemas().commonFields.delivery;
     return [];
   }
@@ -150,11 +201,10 @@
     const price = Number(product.price) || 0;
     const oldPrice = Number(product.oldPrice) || 0;
     const sku = String(product.sku || "").trim().toLowerCase();
-    const customPriceAllowed = product.productType === "service" || product.productType === "sofaCollection" || product.priceMode === "custom";
+    const customPriceAllowed = product.productType === "service" || product.priceMode === "custom";
 
     if (!String(product.name || "").trim()) errors.name = "Название обязательно.";
     if (!String(product.categoryLabel || product.category || "").trim()) errors.categoryLabel = "Категория обязательна.";
-    if (!String(product.description || product.shortDescription || "").trim()) errors.description = "Добавьте описание.";
     if (!customPriceAllowed && price <= 0) errors.price = "Укажите цену.";
     if (Number(product.stock) < 0) errors.stock = "Остаток не может быть отрицательным.";
     if (oldPrice && oldPrice < price) errors.oldPrice = "Старая цена не может быть меньше новой.";
@@ -178,9 +228,11 @@
     const price = Number(product.price) || 0;
     const oldPrice = Number(product.oldPrice) || 0;
     const discount = oldPrice > price && price > 0 ? Math.round((1 - price / oldPrice) * 100) : 0;
+    const classification = normalizeClassification(product);
 
     return {
       ...cleanProduct,
+      ...classification,
       description: String(product.description || product.shortDescription || "").trim(),
       shortDescription: "",
       status: status || product.status || "active",
@@ -190,6 +242,7 @@
       discount,
       stock: Math.max(0, Number(product.stock) || 0),
       deliveryDays: Math.max(1, Number(product.deliveryDays) || 1),
+      deliveryText: String(product.deliveryText || defaultDeliveryText).trim() || defaultDeliveryText,
       rating: Math.max(0, Number(product.rating) || 0),
       reviewsCount: Math.max(0, Number(product.reviewsCount) || 0),
       sleepingPlace: product.sleepingPlace || product.sleepingSize || "",
@@ -244,6 +297,9 @@
 
       const setValue = (key, value) => {
         draft = { ...draft, [key]: value };
+        if (key === "subcategory") {
+          draft = { ...draft, ...normalizeClassification({ ...draft, subcategory: value }) };
+        }
         if (key === "oldPrice" || key === "price") {
           const price = Number(key === "price" ? value : draft.price) || 0;
           const old = Number(key === "oldPrice" ? value : draft.oldPrice) || 0;

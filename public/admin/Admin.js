@@ -619,7 +619,7 @@ let adminSearchTimer = 0;
   function productForm(context) {
     const product = context.products.find((item) => item.id === editingProductId) || {};
     const form = el("form", "sona-admin-editor");
-    const productTypes = ["Диван", "Кровать", "Кресло", "Стул", "Стол", "Шкаф", "Комод", "Люстра", "Декор", "Услуга", "Другое"];
+    const productTypes = ["Диван", "Кровать", "Кресло", "Услуга"];
     const sections = ["Мебель", "Диваны", "Свет", "Декор", "Текстиль", "Услуги"];
     const roomTypes = ["Гостиная", "Спальня", "Столовая", "Прихожая", "Детская", "Ванная", "Офис", "Сад"];
     const addField = (name, label, value, type = "text") => {
@@ -663,6 +663,7 @@ let adminSearchTimer = 0;
     addField("dimensions", "Габариты", product.dimensions || "");
     addField("stock", "Остаток", product.stock ?? 10, "number");
     addField("deliveryDays", "Срок доставки, дней", product.deliveryDays ?? 3, "number");
+    addField("deliveryText", "Текст доставки", product.deliveryText || "Все зависит от вашего региона");
     addField("warranty", "Гарантия", product.warranty || "");
     addField("supplier", "Поставщик / исполнитель", product.supplier || "");
     addField("colors", "Цвета через запятую", (product.colors || []).join(", "));

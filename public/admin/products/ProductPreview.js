@@ -46,7 +46,7 @@
       price,
       el("span", "sona-preview-rating", Number(product.reviewsCount) > 0 ? `★ ${product.rating || 0} · ${product.reviewsCount} отзывов` : "0 отзывов"),
       el("p", "", product.description || "Описание будет видно на странице товара."),
-      el("small", "", `${Number(product.stock) > 0 ? "В наличии" : "Под заказ"} · доставка ${product.deliveryDays || 3} дн.`),
+      el("small", "", `${Number(product.stock) > 0 ? "В наличии" : "Под заказ"} · ${product.deliveryText || `доставка ${product.deliveryDays || 3} дн.`}`),
       actions
     );
     card.append(media, body);

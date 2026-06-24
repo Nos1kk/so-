@@ -3016,6 +3016,30 @@
     background: #ffffff !important;
     background-image: none !important;
   }
+
+  body :is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-card.is-sofa-card .product-media::before,
+  body :is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-card.is-sofa-card .product-media::after,
+  body :is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-card.is-sofa-card .product-placeholder::before,
+  body :is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-card.is-sofa-card .product-placeholder::after,
+  body :is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-card.is-white-media-card .product-media::before,
+  body :is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-card.is-white-media-card .product-media::after,
+  body :is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-card.is-white-media-card .product-placeholder::before,
+  body :is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-card.is-white-media-card .product-placeholder::after,
+  body .detail-stage .product-placeholder.is-sofa-image::before,
+  body .detail-stage .product-placeholder.is-sofa-image::after,
+  body .detail-stage .product-placeholder.is-white-media-image::before,
+  body .detail-stage .product-placeholder.is-white-media-image::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  body :is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-card.is-sofa-card .product-placeholder.has-image img,
+  body :is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-card.is-white-media-card .product-placeholder.has-image img,
+  body .detail-stage .product-placeholder.is-sofa-image img,
+  body .detail-stage .product-placeholder.is-white-media-image img {
+    clip-path: inset(1px round 13px) !important;
+    mix-blend-mode: normal !important;
+  }
 }
 
 @media (max-width: 760px) {

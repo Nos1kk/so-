@@ -1065,6 +1065,42 @@ img {
   border-color: transparent;
 }
 
+.product-card.is-sofa-card .product-media::before,
+.product-card.is-sofa-card .product-media::after,
+.product-card.is-sofa-card .product-placeholder::before,
+.product-card.is-sofa-card .product-placeholder::after,
+.product-card.is-white-media-card .product-media::before,
+.product-card.is-white-media-card .product-media::after,
+.product-card.is-white-media-card .product-placeholder::before,
+.product-card.is-white-media-card .product-placeholder::after,
+.product-placeholder.is-sofa-image::before,
+.product-placeholder.is-sofa-image::after,
+.product-placeholder.is-white-media-image::before,
+.product-placeholder.is-white-media-image::after {
+  content: none !important;
+  display: none !important;
+}
+
+.product-card.is-sofa-card .product-placeholder.has-image,
+.product-card.is-white-media-card .product-placeholder.has-image,
+.product-placeholder.is-sofa-image,
+.product-placeholder.is-white-media-image {
+  overflow: hidden;
+  border-color: transparent !important;
+  background: #fff !important;
+  background-image: none !important;
+}
+
+.product-card.is-sofa-card .product-placeholder.has-image img,
+.product-card.is-white-media-card .product-placeholder.has-image img,
+.product-placeholder.is-sofa-image img,
+.product-placeholder.is-white-media-image img {
+  display: block;
+  background: #fff;
+  clip-path: inset(1px round 13px);
+  mix-blend-mode: normal;
+}
+
 .product-card.is-sofa-card :is(.product-brand, .product-meta, .swatches, .service-note, .delivery-note, .economy) {
   display: none;
 }

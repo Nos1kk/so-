@@ -296,16 +296,25 @@
       { key: "прямой", label: "Детская серия", title: "Детская серия", category: "прямой", group: "", text: "Мягкие и практичные модели для сна, игр и роста." }
     ],
     beds: [
-      { key: "beds", label: "Все кровати", title: "Кровати SONA", category: "кровать", group: "", text: "Кровати для спальни, хранения и спокойного сна." }
+      { key: "beds", label: "Все кровати", title: "Кровати SONA", category: "кровать", group: "", subcategory: ALL_VALUE, text: "Кровати для спальни, хранения и спокойного сна." },
+      { key: "bed-classic", label: "Классические", title: "Классические кровати", category: "кровать", group: "", subcategory: "bed-classic", text: "Базовые модели для спокойной спальни." },
+      { key: "bed-storage", label: "С хранением", title: "Кровати с хранением", category: "кровать", group: "", subcategory: "bed-storage", text: "Кровати с продуманным местом для вещей." },
+      { key: "bed-kids", label: "Детские", title: "Детские кровати", category: "кровать", group: "", subcategory: "bed-kids", text: "Модели для детских комнат." },
+      { key: "bed-premium", label: "Премиум", title: "Премиальные кровати", category: "кровать", group: "", subcategory: "bed-premium", text: "Выразительные модели для главной спальни." }
     ],
     chairs: [
-      { key: "chairs", label: "Все кресла", title: "Кресла SONA", category: "кресло", group: "", text: "Лаунж, рабочие и акцентные кресла для разных комнат." }
+      { key: "chairs", label: "Все кресла", title: "Кресла SONA", category: "кресло", group: "", subcategory: ALL_VALUE, text: "Лаунж, рабочие и акцентные кресла для разных комнат." },
+      { key: "chair-lounge", label: "Лаунж", title: "Лаунж-кресла", category: "кресло", group: "", subcategory: "chair-lounge", text: "Мягкие кресла для отдыха." },
+      { key: "chair-work", label: "Рабочие", title: "Рабочие кресла", category: "кресло", group: "", subcategory: "chair-work", text: "Кресла для рабочего места." },
+      { key: "chair-accent", label: "Акцентные", title: "Акцентные кресла", category: "кресло", group: "", subcategory: "chair-accent", text: "Кресла, которые собирают интерьер вокруг себя." },
+      { key: "chair-pouf", label: "Пуфы", title: "Пуфы и малые формы", category: "кресло", group: "", subcategory: "chair-pouf", text: "Компактные решения для посадки и отдыха." }
     ],
     services: [
-      { key: "development", label: "Разработка", title: "Разработка", section: "Услуги", category: ALL_VALUE, group: "", query: "разработка", text: "Сайты, магазины, кабинеты и цифровые продукты." },
-      { key: "design", label: "Дизайн", title: "Дизайн", section: "Услуги", category: ALL_VALUE, group: "", query: "дизайн", text: "Интерфейсы, брендинг и визуальные системы." },
-      { key: "motion", label: "Видеомоушен", title: "Видеомоушен", section: "Услуги", category: ALL_VALUE, group: "", query: "видеомоушен", text: "Анимация, ролики и движение для брендов." },
-      { key: "production", label: "Продакшен", title: "Продакшен", section: "Услуги", category: ALL_VALUE, group: "", query: "продакшен", text: "Комплексное производство и сопровождение контента." }
+      { key: "services", label: "Все услуги", title: "Услуги SONA", section: "Услуги", category: ALL_VALUE, group: "", subcategory: ALL_VALUE, text: "Все услуги SONA в одном списке." },
+      { key: "development", label: "Разработка", title: "Разработка", section: "Услуги", category: ALL_VALUE, group: "", subcategory: "development", query: "разработка", text: "Сайты, магазины, кабинеты и цифровые продукты." },
+      { key: "design", label: "Дизайн", title: "Дизайн", section: "Услуги", category: ALL_VALUE, group: "", subcategory: "design", query: "дизайн", text: "Интерфейсы, брендинг и визуальные системы." },
+      { key: "motion", label: "Видеомоушен", title: "Видеомоушен", section: "Услуги", category: ALL_VALUE, group: "", subcategory: "motion", query: "видеомоушен", text: "Анимация, ролики и движение для брендов." },
+      { key: "production", label: "Продакшен", title: "Продакшен", section: "Услуги", category: ALL_VALUE, group: "", subcategory: "production", query: "продакшен", text: "Комплексное производство и сопровождение контента." }
     ],
     sale: [
       { key: "sale", label: "Все скидки", title: "Скидки SONA", section: ALL_VALUE, category: ALL_VALUE, group: "", saleOnly: true, text: "Товары и услуги со скидками в одной подборке." },
@@ -553,13 +562,17 @@
       id: cleanId,
       name: security.sanitizeText(product.name || "Новый товар", 80),
       brand: security.sanitizeText(product.brand || "Soна", 50),
+      productType: security.sanitizeText(product.productType || "", 30),
+      categoryLabel: security.sanitizeText(product.categoryLabel || "", 50),
       category: security.sanitizeText(product.category || "Мебель", 50),
+      subcategory: security.sanitizeText(product.subcategory || "", 50),
       marketSection: security.sanitizeText(product.marketSection || "Мебель", 50),
       size: security.sanitizeText(product.size || "M", 10),
       price: Math.max(0, Number(product.price) || 0),
       oldPrice: Math.max(0, Number(product.oldPrice) || 0),
       stock: Math.max(0, Number(product.stock) || 0),
       deliveryDays: Math.max(1, Number(product.deliveryDays) || 3),
+      deliveryText: security.sanitizeText(product.deliveryText || "Все зависит от вашего региона", 120),
       status: product.status || "active",
       hidden: Boolean(product.hidden),
       room: security.sanitizeText(product.room || "", 40),
@@ -946,20 +959,30 @@
   }
 
   function isSofaProduct(product) {
-    return ["прямой", "угловой", "модульный", "диван-кровать"].includes(product.category)
+    return product.productType === "sofa"
+      || ["прямой", "угловой", "модульный", "диван-кровать"].includes(product.category)
       || displayText(`${product.name || ""} ${product.category || ""}`).toLowerCase().includes("диван");
   }
 
   function productCategoryLabel(product) {
     if (isSofaProduct(product)) return "Диваны";
-    if (product.category === "кровать") return "Кровати";
-    if (product.category === "кресло") return "Кресла";
-    if (product.category === "услуга" || product.marketSection === "Услуги") return "Услуги";
+    if (product.productType === "bed" || product.category === "кровать") return "Кровати";
+    if (product.productType === "chair" || product.category === "кресло") return "Кресла";
+    if (product.productType === "service" || product.category === "услуга" || product.marketSection === "Услуги") return "Услуги";
     return product.marketSection || product.category || "Каталог";
+  }
+
+  function productDeliveryText(product, compact = false) {
+    const custom = String(product.deliveryText || "").trim();
+    if (custom) return displayText(custom);
+    return product.deliveryDays <= 3
+      ? (compact ? "быстрая доставка" : "доставим быстро")
+      : (compact ? `доставка ${product.deliveryDays} дн.` : `доставка от ${product.deliveryDays} дней`);
   }
 
   function usesWhiteProductMedia(product) {
     return isSofaProduct(product)
+      || ["bed", "chair", "service"].includes(product.productType)
       || ["кровать", "кресло", "услуга"].includes(product.category)
       || product.marketSection === "Услуги";
   }
@@ -969,8 +992,9 @@
     if (id.startsWith("sona-")) return SOURCE_PRODUCT_IMAGES.sofa;
     if (id === "breeze-mini") return "assets/sofas/breeze-mini.svg";
     if (id === "compact-nova-sofa") return "assets/sofas/azure-room.svg";
-    if (id.includes("bed")) return SOURCE_PRODUCT_IMAGES.bed;
-    if (id.includes("chair")) return SOURCE_PRODUCT_IMAGES.chair;
+    if (product.productType === "bed" || id.includes("bed")) return SOURCE_PRODUCT_IMAGES.bed;
+    if (product.productType === "chair" || id.includes("chair")) return SOURCE_PRODUCT_IMAGES.chair;
+    if (product.productType === "service") return SOURCE_PRODUCT_IMAGES.service;
     if (id.includes("service") || id.includes("design") || id.includes("marketplace") || id.includes("motion")) return SOURCE_PRODUCT_IMAGES.service;
     if (id.includes("sofa") || id.includes("luna") || id.includes("nord") || id.includes("sona-island") || id.includes("azure") || id.includes("breeze")) {
       return SOURCE_PRODUCT_IMAGES.sofa;
@@ -1485,7 +1509,7 @@
     (product.specs || product.materials || []).slice(0, index === 0 ? 3 : 2).forEach((item) => {
       meta.append(createElement("span", "", item));
     });
-    meta.append(createElement("span", "", product.deliveryDays <= 3 ? "быстрая доставка" : `доставка ${product.deliveryDays} дн.`));
+    meta.append(createElement("span", "", productDeliveryText(product, true)));
 
     details.type = "button";
     cart.type = "button";
@@ -1863,7 +1887,7 @@
     const swatches = createElement("div", "swatches");
     const footer = createElement("div", "product-footer");
     const price = createStructuredPrice(product);
-    const delivery = createElement("div", "delivery-note", product.deliveryDays <= 3 ? "доставим быстро" : `доставка от ${product.deliveryDays} дней`);
+    const delivery = createElement("div", "delivery-note", productDeliveryText(product));
     const serviceNote = createElement("div", "service-note", product.category === "услуга" ? "согласуем детали после заявки" : "проверим наличие перед доставкой");
     const defaultCartLabel = product.category === "услуга" ? "Заказать" : "В корзину";
     const addButton = createElement("button", "primary-button", defaultCartLabel);
@@ -2277,7 +2301,7 @@
 
     delivery.append(
       createElement("h3", "", "Доставка"),
-      createElement("p", "", "Доставка в любую точку России. Срок доставки зависит от вашего региона.")
+      createElement("p", "", productDeliveryText(product))
     );
 
     info.append(
@@ -3205,6 +3229,28 @@
       };
     }
 
+    const bedPreset = CATEGORY_PAGE_GROUPS.beds.find((item) => item.key === key);
+    if (bedPreset) {
+      return {
+        ...CATEGORY_PAGE_PRESETS.beds,
+        ...bedPreset,
+        eyebrow: "кровати",
+        section: "Мебель",
+        saleOnly: false
+      };
+    }
+
+    const chairPreset = CATEGORY_PAGE_GROUPS.chairs.find((item) => item.key === key);
+    if (chairPreset) {
+      return {
+        ...CATEGORY_PAGE_PRESETS.chairs,
+        ...chairPreset,
+        eyebrow: "кресла",
+        section: "Мебель",
+        saleOnly: false
+      };
+    }
+
     const servicePreset = CATEGORY_PAGE_GROUPS.services.find((item) => item.key === key);
     if (servicePreset) {
       return {
@@ -3265,16 +3311,22 @@
           product.name,
           product.brand,
           product.category,
+          product.subcategory,
           product.marketSection,
           product.size,
           ...(product.materials || []),
           ...(product.specs || []),
           ...(product.tags || [])
         ].join(" ").toLowerCase();
+        const isSofaByType = product.productType === "sofa" || isSofa;
+        const subcategoryMatches = !target.subcategory || target.subcategory === ALL_VALUE
+          || product.subcategory === target.subcategory
+          || (!product.subcategory && query && text.includes(query));
         return (
           (target.section === ALL_VALUE || product.marketSection === target.section) &&
-          (!target.group || (target.group === "sofas" && isSofa)) &&
+          (!target.group || (target.group === "sofas" && isSofaByType)) &&
           (target.category === ALL_VALUE || product.category === target.category) &&
+          subcategoryMatches &&
           (!target.maxDeliveryDays || product.deliveryDays <= target.maxDeliveryDays) &&
           (!target.saleOnly || Boolean(product.oldPrice)) &&
           (!target.favoritesOnly || favoriteIds.has(product.id)) &&
