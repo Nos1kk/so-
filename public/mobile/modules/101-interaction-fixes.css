@@ -259,15 +259,13 @@
   body .detail-similar .similar-card .product-placeholder.has-image,
   body .detail-similar .similar-card .product-placeholder.is-white-media-image,
   body .detail-similar .similar-card .product-placeholder.is-sofa-image {
-    background:
-      radial-gradient(ellipse at 50% 82%, rgba(64, 91, 119, 0.18), transparent 58%),
-      linear-gradient(145deg, #f3f8fc, #e4eff8 55%, #f7fbff) !important;
+    background: #fff !important;
   }
 
   body .detail-similar .similar-card .product-placeholder img {
-    padding: 6px 8px 2px !important;
-    background: transparent !important;
-    mix-blend-mode: multiply;
-    filter: drop-shadow(0 7px 7px rgba(27, 48, 70, 0.15));
+    padding: 8px 10px !important;
+    background: #fff !important;
+    mix-blend-mode: normal;
+    filter: none;
   }
 }

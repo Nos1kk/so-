@@ -546,6 +546,7 @@
   function saveAdminProduct(product) {
     const productInput = { ...product };
     delete productInput.imageFile;
+    delete productInput.shortDescription;
     const cleanId = security.safeProductId(product.id || product.name || `product-${Date.now()}`) || `product-${Date.now()}`;
     const normalized = {
       ...productInput,
@@ -565,7 +566,8 @@
       dimensions: security.sanitizeText(product.dimensions || "", 80),
       warranty: security.sanitizeText(product.warranty || "", 60),
       supplier: security.sanitizeText(product.supplier || "", 70),
-      description: security.sanitizeText(product.description || "", 600),
+      description: security.sanitizeText(product.description || product.shortDescription || "", 1000),
+      shortDescription: "",
       colors: String(product.colors || "")
         .split(",")
         .map((color) => security.sanitizeText(color.trim(), 24))
@@ -2021,6 +2023,10 @@
     }
   }
 
+  function productDescriptionText(product) {
+    return displayText(product.description || product.shortDescription || "").trim();
+  }
+
   function renderProductDetail(product) {
     const data = store.read();
     const isInCart = Number(data.cart?.[product.id]) > 0;
@@ -2048,6 +2054,8 @@
     const buyButton = createElement("button", "secondary-action", "Купить в 1 клик");
     const sellerCall = createSellerCall(product);
     const variants = createVariantsSection(product);
+    const descriptionText = productDescriptionText(product);
+    const description = descriptionText ? createElement("section", "detail-description") : null;
     const characteristics = createElement("section", "detail-characteristics");
     const delivery = createElement("div", "detail-delivery");
     const galleryItems = getProductGallery(product);
@@ -2260,12 +2268,30 @@
     ].filter(([, value]) => value).forEach(([label, value]) => characteristicGrid.append(createDetailOption(label, value)));
     characteristics.append(createElement("h3", "", "Характеристики"), characteristicGrid);
 
+    if (description) {
+      description.append(
+        createElement("h3", "", "Описание"),
+        createElement("p", "", descriptionText)
+      );
+    }
+
     delivery.append(
       createElement("h3", "", "Доставка"),
       createElement("p", "", "Доставка в любую точку России. Срок доставки зависит от вашего региона.")
     );
 
-    info.append(titleRow, rating, warranty, price, actions, sellerCall, variants, characteristics, delivery);
+    info.append(
+      titleRow,
+      rating,
+      warranty,
+      price,
+      actions,
+      sellerCall,
+      variants,
+      ...(description ? [description] : []),
+      characteristics,
+      delivery
+    );
     main.append(gallery, info);
     els.productDetail.replaceChildren(main, createReviewsSection(product), createSimilarSection(product));
   }
@@ -2275,7 +2301,7 @@
     const head = createElement("div", "variant-head");
     const isService = displayText(product.category) === "услуга" || displayText(product.marketSection) === "Услуги";
     const title = createElement("h3", "", isService ? "Пакет услуги" : "Выбор ткани");
-    const note = createElement("span", "", isService ? "Выберите подходящий вариант" : "Подберите цвет, фактуру и тип обивки");
+    const note = createElement("span", "", isService ? "Выберите подходящий вариант" : "Подберите ткань и цвет");
     const grid = createElement("div", "variant-grid");
     const options = isService ? (product.variants || []) : getFabricOptions(product);
 
@@ -2339,6 +2365,8 @@
   function fabricTypeLabel(variant, product, index) {
     const direct = variant.type || variant.material || variant.configuration || "";
     if (direct) return displayText(direct);
+    const colorName = displayText(variant.colorName || variant.color || "");
+    if (colorName && !/^(#|rgb|hsl)/i.test(colorName)) return colorName;
     const title = displayText(variant.name || variant.title || "");
     const [, fromTitle] = title.split(",");
     if (fromTitle) return fromTitle.trim();

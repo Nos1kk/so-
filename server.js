@@ -15,6 +15,10 @@ const PUBLIC_DIR = path.join(__dirname, "public");
 const PERSISTENT_DATA_DIR = process.platform !== "win32" && fs.existsSync("/data") ? "/data" : "";
 const DATA_DIR = process.env.SONA_DATA_DIR || PERSISTENT_DATA_DIR || path.join(__dirname, "data");
 const STORE_FILE = path.join(DATA_DIR, "store.json");
+const BACKUP_DIR = path.join(DATA_DIR, "backups");
+const STORE_BACKUP_FILE = path.join(BACKUP_DIR, "store.latest.json");
+const ACCOUNTS_BACKUP_FILE = path.join(BACKUP_DIR, "accounts.latest.json");
+const STORE_BACKUP_SCHEMA = "sona-admin-backup/v1";
 const ACCOUNTS_DIR = path.join(DATA_DIR, "accounts");
 const ACCOUNTS_FILE = path.join(ACCOUNTS_DIR, "accounts.json");
 const SESSIONS_FILE = path.join(ACCOUNTS_DIR, "sessions.json");
@@ -820,11 +824,87 @@ function safeAccount(account) {
   };
 }
 
+function cleanAccountsSnapshot(state) {
+  const clean = sanitizeJsonValue({
+    updatedAt: state?.updatedAt || new Date().toISOString(),
+    accounts: Array.isArray(state?.accounts) ? state.accounts : []
+  });
+  clean.accounts = Array.isArray(clean.accounts) ? clean.accounts : [];
+  return clean;
+}
+
+function adminAccountRecord(existing = {}) {
+  const now = new Date().toISOString();
+  return {
+    ...existing,
+    id: existing.id || accountIdFor(ADMIN_EMAIL),
+    email: ADMIN_EMAIL,
+    name: existing.name || "Администратор SONA",
+    role: "admin",
+    status: "active",
+    createdAt: existing.createdAt || now,
+    lastLoginAt: existing.lastLoginAt || "",
+    passwordHash: existing.passwordHash || ADMIN_PASSWORD_HASH,
+    passwordChangedAt: existing.passwordChangedAt || now,
+    adminCredentialVersion: existing.adminCredentialVersion || ADMIN_PASSWORD_VERSION
+  };
+}
+
+function mergeRestoredAccountsWithCurrentAdmin(restoredState, currentState) {
+  const restoredAccounts = Array.isArray(restoredState?.accounts) ? restoredState.accounts : [];
+  const currentAdmin = (currentState?.accounts || []).find((account) => normalizeEmail(account.email) === ADMIN_EMAIL);
+  const restoredAdmin = restoredAccounts.find((account) => normalizeEmail(account.email) === ADMIN_EMAIL);
+  const admin = adminAccountRecord(currentAdmin || restoredAdmin || {});
+  return cleanAccountsSnapshot({
+    updatedAt: new Date().toISOString(),
+    accounts: [
+      ...restoredAccounts.filter((account) => normalizeEmail(account.email) !== ADMIN_EMAIL),
+      admin
+    ].sort((a, b) => String(a.email).localeCompare(String(b.email)))
+  });
+}
+
+function readLatestAccountsBackup(callback) {
+  fs.readFile(ACCOUNTS_BACKUP_FILE, "utf8", (error, content) => {
+    if (error) {
+      if (error.code === "ENOENT") {
+        callback(null, null);
+        return;
+      }
+      callback(error);
+      return;
+    }
+    try {
+      callback(null, cleanAccountsSnapshot(JSON.parse(content)));
+    } catch (parseError) {
+      callback(parseError);
+    }
+  });
+}
+
+function writeLatestAccountsBackup(state, callback = () => {}) {
+  fs.mkdir(BACKUP_DIR, { recursive: true }, (mkdirError) => {
+    if (mkdirError) {
+      callback(mkdirError);
+      return;
+    }
+    writeJsonAtomic(ACCOUNTS_BACKUP_FILE, cleanAccountsSnapshot(state), callback);
+  });
+}
+
 function readAccounts(callback) {
   fs.readFile(ACCOUNTS_FILE, "utf8", (error, content) => {
     if (error) {
       if (error.code === "ENOENT") {
-        callback(null, { accounts: [] });
+        readLatestAccountsBackup((backupError, backupState) => {
+          if (backupError || !backupState) {
+            callback(null, { accounts: [] });
+            return;
+          }
+          writeAccounts(backupState, (writeError) => {
+            callback(writeError || null, backupState);
+          });
+        });
         return;
       }
       callback(error);
@@ -851,7 +931,18 @@ function writeAccounts(state, callback) {
       updatedAt: new Date().toISOString(),
       accounts: Array.isArray(state.accounts) ? state.accounts : []
     };
-    writeJsonAtomic(ACCOUNTS_FILE, payload, callback);
+    writeJsonAtomic(ACCOUNTS_FILE, payload, (writeError) => {
+      if (writeError) {
+        callback(writeError);
+        return;
+      }
+      writeLatestAccountsBackup(payload, (backupError) => {
+        if (backupError) {
+          console.warn("Unable to write latest accounts backup:", backupError.message);
+        }
+        callback(null);
+      });
+    });
   });
 }
 
@@ -1065,7 +1156,15 @@ function readStore(callback) {
   fs.readFile(STORE_FILE, "utf8", (error, content) => {
     if (error) {
       if (error.code === "ENOENT") {
-        callback(null, null);
+        readLatestStoreBackup((backupError, backupState) => {
+          if (backupError || !backupState) {
+            callback(null, null);
+            return;
+          }
+          writeStore(backupState, (writeError) => {
+            callback(writeError || null, backupState);
+          });
+        });
         return;
       }
       callback(error);
@@ -1080,6 +1179,64 @@ function readStore(callback) {
   });
 }
 
+function cleanStoreSnapshot(state) {
+  const clean = sanitizeJsonValue(state || {});
+  delete clean.admin;
+  delete clean.users;
+  return clean;
+}
+
+function createStoreBackup(state, accountsState = null) {
+  const backup = {
+    schema: STORE_BACKUP_SCHEMA,
+    createdAt: new Date().toISOString(),
+    state: cleanStoreSnapshot(state)
+  };
+  if (accountsState) backup.accounts = cleanAccountsSnapshot(accountsState);
+  return backup;
+}
+
+function stateFromStoreBackup(payload) {
+  const source = payload?.schema === STORE_BACKUP_SCHEMA && payload.state
+    ? payload.state
+    : (payload?.state && typeof payload.state === "object" ? payload.state : payload);
+  if (!source || typeof source !== "object" || Array.isArray(source)) return null;
+  return cleanStoreSnapshot(source);
+}
+
+function accountsFromStoreBackup(payload) {
+  if (!payload?.accounts || typeof payload.accounts !== "object" || Array.isArray(payload.accounts)) return null;
+  return cleanAccountsSnapshot(payload.accounts);
+}
+
+function readLatestStoreBackup(callback) {
+  fs.readFile(STORE_BACKUP_FILE, "utf8", (error, content) => {
+    if (error) {
+      if (error.code === "ENOENT") {
+        callback(null, null);
+        return;
+      }
+      callback(error);
+      return;
+    }
+    try {
+      callback(null, stateFromStoreBackup(JSON.parse(content)));
+    } catch (parseError) {
+      callback(parseError);
+    }
+  });
+}
+
+function writeLatestStoreBackup(state, callback = () => {}) {
+  fs.mkdir(BACKUP_DIR, { recursive: true }, (mkdirError) => {
+    if (mkdirError) {
+      callback(mkdirError);
+      return;
+    }
+    writeJsonAtomic(STORE_BACKUP_FILE, createStoreBackup(state), callback);
+  });
+}
+
 function writeStore(state, callback) {
   fs.mkdir(DATA_DIR, { recursive: true }, (mkdirError) => {
     if (mkdirError) {
@@ -1087,7 +1244,18 @@ function writeStore(state, callback) {
       return;
     }
 
-    writeJsonAtomic(STORE_FILE, state, callback);
+    writeJsonAtomic(STORE_FILE, state, (writeError) => {
+      if (writeError) {
+        callback(writeError);
+        return;
+      }
+      writeLatestStoreBackup(state, (backupError) => {
+        if (backupError) {
+          console.warn("Unable to write latest store backup:", backupError.message);
+        }
+        callback(null);
+      });
+    });
   });
 }
 
@@ -1154,6 +1322,87 @@ function handleStorePut(req, res) {
       });
     });
   }, { maxBytes: 40 * 1024 * 1024 });
+}
+
+function handleStoreBackupDownload(req, res) {
+  if (!requireAdmin(req, res)) return;
+  readStore((error, state) => {
+    if (error) {
+      sendJson(res, 500, { ok: false, error: "Backup unavailable" });
+      return;
+    }
+    readAccounts((accountsError, accountsState) => {
+      const backup = createStoreBackup(state || {}, accountsError ? null : accountsState);
+      writeLatestStoreBackup(backup.state, (backupError) => {
+        if (backupError) console.warn("Unable to refresh downloadable store backup:", backupError.message);
+      });
+      if (backup.accounts) {
+        writeLatestAccountsBackup(backup.accounts, (backupError) => {
+          if (backupError) console.warn("Unable to refresh downloadable accounts backup:", backupError.message);
+        });
+      }
+      sendJson(res, 200, { ok: true, backup });
+    });
+  });
+}
+
+function restoreAdminBackup(storeState, accountsState, callback) {
+  writeStore(storeState, (storeError) => {
+    if (storeError) {
+      callback(storeError);
+      return;
+    }
+    if (!accountsState) {
+      callback(null);
+      return;
+    }
+    readAccounts((readError, currentAccounts) => {
+      if (readError) {
+        callback(readError);
+        return;
+      }
+      writeAccounts(mergeRestoredAccountsWithCurrentAdmin(accountsState, currentAccounts), callback);
+    });
+  });
+}
+
+function handleStoreBackupRestore(req, res) {
+  if (!requireAdmin(req, res)) return;
+  readJsonBody(req, (error, body) => {
+    const payload = body?.backup || body;
+    const next = stateFromStoreBackup(payload);
+    const accounts = accountsFromStoreBackup(payload);
+    if (error || !next) {
+      sendJson(res, 400, { ok: false, error: "Invalid backup payload" });
+      return;
+    }
+    restoreAdminBackup(next, accounts, (writeError) => {
+      if (writeError) {
+        sendJson(res, 500, { ok: false, error: "Backup restore failed" });
+        return;
+      }
+      sendJson(res, 200, { ok: true, restoredAt: new Date().toISOString() });
+    });
+  }, { maxBytes: 80 * 1024 * 1024 });
+}
+
+function handleLatestStoreBackupRestore(req, res) {
+  if (!requireAdmin(req, res)) return;
+  readLatestStoreBackup((error, state) => {
+    if (error || !state) {
+      sendJson(res, 404, { ok: false, error: "Latest backup not found" });
+      return;
+    }
+    readLatestAccountsBackup((accountsError, accountsState) => {
+      restoreAdminBackup(state, accountsError ? null : accountsState, (writeError) => {
+        if (writeError) {
+          sendJson(res, 500, { ok: false, error: "Backup restore failed" });
+          return;
+        }
+        sendJson(res, 200, { ok: true, restoredAt: new Date().toISOString() });
+      });
+    });
+  });
 }
 
 function smtpRead(socket) {
@@ -2325,6 +2574,21 @@ function createServer() {
 
   if (req.method === "PUT" && req.url === "/api/accounts") {
     handleAccountsUpdate(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/api/admin/backup") {
+    handleStoreBackupDownload(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/admin/backup/restore") {
+    handleStoreBackupRestore(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/admin/backup/restore-latest") {
+    handleLatestStoreBackupRestore(req, res);
     return;
   }
 

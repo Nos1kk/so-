@@ -27,8 +27,7 @@
   const commonFields = {
     main: [
       ["name", "Название товара", "text", true],
-      ["shortDescription", "Коротко для карточки", "textarea", true],
-      ["description", "Описание на странице товара", "textarea", true],
+      ["description", "Описание", "textarea", true],
       ["categoryLabel", "Категория", "text", true],
       ["subcategory", "Подкатегория", "text"],
       ["brand", "Бренд", "text"],

@@ -1015,6 +1015,104 @@ let adminSearchTimer = 0;
     });
     server.append(el("h3", "", "Работа сервера"), status, health, sync);
     panel.append(server);
+
+    const backup = el("section", "sona-admin-server sona-admin-backups");
+    const backupStatus = el("p", "sona-admin-muted", "Последняя серверная копия обновляется после каждого сохранения.");
+    const backupActions = el("div", "sona-admin-actions");
+    const downloadBackup = el("button", "sona-admin-soft", "Скачать резервную копию");
+    const uploadBackup = el("button", "sona-admin-soft", "Восстановить из файла");
+    const restoreLatest = el("button", "sona-admin-soft", "Восстановить серверную копию");
+    const backupFile = document.createElement("input");
+
+    backupFile.type = "file";
+    backupFile.accept = "application/json,.json";
+    backupFile.hidden = true;
+    [downloadBackup, uploadBackup, restoreLatest].forEach((button) => { button.type = "button"; });
+
+    downloadBackup.addEventListener("click", async () => {
+      backupStatus.textContent = "Готовим копию...";
+      downloadBackup.disabled = true;
+      try {
+        await window.SonaStore.flushSync();
+        const response = await fetch(authApiUrl("/api/admin/backup"), {
+          credentials: "include",
+          cache: "no-store",
+          headers: { Accept: "application/json" }
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.backup) throw new Error("Backup download failed");
+        const stamp = new Date().toISOString().slice(0, 10);
+        const blob = new Blob([JSON.stringify(payload.backup, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `sona-admin-backup-${stamp}.json`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        backupStatus.textContent = "Резервная копия скачана.";
+      } catch (error) {
+        backupStatus.textContent = "Не удалось скачать копию.";
+      } finally {
+        downloadBackup.disabled = false;
+      }
+    });
+
+    uploadBackup.addEventListener("click", () => backupFile.click());
+    backupFile.addEventListener("change", async () => {
+      const file = backupFile.files?.[0];
+      if (!file) return;
+      if (!window.confirm("Восстановить данные сайта из выбранной копии? Текущие данные будут заменены.")) {
+        backupFile.value = "";
+        return;
+      }
+      backupStatus.textContent = "Восстанавливаем копию...";
+      uploadBackup.disabled = true;
+      try {
+        const backupPayload = JSON.parse(await file.text());
+        const response = await fetch(authApiUrl("/api/admin/backup/restore"), {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ backup: backupPayload })
+        });
+        if (!response.ok) throw new Error("Backup restore failed");
+        await window.SonaStore.refresh();
+        backupStatus.textContent = "Данные восстановлены из файла.";
+        context.render();
+      } catch (error) {
+        backupStatus.textContent = "Не удалось восстановить копию.";
+      } finally {
+        uploadBackup.disabled = false;
+        backupFile.value = "";
+      }
+    });
+
+    restoreLatest.addEventListener("click", async () => {
+      if (!window.confirm("Восстановить последнюю серверную копию? Текущие данные будут заменены.")) return;
+      backupStatus.textContent = "Восстанавливаем серверную копию...";
+      restoreLatest.disabled = true;
+      try {
+        const response = await fetch(authApiUrl("/api/admin/backup/restore-latest"), {
+          method: "POST",
+          credentials: "include",
+          headers: { Accept: "application/json" }
+        });
+        if (!response.ok) throw new Error("Latest backup restore failed");
+        await window.SonaStore.refresh();
+        backupStatus.textContent = "Серверная копия восстановлена.";
+        context.render();
+      } catch (error) {
+        backupStatus.textContent = "Серверная копия не найдена или недоступна.";
+      } finally {
+        restoreLatest.disabled = false;
+      }
+    });
+
+    backupActions.append(downloadBackup, uploadBackup, restoreLatest);
+    backup.append(el("h3", "", "Резервные копии"), backupStatus, backupActions, backupFile);
+    panel.append(backup);
     return panel;
   }
 

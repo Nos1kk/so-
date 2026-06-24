@@ -365,6 +365,10 @@ button.sona-admin-stat {
   gap: 12px;
 }
 
+.sona-admin-backups .sona-admin-actions button {
+  flex: 1 1 220px;
+}
+
 .sona-admin-order-card,
 .sona-admin-ad-slot,
 .sona-admin-server {

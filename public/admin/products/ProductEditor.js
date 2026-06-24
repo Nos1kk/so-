@@ -5,8 +5,9 @@
   const tabs = () => schemas().commonTabs;
   const categoryTitle = (id) => schemas().categories.find((item) => item[0] === id)?.[1] || "Товар";
   const fixedText = (value) => window.SonaText?.fix(value) || String(value ?? "");
+  const fabricProductTypes = new Set(["sofa", "sofaCollection", "chair", "bed"]);
   const mainGroups = [
-    ["Описание", ["name", "shortDescription", "description", "categoryLabel", "subcategory", "brand"]],
+    ["Описание", ["name", "description", "categoryLabel", "subcategory", "brand"]],
     ["Цены и склад", ["sku", "priceMode", "price", "oldPrice", "discount", "stock", "availability"]],
     ["Характеристики на странице товара", ["dimensions", "sleepingPlace", "mechanism"]],
     ["Статус и теги", ["status", "tags"]]
@@ -29,6 +30,12 @@
     return Array.isArray(product.variants) ? product.variants : [];
   }
 
+  function normalizeVariantFiles(variant) {
+    const files = Array.isArray(variant.files) ? variant.files : [];
+    if (files.length) return files;
+    return variant.photos ? [{ id: "FAB-legacy", name: "Фото ткани", type: "image/*", src: variant.photos }] : [];
+  }
+
   function createDraft(product, type) {
     const productType = inferProductType(product, type);
     const categoryLabel = categoryTitle(productType);
@@ -45,7 +52,9 @@
       rating: product.rating ?? 0,
       reviewsCount: product.reviewsCount ?? 0,
       sleepingPlace: product.sleepingPlace || product.sleepingSize || "",
-      ...product
+      ...product,
+      description: product.description || product.shortDescription || "",
+      shortDescription: ""
     };
   }
 
@@ -126,7 +135,7 @@
           onChange: setValue,
           error: errors[field[0]]
         });
-        if (["shortDescription", "description", "tags"].includes(name)) node.classList.add("is-wide");
+        if (["description", "tags"].includes(name)) node.classList.add("is-wide");
         grid.append(node);
       });
       section.append(grid);
@@ -172,6 +181,8 @@
 
     return {
       ...cleanProduct,
+      description: String(product.description || product.shortDescription || "").trim(),
+      shortDescription: "",
       status: status || product.status || "active",
       hidden: (status || product.status) === "hidden",
       price,
@@ -185,7 +196,14 @@
       sleepingSize: product.sleepingPlace || product.sleepingSize || "",
       image: main?.src || product.image || "",
       gallery: photos,
-      variants: variants.map((variant) => ({
+      variants: variants.map((variant, index) => fabricProductTypes.has(product.productType) ? {
+        id: variant.id || `VAR-${Date.now()}-${index}`,
+        title: String(variant.title || variant.name || "").trim(),
+        price: Math.max(0, Number(variant.price) || 0),
+        color: String(variant.color || "").trim(),
+        photos: variant.photos || normalizeVariantFiles(variant).find((file) => String(file.type || "").startsWith("image/"))?.src || "",
+        files: normalizeVariantFiles(variant)
+      } : ({
         ...variant,
         price: Math.max(0, Number(variant.price) || 0),
         oldPrice: Math.max(0, Number(variant.oldPrice) || 0),
@@ -216,7 +234,8 @@
       const actions = el("div", "sona-editor-actions");
 
       tabs().forEach(([id, title]) => {
-        const button = el("button", id === activeTab ? "is-active" : "", title);
+        const tabTitle = id === "variants" && fabricProductTypes.has(draft.productType) ? "Ткани" : title;
+        const button = el("button", id === activeTab ? "is-active" : "", tabTitle);
         button.type = "button";
         button.dataset.editorTab = id;
         button.addEventListener("click", () => { activeTab = id; rerender(); });
@@ -304,7 +323,7 @@
       side.append(
         el("span", "sona-summary-type", categoryTitle(draft.productType)),
         el("h3", "", draft.name || "Новый товар"),
-        el("p", "", draft.shortDescription || "Заполните основные поля, фото и цену."),
+        el("p", "", draft.description || "Заполните основные поля, фото и цену."),
         el("strong", "", draft.priceMode === "custom" ? "Индивидуальный расчёт" : `${draft.priceMode === "from" ? "от " : ""}${new Intl.NumberFormat("ru-RU").format(Number(draft.price) || 0)} ₽`),
         el("small", "", `Статус: ${draft.status || "draft"} · Остаток: ${draft.stock ?? 0}`)
       );

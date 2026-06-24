@@ -45,7 +45,7 @@
       el("h3", "", product.name || "Название товара"),
       price,
       el("span", "sona-preview-rating", Number(product.reviewsCount) > 0 ? `★ ${product.rating || 0} · ${product.reviewsCount} отзывов` : "0 отзывов"),
-      el("p", "", product.shortDescription || "Краткое описание будет видно в карточке."),
+      el("p", "", product.description || "Описание будет видно на странице товара."),
       el("small", "", `${Number(product.stock) > 0 ? "В наличии" : "Под заказ"} · доставка ${product.deliveryDays || 3} дн.`),
       actions
     );
@@ -69,7 +69,7 @@
     });
     detail.append(
       el("h3", "", product.name || "Страница товара"),
-      el("p", "", product.description || product.shortDescription || "Полное описание появится здесь."),
+      el("p", "", product.description || "Описание появится здесь."),
       el("strong", "", priceLabel(product)),
       characteristics
     );

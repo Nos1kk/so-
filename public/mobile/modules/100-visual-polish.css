@@ -2126,6 +2126,7 @@
     grid-row: 2 !important;
   }
 
+  body .detail-description,
   body .detail-characteristics {
     padding: 14px !important;
     border-radius: 16px !important;

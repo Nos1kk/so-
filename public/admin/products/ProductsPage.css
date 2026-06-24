@@ -367,6 +367,76 @@
   background: #fbfdff;
 }
 
+.sona-fabric-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.sona-fabric-files {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.sona-fabric-upload {
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0 14px;
+  border: 1px dashed #b8cde4;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--blue-deep);
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+.sona-fabric-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.sona-fabric-file-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.sona-fabric-file {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.sona-fabric-file img {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f3f7fb;
+}
+
+.sona-fabric-file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sona-fabric-file button {
+  min-height: 36px;
+}
+
 .sona-preview-pane {
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
 }
@@ -653,6 +723,19 @@
   .sona-editor-grid,
   .sona-variant-row {
     grid-template-columns: 1fr;
+  }
+
+  .sona-fabric-fields,
+  .sona-fabric-file-list {
+    grid-template-columns: 1fr;
+  }
+
+  .sona-fabric-file {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .sona-fabric-file button {
+    grid-column: 1 / -1;
   }
 
   .sona-editor-field input,

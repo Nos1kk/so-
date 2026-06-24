@@ -2116,6 +2116,7 @@ img {
   font-weight: 900;
 }
 
+.detail-description,
 .detail-characteristics {
   display: grid;
   gap: 12px;
@@ -2125,8 +2126,16 @@ img {
   background: #f8fbff;
 }
 
+.detail-description h3,
 .detail-characteristics h3 {
   margin: 0;
+}
+
+.detail-description p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+  white-space: pre-line;
 }
 
 .detail-characteristics-grid {
@@ -8126,9 +8135,9 @@ img {
 }
 
 .detail-similar .similar-card {
-  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
-  border-color: rgba(151, 185, 216, 0.62);
-  box-shadow: 0 14px 34px rgba(31, 68, 112, 0.12);
+  background: #fff;
+  border-color: rgba(216, 227, 239, 0.92);
+  box-shadow: 0 12px 30px rgba(26, 55, 92, 0.08);
 }
 
 .detail-similar .similar-card .product-placeholder,
@@ -8137,27 +8146,19 @@ img {
 .detail-similar .similar-card .product-placeholder.is-sofa-image {
   position: relative;
   isolation: isolate;
-  background:
-    radial-gradient(ellipse at 50% 82%, rgba(64, 91, 119, 0.18) 0%, rgba(64, 91, 119, 0.08) 26%, transparent 58%),
-    linear-gradient(145deg, #f3f8fc 0%, #e4eff8 52%, #f7fbff 100%);
+  background: #fff;
 }
 
 .detail-similar .similar-card .product-placeholder::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 10% 8%;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.48);
-  filter: blur(18px);
+  content: none;
 }
 
 .detail-similar .similar-card .product-placeholder img {
   width: 100%;
   height: 100%;
-  padding: 8px 10px 2px;
+  padding: 10px 12px;
   object-fit: contain;
-  background: transparent;
-  mix-blend-mode: multiply;
-  filter: drop-shadow(0 10px 9px rgba(27, 48, 70, 0.16));
+  background: #fff;
+  mix-blend-mode: normal;
+  filter: none;
 }
