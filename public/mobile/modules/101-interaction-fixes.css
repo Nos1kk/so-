@@ -53,14 +53,40 @@
     text-overflow: ellipsis !important;
   }
 
+  body .mobile-consult {
+    position: static !important;
+  }
+
+  body .mobile-consult-menu {
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top) + 74px) !important;
+    right: 12px !important;
+    left: auto !important;
+    z-index: 260 !important;
+    width: min(280px, calc(100vw - 24px)) !important;
+    opacity: 0;
+    transform: translate3d(0, -8px, 0) scale(0.98);
+    transform-origin: top right;
+    transition:
+      opacity 0.24s ease,
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    will-change: opacity, transform;
+  }
+
+  body .mobile-consult-menu.is-open {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    will-change: auto;
+  }
+
   body .site-header:has(#mobileConsultButton[aria-expanded="true"]) .quick-nav {
-    min-height: 0 !important;
-    max-height: 0 !important;
-    height: 0 !important;
-    padding-block: 0 !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
+    min-height: inherit !important;
+    max-height: none !important;
+    height: auto !important;
+    padding-block: inherit !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
   }
 
   body .search-result {

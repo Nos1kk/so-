@@ -46,7 +46,11 @@
       baseDiscount: 15,
       returnsPolicy: "Возврат и обмен по правилам магазина Soна."
     },
-    customAds: []
+    customAds: [],
+    homeCollections: {
+      hits: [],
+      new: []
+    }
   };
 
   function clone(value) {
@@ -82,7 +86,13 @@
       shopSettings: parsed.shopSettings && typeof parsed.shopSettings === "object"
         ? { ...clone(fallbackState.shopSettings), ...parsed.shopSettings }
         : clone(fallbackState.shopSettings),
-      customAds: Array.isArray(parsed.customAds) ? parsed.customAds : []
+      customAds: Array.isArray(parsed.customAds) ? parsed.customAds : [],
+      homeCollections: parsed.homeCollections && typeof parsed.homeCollections === "object"
+        ? {
+          hits: Array.isArray(parsed.homeCollections.hits) ? parsed.homeCollections.hits : [],
+          new: Array.isArray(parsed.homeCollections.new) ? parsed.homeCollections.new : []
+        }
+        : clone(fallbackState.homeCollections)
     };
   }
 

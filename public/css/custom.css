@@ -32,11 +32,15 @@ html {
   min-width: 320px;
   background: var(--bg);
   scroll-behavior: smooth;
+  overscroll-behavior-y: none;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
   background:
     radial-gradient(circle at 12% 8%, rgba(169, 192, 214, 0.28), transparent 28%),
     radial-gradient(circle at 88% 18%, rgba(34, 58, 94, 0.08), transparent 24%),
@@ -45,7 +49,9 @@ body {
 }
 
 html.modal-lock,
-body.modal-lock {
+body.modal-lock,
+html.mobile-filters-open,
+body.mobile-filters-open {
   overflow: hidden !important;
   overscroll-behavior: none;
 }
@@ -3699,13 +3705,17 @@ img {
 
 .reveal {
   opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.55s ease, transform 0.55s ease;
+  transform: translate3d(0, 10px, 0);
+  transition:
+    opacity 0.78s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.78s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
 }
 
 .reveal.is-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
+  will-change: auto;
 }
 
 .site-header {
@@ -7688,10 +7698,21 @@ img {
 :is(#productGrid, .category-product-grid) .product-placeholder.has-image img {
   width: 100%;
   height: 100%;
-  padding: 12px;
+  padding: clamp(8px, 3.2%, 14px);
   border-radius: 0;
   object-fit: contain;
+  object-position: 50% 54%;
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-placeholder.is-sofa-image img,
+:is(#productGrid, .category-product-grid, .home-product-grid, .favorites-hits-grid) .product-placeholder.is-white-media-image img,
+.catalog-hub-photo img,
+.catalog-collection-photo img,
+.collection-image img {
+  object-fit: contain !important;
+  object-position: 50% 54% !important;
+  transform-origin: 50% 54%;
 }
 
 :is(#productGrid, .category-product-grid) .product-card:hover .product-placeholder {

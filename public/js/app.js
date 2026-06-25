@@ -192,6 +192,7 @@
     productReturnPath: ""
   };
   let productModalScrollY = 0;
+  let filterDrawerScrollY = 0;
 
   function lockProductModalScroll() {
     if (document.documentElement.classList.contains("modal-lock")) return;
@@ -215,6 +216,32 @@
     document.body.style.right = "";
     document.body.style.width = "";
     if (wasLocked) window.scrollTo({ top: productModalScrollY, left: 0, behavior: "instant" });
+  }
+
+  function lockFilterDrawerScroll() {
+    if (document.body.classList.contains("mobile-filters-open")) return;
+    filterDrawerScrollY = window.scrollY;
+    document.documentElement.classList.add("mobile-filters-open");
+    document.body.classList.add("mobile-filters-open");
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${filterDrawerScrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+  }
+
+  function unlockFilterDrawerScroll() {
+    const wasLocked = document.body.classList.contains("mobile-filters-open");
+    document.documentElement.classList.remove("mobile-filters-open");
+    document.body.classList.remove("mobile-filters-open");
+    if (!document.body.classList.contains("modal-lock")) {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.width = "";
+    }
+    if (wasLocked) window.scrollTo({ top: filterDrawerScrollY, left: 0, behavior: "instant" });
   }
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -722,6 +749,22 @@
     renderAdminPage();
   }
 
+  function saveHomeCollections(collections = {}) {
+    store.update((data) => {
+      const validIds = new Set(applyProductAdminState(state.baseProducts, data, { includeHidden: true }).map((product) => product.id));
+      const cleanList = (rows) => [...new Set(Array.isArray(rows) ? rows : [])]
+        .map((id) => security.safeProductId(id))
+        .filter((id) => id && validIds.has(id))
+        .slice(0, 8);
+      data.homeCollections = {
+        hits: cleanList(collections.hits),
+        new: cleanList(collections.new)
+      };
+    });
+    renderHomeSections();
+    renderAdminPage();
+  }
+
   async function saveShopSettings(settings) {
     store.update((data) => {
       data.shopSettings = {
@@ -1090,7 +1133,7 @@
 
   function pageScrollBehavior(options = {}) {
     if (options.behavior) return options.behavior;
-    return reduceMotion || mobileViewport.matches ? "auto" : "smooth";
+    return reduceMotion ? "auto" : "smooth";
   }
 
   function navigateTo(route, syncUrl = true, options = {}) {
@@ -1410,7 +1453,10 @@
       .filter((product) => product.oldPrice)
       .sort((a, b) => ((b.oldPrice || 0) - (b.price || 0)) - ((a.oldPrice || 0) - (a.price || 0)))
       .slice(0, 4);
-    const popular = FEATURED_HOME_PRODUCT_IDS
+    const savedHits = Array.isArray(data.homeCollections?.hits) ? data.homeCollections.hits : [];
+    const savedNew = Array.isArray(data.homeCollections?.new) ? data.homeCollections.new : [];
+    const popularSource = savedHits.length ? savedHits : FEATURED_HOME_PRODUCT_IDS;
+    const popular = popularSource
       .map((id) => visible.find((product) => product.id === id))
       .filter(Boolean);
     if (popular.length < 2) {
@@ -1419,9 +1465,11 @@
         .slice(0, 2 - popular.length)
         .forEach((product) => popular.push(product));
     }
-    const newItems = visible
-      .filter((product) => (product.tags || []).some((tag) => displayText(tag).toLowerCase() === "новинка") || ["Диваны", "Услуги"].includes(product.marketSection))
-      .slice(0, 2);
+    const newItems = savedNew.length
+      ? savedNew.map((id) => visible.find((product) => product.id === id)).filter(Boolean)
+      : visible
+        .filter((product) => (product.tags || []).some((tag) => displayText(tag).toLowerCase() === "новинка") || ["Диваны", "Услуги"].includes(product.marketSection))
+        .slice(0, 2);
 
     if (els.saleProductGrid) {
       els.saleProductGrid.replaceChildren(...sale.map((product, index) => createLookbookDealCard(product, data, index)));
@@ -1438,6 +1486,7 @@
 
   function setupHomeRailAutoplay(rail) {
     if (!rail || homeRailAutoplay.has(rail)) return;
+    if (mobileViewport.matches || window.matchMedia("(pointer: coarse)").matches) return;
 
     let pauseUntil = 0;
     const pause = () => {
@@ -1450,8 +1499,7 @@
 
     const timer = window.setInterval(() => {
       if (
-        window.innerWidth > 760
-        || document.hidden
+        document.hidden
         || reduceMotion
         || Date.now() < pauseUntil
         || rail.scrollWidth <= rail.clientWidth + 4
@@ -1624,7 +1672,7 @@
   function bindButtonRipples() {
     document.addEventListener("click", (event) => {
       const button = event.target.closest("button, .light-button, .primary-button, .soft-button, .filter-pill, .sale-switch");
-      if (!button || reduceMotion) return;
+      if (!button || reduceMotion || mobileViewport.matches) return;
 
       const rect = button.getBoundingClientRect();
       const ripple = createElement("span", "button-ripple");
@@ -1636,7 +1684,7 @@
   }
 
   function bindCardTilt() {
-    if (reduceMotion) return;
+    if (reduceMotion || mobileViewport.matches || window.matchMedia("(pointer: coarse)").matches) return;
 
     const selector = [
       ".product-card",
@@ -1700,7 +1748,7 @@
   }
 
   function bindHeroPointer() {
-    if (reduceMotion) return;
+    if (reduceMotion || mobileViewport.matches || window.matchMedia("(pointer: coarse)").matches) return;
 
     const hero = document.querySelector(".hero-banner");
     if (!hero) return;
@@ -1728,7 +1776,7 @@
   }
 
   function bindParallax() {
-    if (reduceMotion) return;
+    if (reduceMotion || mobileViewport.matches || window.matchMedia("(pointer: coarse)").matches) return;
 
     let scheduled = false;
     const update = () => {
@@ -2490,15 +2538,90 @@
     return section;
   }
 
+  function productTextTokens(product) {
+    const text = [
+      product.name,
+      product.category,
+      product.categoryLabel,
+      product.subcategory,
+      product.marketSection,
+      product.description,
+      product.shortDescription,
+      product.dimensions,
+      product.sleepingPlace,
+      product.mechanism,
+      ...(product.materials || []),
+      ...(product.specs || []),
+      ...(product.tags || [])
+    ].map(displayText).join(" ").toLowerCase();
+
+    return new Set(text
+      .replace(/[^a-zа-яё0-9\s-]/gi, " ")
+      .split(/\s+/)
+      .map((token) => token.trim())
+      .filter((token) => token.length > 3));
+  }
+
+  function productDimensions(product) {
+    const values = String([product.dimensions, product.sleepingPlace, product.sleepingSize].filter(Boolean).join(" "))
+      .match(/\d{2,4}/g)
+      ?.map((value) => Number(value))
+      .filter((value) => value > 20) || [];
+    return values.slice(0, 4);
+  }
+
+  function similarityScore(source, candidate) {
+    const sourcePrice = Number(source.price) || 0;
+    const candidatePrice = Number(candidate.price) || 0;
+    const priceBase = Math.max(sourcePrice, candidatePrice, 1);
+    const priceScore = sourcePrice && candidatePrice
+      ? Math.max(0, 1 - Math.abs(sourcePrice - candidatePrice) / priceBase)
+      : 0;
+
+    const sourceDims = productDimensions(source);
+    const candidateDims = productDimensions(candidate);
+    const dimensionScore = sourceDims.length && candidateDims.length
+      ? sourceDims.reduce((sum, value, index) => {
+        const next = candidateDims[index] || candidateDims[candidateDims.length - 1] || value;
+        return sum + Math.max(0, 1 - Math.abs(value - next) / Math.max(value, next, 1));
+      }, 0) / Math.max(sourceDims.length, candidateDims.length)
+      : 0;
+
+    const sourceTokens = productTextTokens(source);
+    const candidateTokens = productTextTokens(candidate);
+    const sharedTokens = [...sourceTokens].filter((token) => candidateTokens.has(token)).length;
+    const textScore = sharedTokens / Math.max(4, Math.min(sourceTokens.size || 1, candidateTokens.size || 1));
+    const sameCategory = source.category === candidate.category || productCategoryLabel(source) === productCategoryLabel(candidate);
+    const sameType = source.productType && source.productType === candidate.productType;
+    const sameSection = source.marketSection && source.marketSection === candidate.marketSection;
+
+    return (
+      priceScore * 42 +
+      dimensionScore * 28 +
+      textScore * 24 +
+      (sameCategory ? 26 : 0) +
+      (sameType ? 18 : 0) +
+      (sameSection ? 8 : 0)
+    );
+  }
+
   function createSimilarSection(product) {
     const section = createElement("section", "detail-similar");
     const grid = createElement("div", "similar-grid");
     const similar = state.products
-      .filter((item) => item.id !== product.id && (item.category === product.category || item.marketSection === product.marketSection))
+      .filter((item) => item.id !== product.id && !item.hidden)
+      .map((item) => ({ item, score: similarityScore(product, item) }))
+      .filter(({ score }) => score > 18)
+      .sort((a, b) => b.score - a.score)
+      .map(({ item }) => item)
       .slice(0, 6);
+    const fallback = state.products
+      .filter((item) => item.id !== product.id && !item.hidden && !similar.some((candidate) => candidate.id === item.id))
+      .sort((a, b) => similarityScore(product, b) - similarityScore(product, a))
+      .slice(0, 6 - similar.length);
 
     section.append(createElement("h2", "", "Похожие товары"));
-    similar.forEach((item) => grid.append(createSimilarCard(item)));
+    [...similar, ...fallback].forEach((item) => grid.append(createSimilarCard(item)));
     section.append(grid);
     return section;
   }
@@ -3150,6 +3273,7 @@
         updateUser: updateAdminUser,
         saveAd: saveAdminAd,
         deleteAd: deleteAdminAd,
+        saveHomeCollections,
         saveSettings: saveShopSettings
       },
       onChange: () => {
@@ -3620,10 +3744,12 @@
     els.filterDrawer.setAttribute("aria-hidden", "false");
     els.filterButton?.classList.add("is-open");
     els.filterButton?.setAttribute("aria-expanded", "true");
+    lockFilterDrawerScroll();
   }
 
   function closeFilters() {
     els.filterDrawer.classList.remove("is-open");
+    unlockFilterDrawerScroll();
     window.clearTimeout(closeFilters.timer);
     closeFilters.timer = window.setTimeout(() => {
       if (!els.filterDrawer.classList.contains("is-open")) {

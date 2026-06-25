@@ -168,7 +168,14 @@
     const root = el("section", "sona-products-page");
     const rerender = (options = {}) => {
       const fresh = { ...context, products: context.products };
+      const stableScrollY = window.scrollY;
+      const stableHeight = root.offsetHeight;
+      if (stableHeight) root.style.minHeight = `${stableHeight}px`;
       root.replaceChildren(render(fresh));
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" });
+        root.style.minHeight = "";
+      });
       if (options.focusSearch) {
         window.requestAnimationFrame(() => {
           const input = root.querySelector('.sona-products-toolbar input[type="search"]');

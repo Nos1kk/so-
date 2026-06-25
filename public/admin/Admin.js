@@ -816,8 +816,77 @@ let adminSearchTimer = 0;
       if (ad) slot.append(actionButtons([["Удалить фото", () => context.actions.deleteAd(ad.id), "danger"]]));
       slots.append(slot);
     });
-    panel.append(slots);
+    panel.append(slots, homeCollectionsEditor(context));
     return panel;
+  }
+
+  function homeCollectionsEditor(context) {
+    const state = {
+      hits: [...(context.data.homeCollections?.hits || [])],
+      new: [...(context.data.homeCollections?.new || [])]
+    };
+    const wrap = el("section", "sona-admin-home-picks");
+    const columns = el("div", "sona-admin-home-picks-grid");
+    const products = context.products.filter((product) => !product.hidden);
+    const productRows = products.map((product) => [
+      product.id,
+      `${product.name || product.id} · ${product.categoryLabel || product.category || product.marketSection || "Каталог"}`
+    ]);
+
+    function renderColumn(key, title, hint) {
+      const column = el("article", "sona-admin-home-pick");
+      const selected = el("div", "sona-admin-picked-list");
+      const controls = el("div", "sona-admin-picker-controls");
+      const picker = select([["", "Выберите товар"], ...productRows], "", () => {});
+      const add = el("button", "", "Добавить");
+
+      function refreshSelected() {
+        selected.replaceChildren();
+        state[key].forEach((id) => {
+          const product = products.find((item) => item.id === id);
+          const row = el("span", "sona-admin-picked-item");
+          const remove = el("button", "", "×");
+          remove.type = "button";
+          remove.setAttribute("aria-label", "Убрать товар");
+          remove.addEventListener("click", () => {
+            state[key] = state[key].filter((item) => item !== id);
+            refreshSelected();
+          });
+          row.append(el("strong", "", product?.name || id), remove);
+          selected.append(row);
+        });
+        if (!state[key].length) selected.append(el("em", "", "Пока используется автоматическая подборка."));
+      }
+
+      add.type = "button";
+      add.addEventListener("click", () => {
+        const id = picker.value;
+        if (!id || state[key].includes(id)) return;
+        state[key] = [...state[key], id].slice(0, 8);
+        picker.value = "";
+        refreshSelected();
+      });
+
+      controls.append(picker, add);
+      column.append(el("h3", "", title), el("p", "", hint), controls, selected);
+      refreshSelected();
+      return column;
+    }
+
+    columns.append(
+      renderColumn("hits", "Хиты", "Главный блок с популярными товарами."),
+      renderColumn("new", "Новинки", "Блок новых товаров и рекомендаций.")
+    );
+    wrap.append(
+      el("h2", "", "Товары на главной"),
+      el("p", "sona-admin-muted", "Выберите товары, которые будут показаны в блоках «Хиты» и «Новинки». Если список пустой, сайт подберет товары автоматически."),
+      columns,
+      actionButtons([
+        ["Сохранить подборки", () => context.actions.saveHomeCollections?.(state)],
+        ["Вернуть автоматический подбор", () => context.actions.saveHomeCollections?.({ hits: [], new: [] })]
+      ])
+    );
+    return wrap;
   }
 
   function supportView(context, options = {}) {

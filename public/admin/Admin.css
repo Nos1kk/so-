@@ -496,6 +496,89 @@ button.sona-admin-stat {
   display: none;
 }
 
+.sona-admin-home-picks {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.sona-admin-home-picks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.sona-admin-home-pick {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.sona-admin-home-pick h3,
+.sona-admin-home-pick p {
+  margin: 0;
+}
+
+.sona-admin-home-pick p,
+.sona-admin-picked-list em {
+  color: var(--muted);
+}
+
+.sona-admin-picker-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.sona-admin-picker-controls button,
+.sona-admin-picked-item button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--blue);
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+}
+
+.sona-admin-picked-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sona-admin-picked-item {
+  min-width: 0;
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 6px 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #f7fbff;
+}
+
+.sona-admin-picked-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sona-admin-picked-item button {
+  min-height: 28px;
+  width: 28px;
+  border-radius: 50%;
+  background: #fff0f0;
+  color: #b42318;
+}
+
 .sona-admin-tab-badge {
   min-width: 20px;
   height: 20px;
@@ -702,6 +785,11 @@ button.sona-admin-stat {
   }
 
   .sona-admin-ad-slots {
+    grid-template-columns: 1fr;
+  }
+
+  .sona-admin-home-picks-grid,
+  .sona-admin-picker-controls {
     grid-template-columns: 1fr;
   }
 

@@ -3038,7 +3038,18 @@
   body .detail-stage .product-placeholder.is-sofa-image img,
   body .detail-stage .product-placeholder.is-white-media-image img {
     clip-path: inset(1px round 13px) !important;
+    object-fit: contain !important;
+    object-position: 50% 54% !important;
     mix-blend-mode: normal !important;
+  }
+
+  body .catalog-hub-photo img,
+  body .catalog-collection-photo img,
+  body .collection-image img,
+  body .home-category-card img {
+    object-fit: contain !important;
+    object-position: 50% 54% !important;
+    transform-origin: 50% 54% !important;
   }
 }
 

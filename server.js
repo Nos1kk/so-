@@ -530,7 +530,11 @@ function publicStoreState(state, account = null) {
     supportMessages: ownSupport,
     admin: {},
     shopSettings: state?.shopSettings || {},
-    customAds: (state?.customAds || []).filter((ad) => ad?.active !== false)
+    customAds: (state?.customAds || []).filter((ad) => ad?.active !== false),
+    homeCollections: {
+      hits: Array.isArray(state?.homeCollections?.hits) ? state.homeCollections.hits : [],
+      new: Array.isArray(state?.homeCollections?.new) ? state.homeCollections.new : []
+    }
   };
 }
 
