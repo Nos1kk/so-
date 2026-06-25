@@ -23,6 +23,7 @@ const ACCOUNTS_DIR = path.join(DATA_DIR, "accounts");
 const ACCOUNTS_FILE = path.join(ACCOUNTS_DIR, "accounts.json");
 const SESSIONS_FILE = path.join(ACCOUNTS_DIR, "sessions.json");
 const ADMIN_EMAIL = String(process.env.SONA_ADMIN_EMAIL || "kcel046@gmail.com").trim().toLowerCase();
+const SUPPORT_EMAIL = String(process.env.SONA_SUPPORT_EMAIL || "sonahome@yandex.ru").trim().toLowerCase();
 const AUTH_SECRET = resolveAuthSecret();
 const emailCodes = new Map();
 const telegramLoginCodes = new Map();
@@ -550,6 +551,49 @@ function mergeNewRows(existing, incoming, predicate) {
   return rows;
 }
 
+function dataUrlPayloadBytes(dataUrl) {
+  const raw = String(dataUrl || "");
+  const comma = raw.indexOf(",");
+  if (comma < 0) return 0;
+  const payload = raw.slice(comma + 1);
+  if (raw.slice(0, comma).toLowerCase().includes(";base64")) {
+    return Math.floor(payload.replace(/=+$/, "").length * 0.75);
+  }
+  try {
+    return Buffer.byteLength(decodeURIComponent(payload), "utf8");
+  } catch (error) {
+    return 0;
+  }
+}
+
+function supportMessageIds(rows) {
+  return new Set((Array.isArray(rows) ? rows : []).map((message) => message?.id).filter(Boolean));
+}
+
+function notifySupportMessage(message) {
+  const subject = "Новое обращение в поддержку SONA";
+  const attachments = Array.isArray(message.attachments) && message.attachments.length
+    ? message.attachments.map((file) => `- ${file.name || "file"} (${Math.ceil((Number(file.size) || 0) / 1024)} КБ)`).join("\n")
+    : "Нет";
+  const text = [
+    "Пользователь написал в поддержку.",
+    "",
+    `Имя: ${message.author || "Не указано"}`,
+    `Телефон: ${message.phone || "Не указан"}`,
+    `Email: ${message.email || "Не указан"}`,
+    `Тема/чат: ${message.threadId || message.accountKey || message.id}`,
+    "",
+    "Сообщение:",
+    message.text || "(без текста)",
+    "",
+    "Вложения:",
+    attachments
+  ].join("\n");
+
+  sendSmtpMail({ to: SUPPORT_EMAIL, subject, text })
+    .catch((error) => console.warn("Unable to send support notification:", error.message));
+}
+
 function mergeCustomerStoreState(current, incoming, account) {
   const email = normalizeEmail(account.email);
   const personal = sanitizeJsonValue({
@@ -593,13 +637,15 @@ function mergeCustomerStoreState(current, incoming, account) {
       .filter((attachment) => {
         const dataUrl = String(attachment?.dataUrl || "");
         const type = String(attachment?.type || "").toLowerCase();
-        const acceptedType = /^(?:image\/(?:png|jpeg|webp|gif)|application\/(?:pdf|json|zip)|text\/(?:plain|csv)|video\/(?:mp4|webm)|audio\/(?:mpeg|wav|ogg))$/.test(type);
-        return acceptedType && dataUrl.length <= 8 * 1024 * 1024 && dataUrl.toLowerCase().startsWith(`data:${type};`);
+        const acceptedType = /^(?:image\/(?:png|jpeg|webp|gif)|application\/(?:pdf|json|zip|msword|vnd\.openxmlformats-officedocument\.(?:wordprocessingml\.document|spreadsheetml\.sheet|presentationml\.presentation)|vnd\.ms-(?:excel|powerpoint)|x-zip-compressed)|text\/(?:plain|csv)|video\/(?:mp4|webm|quicktime)|audio\/(?:mpeg|wav|ogg))$/.test(type);
+        return acceptedType && dataUrlPayloadBytes(dataUrl) <= 10 * 1024 * 1024 && dataUrl.toLowerCase().startsWith(`data:${type};`);
       });
     return {
       ...message,
       text: String(message?.text || "").slice(0, 1200),
       attachments,
+      author: String(incoming.profile?.name || message?.author || "Пользователь").slice(0, 120),
+      phone: String(incoming.profile?.phone || message?.phone || "").slice(0, 40),
       role: "user",
       email: account.email,
       accountKey: `user:${email}`
@@ -1314,15 +1360,20 @@ function handleStorePut(req, res) {
         sendJson(res, 500, { ok: false, error: "Store unavailable" });
         return;
       }
+      const existingSupportIds = supportMessageIds(current?.supportMessages);
       const next = account.role === "admin"
         ? sanitizeJsonValue(body.state)
         : mergeCustomerStoreState(current || {}, body.state, account);
+      const supportToNotify = account.role === "admin" ? [] : (next.supportMessages || []).filter((message) => (
+        message?.role === "user" && !existingSupportIds.has(message.id)
+      ));
       writeStore(next, (writeError) => {
         if (writeError) {
           sendJson(res, 500, { ok: false, error: "Store write failed" });
           return;
         }
         sendJson(res, 200, { ok: true });
+        supportToNotify.forEach(notifySupportMessage);
       });
     });
   }, { maxBytes: 40 * 1024 * 1024 });

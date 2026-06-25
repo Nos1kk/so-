@@ -892,16 +892,24 @@ let adminSearchTimer = 0;
   function supportView(context, options = {}) {
     const panel = el("section", `sona-admin-panel ${options.compact ? "" : "sona-admin-wide"}`);
     const dialogs = groupSupport(context.support);
-    const active = supportDialog || dialogs[0]?.id || "";
+    const active = supportDialog && dialogs.some((dialog) => dialog.id === supportDialog) ? supportDialog : "";
     supportDialog = active;
     panel.append(el("h2", "", "Поддержка"));
 
     const chat = el("div", "sona-admin-chat");
+    chat.classList.toggle("is-list-mode", !active);
     const list = el("div", "sona-admin-dialogs");
     dialogs.forEach((dialog) => {
       const button = el("button", dialog.id === active ? "is-active" : "");
+      const unread = dialog.messages.filter((message) => message.role === "user" && message.status !== "read" && message.status !== "closed").length;
+      const meta = [dialog.phone, dialog.email].filter(Boolean).join(" · ");
       button.type = "button";
-      button.append(el("strong", "", dialog.title), el("span", "", dialog.last?.text || ""));
+      button.append(
+        el("strong", "", dialog.title),
+        el("span", "", dialog.last?.text || ""),
+        el("small", "", meta || "Контакты не указаны")
+      );
+      if (unread) button.append(el("em", "", String(unread)));
       button.addEventListener("click", () => { supportDialog = dialog.id; context.render(); });
       list.append(button);
     });
@@ -937,21 +945,34 @@ let adminSearchTimer = 0;
       history.append(item);
     });
     const threadActions = el("div", "sona-admin-actions");
+    const back = el("button", "sona-admin-soft", "К списку обращений");
+    back.type = "button";
+    back.addEventListener("click", () => {
+      supportDialog = "";
+      context.render();
+    });
+    const activeDialog = dialogs.find((dialog) => dialog.id === active);
+    if (activeDialog) {
+      const contact = el("p", "sona-admin-support-contact", [activeDialog.title, activeDialog.phone, activeDialog.email].filter(Boolean).join(" · "));
+      history.prepend(contact);
+    }
     threadActions.append(actionButtons([
-      ["Пометить прочитанным", () => {
+      ["Пометить прочитанным", async () => {
         window.SonaStore.update((data) => {
           data.supportMessages = (data.supportMessages || []).map((message) => (
             messages.some((item) => item.id === message.id) ? { ...message, status: "read" } : message
           ));
         });
+        await window.SonaStore.flushSync?.().catch(() => null);
         context.render();
       }],
-      ["Закрыть обращение", () => {
+      ["Закрыть обращение", async () => {
         window.SonaStore.update((data) => {
           data.supportMessages = (data.supportMessages || []).map((message) => (
             messages.some((item) => item.id === message.id) ? { ...message, status: "closed" } : message
           ));
         });
+        await window.SonaStore.flushSync?.().catch(() => null);
         context.render();
       }]
     ]));
@@ -959,7 +980,7 @@ let adminSearchTimer = 0;
     const input = el("textarea");
     const fileInput = document.createElement("input");
     const attach = el("button", "sona-admin-soft", "Прикрепить");
-    const fileStatus = el("small", "sona-admin-reply-status", "До 3 файлов, каждый до 6 МБ.");
+    const fileStatus = el("small", "sona-admin-reply-status", "До 3 файлов, каждый до 10 МБ.");
     input.placeholder = "Ответ администратора";
     fileInput.type = "file";
     fileInput.accept = "image/png,image/jpeg,image/webp,image/gif,application/pdf,text/plain,text/csv,application/json,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,video/mp4,video/webm,video/quicktime,audio/mpeg,audio/wav,audio/ogg";
@@ -976,6 +997,11 @@ let adminSearchTimer = 0;
     const send = el("button", "", "Отправить");
     send.type = "submit";
     form.append(input, fileInput, attach, send, fileStatus);
+    input.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return;
+      event.preventDefault();
+      form.requestSubmit();
+    });
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const target = dialogs.find((dialog) => dialog.id === active);
@@ -996,13 +1022,20 @@ let adminSearchTimer = 0;
         fileStatus.textContent = prepared.rejected.length
           ? `Ответ отправлен. Не добавлены: ${prepared.rejected.map((item) => item.name).join(", ")}`
           : "Ответ отправлен.";
+        await window.SonaStore.flushSync?.().catch(() => null);
+        await window.SonaStore.refresh?.().catch(() => null);
         context.render();
       } else {
         fileStatus.textContent = prepared.rejected.map((item) => `${item.name}: ${item.reason}`).join(". ") || "Введите ответ или прикрепите допустимый файл.";
       }
     });
     const right = el("div", "sona-admin-chat-main");
-    right.append(history, threadActions, form);
+    if (active) {
+      threadActions.prepend(back);
+      right.append(history, threadActions, form);
+    } else {
+      right.append(el("div", "sona-admin-chat-empty", "Выберите обращение из списка, чтобы открыть переписку."));
+    }
     chat.append(list, right);
     panel.append(chat);
     return panel;
@@ -1251,7 +1284,28 @@ let adminSearchTimer = 0;
     items.forEach(([text, action, tone]) => {
       const button = el("button", tone === "danger" ? "is-danger" : "", text);
       button.type = "button";
-      button.addEventListener("click", action);
+      button.addEventListener("click", async () => {
+        const original = button.textContent;
+        button.classList.add("is-pressing");
+        button.disabled = true;
+        try {
+          const result = action?.();
+          if (result && typeof result.then === "function") await result;
+          button.textContent = "Готово";
+          window.setTimeout(() => {
+            button.textContent = original;
+            button.disabled = false;
+            button.classList.remove("is-pressing");
+          }, 650);
+        } catch (error) {
+          button.textContent = "Ошибка";
+          window.setTimeout(() => {
+            button.textContent = original;
+            button.disabled = false;
+            button.classList.remove("is-pressing");
+          }, 900);
+        }
+      });
       wrap.append(button);
     });
     return wrap;

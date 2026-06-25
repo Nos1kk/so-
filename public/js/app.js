@@ -716,7 +716,7 @@
     render();
   }
 
-  function saveAdminAd(ad) {
+  async function saveAdminAd(ad) {
     store.update((data) => {
       const id = ad.id || `AD-${Date.now()}`;
       const rows = (data.customAds || []).filter((item) => item.id !== id);
@@ -737,19 +737,23 @@
         .sort((a, b) => Number(a.slot ?? 99) - Number(b.slot ?? 99))
         .slice(0, 3);
     });
+    await store.flushSync?.().catch(() => null);
     renderAds();
     renderAdminPage();
+    showToast("Реклама сохранена");
   }
 
-  function deleteAdminAd(adId) {
+  async function deleteAdminAd(adId) {
     store.update((data) => {
       data.customAds = (data.customAds || []).filter((ad) => ad.id !== adId);
     });
+    await store.flushSync?.().catch(() => null);
     renderAds();
     renderAdminPage();
+    showToast("Реклама удалена");
   }
 
-  function saveHomeCollections(collections = {}) {
+  async function saveHomeCollections(collections = {}) {
     store.update((data) => {
       const validIds = new Set(applyProductAdminState(state.baseProducts, data, { includeHidden: true }).map((product) => product.id));
       const cleanList = (rows) => [...new Set(Array.isArray(rows) ? rows : [])]
@@ -761,8 +765,10 @@
         new: cleanList(collections.new)
       };
     });
+    await store.flushSync?.().catch(() => null);
     renderHomeSections();
     renderAdminPage();
+    showToast("Подборки на главной сохранены");
   }
 
   async function saveShopSettings(settings) {
@@ -4441,7 +4447,8 @@
 
     const refreshWhenActive = async () => {
       if (refreshPending || document.hidden) return;
-      if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+      const supportOpen = Boolean(document.querySelector(".sona-support-widget.is-open")) || state.route === "admin";
+      if (!supportOpen && ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
 
       refreshPending = true;
       try {
@@ -4454,7 +4461,7 @@
         if (state.route === "admin") {
           renderAdminPage();
           renderAds();
-        } else if (["profile", "product", "home", "category"].includes(state.route)) {
+        } else if (supportOpen || ["profile", "product", "home", "category"].includes(state.route)) {
           render();
         }
       } catch (error) {
@@ -4468,6 +4475,7 @@
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) refreshWhenActive();
     }, { passive: true });
+    window.setInterval(refreshWhenActive, 5000);
   }
 
   async function init() {

@@ -254,6 +254,22 @@
   color: var(--blue-deep);
 }
 
+.sona-admin button,
+.sona-admin-soft,
+.sona-admin-actions button {
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease, opacity .16s ease;
+}
+
+.sona-admin button:active,
+.sona-admin button.is-pressing {
+  transform: translateY(1px) scale(.98);
+}
+
+.sona-admin button:disabled {
+  cursor: progress;
+  opacity: .68;
+}
+
 .sona-admin-actions button.is-danger {
   border-color: #ffd0d0;
   background: #fff7f7;
@@ -673,6 +689,7 @@ button.sona-admin-stat {
 }
 
 .sona-admin-dialogs button {
+  position: relative;
   display: grid;
   gap: 4px;
   padding: 10px;
@@ -680,6 +697,29 @@ button.sona-admin-stat {
   border-radius: 12px;
   background: transparent;
   text-align: left;
+}
+
+.sona-admin-dialogs button small {
+  color: var(--muted);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.sona-admin-dialogs button em {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 22px;
+  text-align: center;
 }
 
 .sona-admin-dialogs button.is-active {
@@ -696,6 +736,26 @@ button.sona-admin-stat {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
   min-width: 0;
+}
+
+.sona-admin-chat.is-list-mode {
+  grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+}
+
+.sona-admin-chat-empty,
+.sona-admin-support-contact {
+  margin: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f8fbff;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.sona-admin-support-contact {
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
 }
 
 .sona-admin-chat-history {

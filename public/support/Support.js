@@ -3,7 +3,7 @@
 
   const HIDDEN_KEY = "sona.support.hidden";
   const MAX_ATTACHMENTS = 3;
-  const MAX_ATTACHMENT_SIZE = 6 * 1024 * 1024;
+  const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
   const MAX_SUPPORT_STORAGE = 30 * 1024 * 1024;
   const ACCEPTED_EXTENSIONS = new Set([
     "png", "jpg", "jpeg", "webp", "gif", "pdf", "txt", "csv", "json",
@@ -75,17 +75,22 @@
     return `${role}:${String(profile.email || profile.phone || profile.sessionId || "local").trim().toLowerCase()}`;
   }
 
+  function userAccountKey(data) {
+    const profile = data?.profile || {};
+    return `user:${String(profile.email || profile.phone || profile.sessionId || "local").trim().toLowerCase()}`;
+  }
+
   function threadIdFor(message) {
     return message?.accountKey || `legacy:${message?.phone || message?.email || message?.author || "support"}`;
   }
 
   function userThreadId(data) {
-    return `THREAD-${accountKey(data)}`;
+    return `THREAD-${userAccountKey(data)}`;
   }
 
-  function visibleThreads(data) {
-    const admin = isAdmin(data);
-    const key = accountKey(data);
+  function visibleThreads(data, options = {}) {
+    const admin = options.admin ?? isAdmin(data);
+    const key = options.userMode ? userAccountKey(data) : accountKey(data);
     const profile = data.profile || {};
     const map = new Map();
 
@@ -168,7 +173,7 @@
       else if (!isAcceptedAttachment(item)) reason = "Формат файла не поддерживается";
       else if (!item?.dataUrl && !options.allowUnread) reason = "Файл не удалось прочитать";
       else if (item?.dataUrl && safeAttachmentHref(item) === "#") reason = "Содержимое файла не соответствует его формату";
-      else if (size > MAX_ATTACHMENT_SIZE) reason = "Файл больше 6 МБ";
+      else if (size > MAX_ATTACHMENT_SIZE) reason = "Файл больше 10 МБ";
       else if (used + String(item?.dataUrl || "").length > storageLeft) reason = "В хранилище чата недостаточно места";
 
       if (reason) {
@@ -224,24 +229,23 @@
     if (!clean && !cleanAttachments.length) return false;
 
     window.SonaStore.update((data) => {
-      const admin = isAdmin(data);
-      const ownAccountKey = accountKey(data);
-      const threadId = admin ? target.threadId : userThreadId(data);
+      const ownAccountKey = userAccountKey(data);
+      const threadId = target.threadId || userThreadId(data);
       data.supportMessages = [
         ...(data.supportMessages || []),
         {
-          id: `${admin ? "ADM" : "SUP"}-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
+          id: `SUP-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`,
           threadId,
-          accountKey: admin ? (target.accountKey || ownAccountKey) : ownAccountKey,
-          role: admin ? "admin" : "user",
-          author: admin ? adminAuthor(data) : authorName(data.profile),
+          accountKey: target.accountKey || ownAccountKey,
+          role: "user",
+          author: authorName(data.profile),
           phone: data.profile?.phone || "",
           email: data.profile?.email || "",
           text: clean,
           attachments: cleanAttachments,
           source,
           createdAt: Date.now(),
-          status: admin ? "sent" : "new"
+          status: "new"
         }
       ];
     });
@@ -332,8 +336,8 @@
     const wasHidden = localStorage.getItem(HIDDEN_KEY) === "true";
     const data = window.SonaStore.read();
     const canUseChat = isProfileActive(data);
-    const admin = isAdmin(data);
-    const threads = visibleThreads(data);
+    const admin = false;
+    const threads = visibleThreads(data, { admin: false, userMode: true });
     const activeThread = threads[0];
     const activeThreadId = activeThread?.last?.threadId || userThreadId(data);
     const root = el("div", "sona-support-widget");
@@ -348,7 +352,7 @@
     const input = el("textarea");
     const fileInput = document.createElement("input");
     const attach = el("button", `sona-support-attach${canUseChat ? "" : " is-login-required"}`);
-    const notice = el("p", "sona-support-form-note", canUseChat ? "До 3 файлов, каждый до 6 МБ." : "Войдите в аккаунт, чтобы писать в поддержку.");
+    const notice = el("p", "sona-support-form-note", canUseChat ? "До 3 файлов, каждый до 10 МБ." : "Войдите в аккаунт, чтобы писать в поддержку.");
     const send = el("button", "sona-support-send", canUseChat ? "Отправить" : "Войти");
 
     const openProfile = () => document.getElementById("profileButton")?.click();
@@ -455,6 +459,11 @@
 
     send.type = "submit";
     form.append(input, fileInput, attach, send, notice);
+    input.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return;
+      event.preventDefault();
+      form.requestSubmit();
+    });
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (!canUseChat) {
@@ -465,7 +474,7 @@
       const prepared = await prepareAttachments(fileInput.files);
       if (!addMessage(input.value, "widget", prepared.attachments, {
         threadId: activeThreadId,
-        accountKey: activeThread?.accountKey || accountKey(data)
+        accountKey: activeThread?.accountKey || userAccountKey(data)
       })) {
         notice.textContent = prepared.rejected.map((item) => `${item.name}: ${item.reason}`).join(". ") || "Введите сообщение или прикрепите допустимый файл.";
         input.focus();
@@ -480,7 +489,7 @@
         : "Сообщение отправлено.";
       const currentList = panel.querySelector(".sona-support-messages");
       const nextData = window.SonaStore.read();
-      const nextThread = visibleThreads(nextData)[0];
+      const nextThread = visibleThreads(nextData, { admin: false, userMode: true })[0];
       const nextList = renderMessages(nextThread?.messages || []);
       currentList?.replaceWith(nextList);
       root.classList.add("is-open");
@@ -490,6 +499,8 @@
       panel.setAttribute("aria-hidden", "false");
       launcher.setAttribute("aria-expanded", "true");
       nextList.scrollTop = nextList.scrollHeight;
+      await window.SonaStore.flushSync?.().catch(() => null);
+      await window.SonaStore.refresh?.().catch(() => null);
       options.onChange?.();
     });
 
