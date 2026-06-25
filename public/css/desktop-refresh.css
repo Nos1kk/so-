@@ -918,3 +918,575 @@
     box-shadow: 0 18px 34px rgba(20, 35, 58, 0.1);
   }
 }
+
+/* Desktop precision pass: compact home, stable catalog/search, no mobile impact. */
+@media (min-width: 761px) {
+  html,
+  body {
+    overflow-x: clip !important;
+    scroll-behavior: smooth;
+  }
+
+  .site-header {
+    z-index: 260;
+    transition: box-shadow .16s ease, background-color .16s ease;
+  }
+
+  .quick-nav {
+    max-height: 104px;
+    min-height: 96px !important;
+    padding: 8px 0 10px !important;
+    border: 0 !important;
+    transition: max-height .18s ease, opacity .16s ease, padding .18s ease, transform .18s ease;
+  }
+
+  body.is-scrolled-down .quick-nav {
+    max-height: 0;
+    min-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0;
+    overflow: hidden !important;
+    pointer-events: none;
+    transform: translateY(-8px);
+  }
+
+  .quick-nav .quick-link,
+  .quick-nav .quick-link.is-sale {
+    min-height: 82px !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .quick-nav .quick-link:hover,
+  .quick-nav .quick-link.is-active {
+    background: rgba(255, 255, 255, .72) !important;
+    box-shadow: inset 0 0 0 1px rgba(202, 219, 234, .7) !important;
+    transform: translateY(-1px);
+  }
+
+  .quick-nav .quick-icon {
+    width: 92px !important;
+    height: 62px !important;
+    flex-basis: 62px !important;
+  }
+
+  .marketplace {
+    width: 100%;
+    max-width: none;
+    gap: 20px;
+    padding-top: 14px;
+  }
+
+  .hero-banner,
+  .hero-carousel {
+    width: calc(100vw - 32px) !important;
+    max-width: none !important;
+    min-height: 430px !important;
+    height: min(34vw, 560px) !important;
+    margin-left: calc(50% - 50vw + 16px);
+    border-radius: 28px;
+  }
+
+  .catalog-hub,
+  .promo-showcase,
+  .hits-showcase {
+    padding: 18px !important;
+    border-color: rgba(197, 216, 232, .62) !important;
+    box-shadow: 0 14px 34px rgba(20, 35, 58, .08) !important;
+  }
+
+  .catalog-hub {
+    gap: 14px;
+  }
+
+  .catalog-hub-head {
+    margin-bottom: 0;
+  }
+
+  .catalog-hub-head h2 {
+    max-width: 760px;
+    font-size: clamp(2rem, 2.2vw, 2.7rem);
+    line-height: .98;
+  }
+
+  .catalog-hub-head span {
+    max-width: 780px;
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  .catalog-hub-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.05fr) minmax(0, .9fr) minmax(0, .9fr) !important;
+    grid-template-rows: repeat(2, minmax(154px, 1fr)) !important;
+    gap: 12px !important;
+    min-height: 0;
+  }
+
+  .catalog-hub-card {
+    border: 0 !important;
+    box-shadow: none !important;
+    background: rgba(246, 251, 255, .76) !important;
+    transform: none !important;
+  }
+
+  .catalog-hub-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: inset 0 0 0 1px rgba(190, 212, 232, .72), 0 12px 28px rgba(20, 35, 58, .08) !important;
+  }
+
+  .catalog-hub-card--hero {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    min-height: 320px !important;
+    display: grid !important;
+    grid-template-columns: 1fr;
+    align-content: end;
+    padding: 20px 22px !important;
+  }
+
+  .catalog-hub-card--sale {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    min-height: 320px !important;
+  }
+
+  .catalog-hub-card--bed {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .catalog-hub-card--chair {
+    grid-column: 4;
+    grid-row: 1;
+  }
+
+  .catalog-hub-card--service {
+    grid-column: 3 / span 2;
+    grid-row: 2;
+    min-height: 154px !important;
+    padding: 16px 18px !important;
+  }
+
+  .catalog-hub-card--hero .catalog-hub-photo {
+    position: absolute;
+    inset: auto 8% 18px 26%;
+    width: 62%;
+    height: 52%;
+    min-height: 180px;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .catalog-hub-card--hero .catalog-hub-photo img {
+    width: 100%;
+    height: 100%;
+    padding: 0 !important;
+    object-fit: contain;
+    transform: none !important;
+  }
+
+  .catalog-hub-card--hero strong {
+    position: relative;
+    z-index: 2;
+    max-width: 100%;
+    font-size: clamp(4.2rem, 5.8vw, 7rem) !important;
+    line-height: .78;
+  }
+
+  .catalog-hub-card--hero small {
+    position: relative;
+    z-index: 2;
+    max-width: 420px;
+    margin-left: auto;
+    font-size: clamp(1rem, 1.25vw, 1.28rem) !important;
+    line-height: 1.28;
+  }
+
+  .catalog-hub-card--hero .catalog-hub-card__label {
+    position: absolute;
+    top: 18px;
+    left: 22px;
+    z-index: 2;
+    min-height: 38px;
+    padding-inline: 22px;
+  }
+
+  .catalog-hub-card--hero b {
+    width: 72px;
+    height: 72px;
+    margin-top: 18px;
+    font-size: 0;
+  }
+
+  .catalog-hub-card--hero b span {
+    font-size: 1.9rem;
+  }
+
+  .catalog-hub-card--product-tile {
+    min-height: 154px !important;
+    padding: 12px 14px !important;
+    align-content: end;
+  }
+
+  .catalog-hub-card--product-tile .catalog-hub-photo {
+    height: 94px !important;
+    min-height: 94px !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .catalog-hub-card--product-tile .catalog-hub-photo img {
+    width: 100%;
+    height: 100%;
+    padding: 0 !important;
+    object-fit: contain;
+  }
+
+  .catalog-hub-card--product-tile strong {
+    font-size: clamp(2.3rem, 3.2vw, 4.6rem) !important;
+    line-height: .88 !important;
+  }
+
+  .catalog-hub-card--product-tile::after {
+    right: 16px !important;
+    bottom: 16px !important;
+    width: 54px !important;
+    height: 54px !important;
+    font-size: 1.4rem !important;
+    border: 0 !important;
+    background: rgba(255, 255, 255, .72) !important;
+  }
+
+  .catalog-hub-card--service .catalog-service-banner {
+    display: none !important;
+  }
+
+  .catalog-hub-card--service {
+    grid-template-columns: 1fr minmax(160px, .7fr) !important;
+    align-items: center;
+  }
+
+  .catalog-hub-card--service .catalog-hub-photo {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    height: 130px !important;
+    min-height: 130px !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .catalog-hub-card--service .catalog-hub-card__label,
+  .catalog-hub-card--service strong,
+  .catalog-hub-card--service small {
+    font-size: 0 !important;
+  }
+
+  .catalog-hub-card--service .catalog-hub-card__label::after {
+    content: "УСЛУГИ";
+    font-size: .82rem;
+    letter-spacing: .16em;
+  }
+
+  .catalog-hub-card--service strong::after {
+    content: "Услуги SONA";
+    font-size: clamp(2rem, 2.6vw, 3.7rem);
+    line-height: .92;
+  }
+
+  .catalog-hub-card--service small::after {
+    content: "Разработка сайтов, боты и мобильные приложения";
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  .promo-showcase {
+    width: calc(100vw - 32px) !important;
+    max-width: none !important;
+    margin-left: calc(50% - 50vw + 16px);
+    grid-template-columns: minmax(260px, 360px) minmax(0, 1fr) !important;
+    align-items: stretch;
+  }
+
+  .promo-editorial-copy {
+    padding: 18px 8px 18px 10px;
+  }
+
+  .promo-editorial-copy h2 {
+    font-size: clamp(2rem, 2.55vw, 3.1rem);
+    line-height: .98;
+  }
+
+  .promo-lookbook {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .lookbook-card {
+    min-height: 460px !important;
+    border-radius: 18px !important;
+    box-shadow: none !important;
+  }
+
+  .lookbook-media {
+    min-height: 176px !important;
+    height: 176px !important;
+  }
+
+  .lookbook-copy {
+    padding: 14px !important;
+    gap: 8px !important;
+  }
+
+  .lookbook-copy h3 {
+    min-height: 2.1em !important;
+    font-size: 1.1rem !important;
+  }
+
+  .lookbook-specs {
+    max-height: 88px;
+    overflow: hidden;
+  }
+
+  .lookbook-actions {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .lookbook-link,
+  .lookbook-cart,
+  .primary-button,
+  .product-cart-button {
+    min-height: 42px !important;
+    border-radius: 999px !important;
+    transform: none !important;
+    transition: transform .08s ease, background-color .12s ease, box-shadow .12s ease !important;
+  }
+
+  .lookbook-cart,
+  .product-cart-button,
+  .primary-button.product-cart-button {
+    background: #122843 !important;
+    color: #fff !important;
+    box-shadow: 0 9px 18px rgba(18, 40, 67, .16) !important;
+  }
+
+  .product-cart-button .product-cart-icon {
+    display: none !important;
+  }
+
+  .tag.discount-tag {
+    border: 0 !important;
+    background: #ffe16a !important;
+    color: #07142a !important;
+    box-shadow: none !important;
+  }
+
+  .hits-showcase {
+    gap: 12px;
+  }
+
+  .hits-showcase-head {
+    margin-bottom: 0 !important;
+  }
+
+  .home-picks-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+  }
+
+  .home-picks-group {
+    padding: 14px !important;
+  }
+
+  .home-picks-group .home-product-grid {
+    gap: 12px !important;
+  }
+
+  .home-picks-group .product-card,
+  .home-product-grid .product-card {
+    min-height: 420px !important;
+    grid-template-rows: 196px minmax(0, 1fr) !important;
+    border-radius: 18px !important;
+    box-shadow: none !important;
+  }
+
+  .home-picks-group .product-media,
+  .home-picks-group .product-placeholder {
+    min-height: 196px !important;
+    height: 196px !important;
+  }
+
+  .home-picks-group .product-placeholder.has-image img {
+    padding: 8px 10px !important;
+  }
+
+  .home-picks-group .product-body {
+    padding: 12px 14px 14px !important;
+    gap: 7px !important;
+    grid-template-rows: auto auto auto 1fr !important;
+  }
+
+  .home-picks-group .product-title-row h3,
+  .home-picks-group .product-card h3 {
+    min-height: 2.2em !important;
+    font-size: 1rem !important;
+  }
+
+  .home-picks-group .product-category-copy,
+  .home-picks-group .product-meta,
+  .home-picks-group .swatches,
+  .home-picks-group .service-note,
+  .home-picks-group .delivery-note {
+    display: none !important;
+  }
+
+  .home-picks-group .product-footer {
+    align-self: end;
+  }
+
+  .home-picks-group .favorite-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .search {
+    z-index: 320 !important;
+    border: 2px solid rgba(125, 184, 230, .72) !important;
+    background: rgba(255, 255, 255, .98) !important;
+    box-shadow: 0 8px 22px rgba(20, 35, 58, .08), inset 0 0 0 4px rgba(232, 244, 255, .9) !important;
+  }
+
+  .search input {
+    color: #07142a !important;
+    caret-color: #0b4d91 !important;
+    opacity: 1 !important;
+  }
+
+  .search input::placeholder {
+    color: rgba(60, 78, 102, .72) !important;
+  }
+
+  .search-icon {
+    flex: 0 0 50px !important;
+    width: 50px !important;
+    height: 50px !important;
+  }
+
+  .search-results {
+    z-index: 340 !important;
+    top: calc(100% + 10px) !important;
+    max-height: min(370px, calc(100vh - 164px)) !important;
+    background: rgba(255, 255, 255, .98) !important;
+    box-shadow: 0 22px 54px rgba(10, 22, 38, .2) !important;
+  }
+
+  .filter-drawer {
+    z-index: 300 !important;
+  }
+
+  .filter-panel {
+    width: min(1120px, calc(100vw - 40px)) !important;
+    inset: 86px auto auto 20px !important;
+    max-height: calc(100vh - 104px) !important;
+    border-radius: 26px !important;
+    overflow: auto !important;
+    box-shadow: 0 24px 70px rgba(10, 22, 38, .24) !important;
+  }
+
+  .filter-panel .drawer-head {
+    padding: 12px 16px !important;
+  }
+
+  .catalog-menu {
+    min-height: 0 !important;
+  }
+
+  .catalog-content {
+    padding: 16px !important;
+  }
+
+  .catalog-switcher {
+    margin-bottom: 12px !important;
+    padding: 6px !important;
+  }
+
+  .catalog-title-row h3 {
+    font-size: 1.5rem !important;
+  }
+
+  .catalog-view.is-active {
+    gap: 12px !important;
+  }
+
+  .sofa-collection-grid,
+  .catalog-collection-grid,
+  .service-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .sofa-collection-card,
+  .catalog-collection-card,
+  .service-card {
+    min-height: 176px !important;
+    padding: 10px !important;
+    gap: 6px !important;
+    border: 0 !important;
+    border-radius: 18px !important;
+    box-shadow: inset 0 0 0 1px rgba(199, 219, 236, .65) !important;
+  }
+
+  .sofa-collection-photo,
+  .catalog-collection-photo {
+    aspect-ratio: 16 / 8.4 !important;
+    border: 0 !important;
+    border-radius: 14px !important;
+  }
+
+  .sofa-collection-card strong {
+    font-size: 1.04rem !important;
+  }
+
+  .sofa-collection-card b,
+  .sofa-collection-card small,
+  .service-card p {
+    font-size: .86rem !important;
+    line-height: 1.25 !important;
+  }
+
+  :is(.product-card, .catalog-hub-card, .lookbook-card, .sofa-collection-card, .service-card):hover,
+  :is(.product-card, .catalog-hub-card, .lookbook-card, .sofa-collection-card, .service-card):hover :is(img, .product-placeholder, .catalog-hub-photo) {
+    --tilt-x: 0deg !important;
+    --tilt-y: 0deg !important;
+    --pointer-x: 0px !important;
+    --pointer-y: 0px !important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1320px) {
+  .promo-showcase {
+    grid-template-columns: 1fr !important;
+  }
+
+  .promo-lookbook {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .catalog-hub-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: auto !important;
+  }
+
+  .catalog-hub-card--hero,
+  .catalog-hub-card--sale,
+  .catalog-hub-card--bed,
+  .catalog-hub-card--chair,
+  .catalog-hub-card--service {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+}

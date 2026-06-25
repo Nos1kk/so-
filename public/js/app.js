@@ -1649,6 +1649,7 @@
 
       header.classList.toggle("is-elevated", elevated);
       header.classList.toggle("is-compact", compact && !isMobile);
+      document.body.classList.toggle("is-scrolled-down", compact && !isMobile);
     };
 
     const request = () => {
@@ -1678,15 +1679,30 @@
   function observeAnimatedElements() {
     if (reduceMotion) return;
 
+    if (mobileViewport.matches) {
+      const mobileTargets = document.querySelectorAll(
+        ".hero-banner, .catalog-hub, .catalog-hub-card, .category-rail, .deal-strip, .home-section, .home-category-card, .catalog-toolbar, .listing-filter-bar, .product-card, .service-card"
+      );
+
+      mobileTargets.forEach((target, index) => {
+        if (target.dataset.revealReady) return;
+        target.dataset.revealReady = "true";
+        target.classList.add("reveal");
+        target.style.transitionDelay = `${Math.min(index % 8, 6) * 35}ms`;
+        revealObserver?.observe(target);
+      });
+      return;
+    }
+
     const targets = document.querySelectorAll(
-      ".hero-banner, .catalog-hub, .catalog-hub-card, .category-rail, .deal-strip, .home-section, .home-category-card, .catalog-toolbar, .listing-filter-bar, .product-card, .service-card"
+      ".hero-banner, .catalog-hub, .category-rail, .deal-strip, .home-section, .home-category-card, .catalog-toolbar, .listing-filter-bar"
     );
 
-    targets.forEach((target, index) => {
+    targets.forEach((target) => {
       if (target.dataset.revealReady) return;
       target.dataset.revealReady = "true";
       target.classList.add("reveal");
-      target.style.transitionDelay = `${Math.min(index % 8, 6) * 35}ms`;
+      target.style.transitionDelay = "0ms";
       revealObserver?.observe(target);
     });
   }
@@ -1707,6 +1723,7 @@
 
   function bindCardTilt() {
     if (reduceMotion || mobileViewport.matches || window.matchMedia("(pointer: coarse)").matches) return;
+    return;
 
     const selector = [
       ".product-card",
@@ -1771,6 +1788,7 @@
 
   function bindHeroPointer() {
     if (reduceMotion || mobileViewport.matches || window.matchMedia("(pointer: coarse)").matches) return;
+    return;
 
     const hero = document.querySelector(".hero-banner");
     if (!hero) return;
@@ -1799,6 +1817,7 @@
 
   function bindParallax() {
     if (reduceMotion || mobileViewport.matches || window.matchMedia("(pointer: coarse)").matches) return;
+    return;
 
     let scheduled = false;
     const update = () => {
@@ -4281,10 +4300,17 @@
       renderProducts();
     });
 
+    let searchRenderTimer = 0;
     els.searchInput.addEventListener("input", () => {
       state.filters.query = security.sanitizeText(els.searchInput.value, 80);
-      renderProducts();
       renderSearchResults();
+      if (mobileViewport.matches) {
+        window.clearTimeout(searchRenderTimer);
+        renderProducts();
+        return;
+      }
+      window.clearTimeout(searchRenderTimer);
+      searchRenderTimer = window.setTimeout(renderProducts, 120);
     });
     els.searchInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
