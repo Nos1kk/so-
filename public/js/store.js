@@ -60,6 +60,11 @@
   let cache = null;
   let syncTimer = 0;
   let syncPromise = Promise.resolve();
+  let syncInFlight = false;
+  let syncPending = false;
+  let syncVersion = 0;
+  let syncedVersion = 0;
+  let lastSyncError = null;
 
   function normalize(parsed) {
     return {
@@ -119,8 +124,16 @@
 
   function syncNow() {
     if (!cache) return Promise.resolve(cache);
+    if (syncInFlight) {
+      syncPending = true;
+      return syncPromise;
+    }
+
     const snapshot = clone(cache);
-    syncPromise = syncPromise.catch(() => null).then(async () => {
+    const version = syncVersion;
+    syncInFlight = true;
+    syncPending = false;
+    syncPromise = (async () => {
       const response = await fetch(apiUrl(), {
         method: "PUT",
         credentials: "include",
@@ -128,16 +141,39 @@
         body: JSON.stringify({ state: snapshot })
       });
       if (!response.ok) throw new Error("Store sync failed");
+      syncedVersion = Math.max(syncedVersion, version);
+      lastSyncError = null;
       return cache;
-    });
+    })()
+      .catch((error) => {
+        lastSyncError = error;
+        throw error;
+      })
+      .finally(() => {
+        syncInFlight = false;
+        if (syncPending || syncedVersion < syncVersion) {
+          syncNow().catch(() => {
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
+            } catch (error) {
+              // The in-memory cache still keeps the current session responsive.
+            }
+          });
+        }
+      });
     return syncPromise;
   }
 
   async function flushSync() {
     window.clearTimeout(syncTimer);
     syncTimer = 0;
-    await syncPromise.catch(() => null);
-    return syncNow();
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      const targetVersion = syncVersion;
+      await syncNow().catch(() => null);
+      if (syncedVersion >= targetVersion) return read();
+    }
+    if (lastSyncError) throw lastSyncError;
+    return read();
   }
 
   async function refresh() {
@@ -167,6 +203,7 @@
 
   function write(state) {
     cache = normalize(state || {});
+    syncVersion += 1;
     scheduleSync();
   }
 

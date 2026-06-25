@@ -3909,7 +3909,6 @@
       };
     });
     window.SonaProfile?.syncLocalAuth?.(nextData.profile);
-    await store.syncNow();
     if (state.route === "profile") {
       renderProfilePage();
     } else {
@@ -3920,6 +3919,7 @@
       window.requestAnimationFrame(() => window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" }));
     }
     showToast("Изменения профиля сохранены");
+    store.flushSync?.().catch(() => null);
   }
 
   function playNotificationSound() {

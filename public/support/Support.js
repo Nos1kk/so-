@@ -499,8 +499,9 @@
       panel.setAttribute("aria-hidden", "false");
       launcher.setAttribute("aria-expanded", "true");
       nextList.scrollTop = nextList.scrollHeight;
-      await window.SonaStore.flushSync?.().catch(() => null);
-      await window.SonaStore.refresh?.().catch(() => null);
+      window.SonaStore.flushSync?.()
+        .then(() => window.SonaStore.refresh?.())
+        .catch(() => null);
       options.onChange?.();
     });
 

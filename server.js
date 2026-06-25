@@ -33,6 +33,7 @@ const lastCodeHashes = new Map();
 const authSessions = new Map();
 const authActionTokens = new Map();
 const telegramLinkTokens = new Map();
+let storeCache = null;
 const CODE_TTL_MS = 10 * 60 * 1000;
 const BLOCK_TTL_MS = 24 * 60 * 60 * 1000;
 const SESSION_IDLE_TTL_MS = 5 * 24 * 60 * 60 * 1000;
@@ -1203,6 +1204,15 @@ function blockInfo(req, email) {
 }
 
 function readStore(callback) {
+  if (storeCache) {
+    try {
+      callback(null, JSON.parse(JSON.stringify(storeCache)));
+    } catch (error) {
+      callback(error);
+    }
+    return;
+  }
+
   fs.readFile(STORE_FILE, "utf8", (error, content) => {
     if (error) {
       if (error.code === "ENOENT") {
@@ -1222,7 +1232,8 @@ function readStore(callback) {
     }
 
     try {
-      callback(null, JSON.parse(content));
+      storeCache = JSON.parse(content);
+      callback(null, JSON.parse(JSON.stringify(storeCache)));
     } catch (parseError) {
       callback(parseError);
     }
@@ -1299,11 +1310,12 @@ function writeStore(state, callback) {
         callback(writeError);
         return;
       }
+      storeCache = state;
+      callback(null);
       writeLatestStoreBackup(state, (backupError) => {
         if (backupError) {
           console.warn("Unable to write latest store backup:", backupError.message);
         }
-        callback(null);
       });
     });
   });
@@ -1311,7 +1323,7 @@ function writeStore(state, callback) {
 
 function writeJsonAtomic(filePath, payload, callback) {
   const tempPath = `${filePath}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`;
-  fs.writeFile(tempPath, JSON.stringify(payload, null, 2), { encoding: "utf8", mode: 0o600 }, (writeError) => {
+  fs.writeFile(tempPath, JSON.stringify(payload), { encoding: "utf8", mode: 0o600 }, (writeError) => {
     if (writeError) {
       callback(writeError);
       return;
@@ -2206,12 +2218,12 @@ function handleOrderCreate(req, res) {
           sendJson(res, 500, { ok: false, error: "Order write failed" });
           return;
         }
+        sendJson(res, 201, { ok: true, order, notified: true });
         sendSmtpMail({
           to: ADMIN_EMAIL,
           subject: `Новая заявка ${order.id}`,
           text: ["Поступила новая заявка. Позвоните клиенту для уточнения и подтвердите заказ в админ-панели.", "", ...orderEmailLines(order)].join("\n")
-        }).then(() => sendJson(res, 201, { ok: true, order, notified: true }))
-          .catch(() => sendJson(res, 201, { ok: true, order, notified: false }));
+        }).catch((error) => console.warn("Unable to send order notification:", error.message));
       });
     });
   }, { maxBytes: 100000 });
@@ -2254,12 +2266,12 @@ function handleOrderUpdate(req, res, orderId) {
           return;
         }
         if (status === "arrived" && previous.status !== "arrived" && isValidEmail(updated.profile?.email)) {
+          sendJson(res, 200, { ok: true, order: updated, notified: true });
           sendSmtpMail({
             to: updated.profile.email,
             subject: `Ваш заказ ${updated.id} прибыл`,
             text: [`Ваш заказ ${updated.id} прибыл.`, "Пожалуйста, подтвердите получение в личном кабинете после фактической передачи заказа.", "", ...orderEmailLines(updated)].join("\n")
-          }).then(() => sendJson(res, 200, { ok: true, order: updated, notified: true }))
-            .catch(() => sendJson(res, 200, { ok: true, order: updated, notified: false }));
+          }).catch((error) => console.warn("Unable to send arrival notification:", error.message));
           return;
         }
         sendJson(res, 200, { ok: true, order: updated });
