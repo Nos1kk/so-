@@ -453,6 +453,10 @@ button.sona-admin-stat {
   color: #b42318;
 }
 
+.sona-admin-order-payment strong.is-clear {
+  color: #08784f;
+}
+
 .sona-admin-order-save {
   min-height: 44px;
   padding: 0 20px;
@@ -734,7 +738,7 @@ button.sona-admin-stat {
 
 .sona-admin-chat-main {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) auto auto auto;
   min-width: 0;
 }
 
@@ -756,6 +760,35 @@ button.sona-admin-stat {
 .sona-admin-support-contact {
   margin: 0 0 8px;
   overflow-wrap: anywhere;
+}
+
+.sona-admin-support-contact b {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sona-admin-support-contact b.is-new {
+  background: #fff4d6;
+  color: #9a5b00;
+}
+
+.sona-admin-support-contact b.is-read,
+.sona-admin-support-contact b.is-closed {
+  background: #dff8f5;
+  color: #08784f;
+}
+
+.sona-admin-thread-actions {
+  padding: 0 14px 14px;
+}
+
+.sona-admin-thread-actions[hidden] {
+  display: none;
 }
 
 .sona-admin-chat-history {

@@ -34,6 +34,11 @@ const authSessions = new Map();
 const authActionTokens = new Map();
 const telegramLinkTokens = new Map();
 let storeCache = null;
+let accountsCache = null;
+let storeBackupTimer = null;
+let pendingStoreBackup = null;
+let accountsBackupTimer = null;
+let pendingAccountsBackup = null;
 const CODE_TTL_MS = 10 * 60 * 1000;
 const BLOCK_TTL_MS = 24 * 60 * 60 * 1000;
 const SESSION_IDLE_TTL_MS = 5 * 24 * 60 * 60 * 1000;
@@ -943,7 +948,32 @@ function writeLatestAccountsBackup(state, callback = () => {}) {
   });
 }
 
+function scheduleAccountsBackup(state) {
+  pendingAccountsBackup = cleanAccountsSnapshot(state);
+  if (accountsBackupTimer) clearTimeout(accountsBackupTimer);
+  accountsBackupTimer = setTimeout(() => {
+    const snapshot = pendingAccountsBackup;
+    pendingAccountsBackup = null;
+    accountsBackupTimer = null;
+    writeLatestAccountsBackup(snapshot, (backupError) => {
+      if (backupError) {
+        console.warn("Unable to write latest accounts backup:", backupError.message);
+      }
+    });
+  }, 900);
+  accountsBackupTimer.unref?.();
+}
+
 function readAccounts(callback) {
+  if (accountsCache) {
+    try {
+      callback(null, JSON.parse(JSON.stringify(accountsCache)));
+    } catch (error) {
+      callback(error);
+    }
+    return;
+  }
+
   fs.readFile(ACCOUNTS_FILE, "utf8", (error, content) => {
     if (error) {
       if (error.code === "ENOENT") {
@@ -964,7 +994,8 @@ function readAccounts(callback) {
 
     try {
       const parsed = JSON.parse(content);
-      callback(null, { accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [] });
+      accountsCache = { accounts: Array.isArray(parsed.accounts) ? parsed.accounts : [] };
+      callback(null, JSON.parse(JSON.stringify(accountsCache)));
     } catch (parseError) {
       callback(parseError);
     }
@@ -987,12 +1018,9 @@ function writeAccounts(state, callback) {
         callback(writeError);
         return;
       }
-      writeLatestAccountsBackup(payload, (backupError) => {
-        if (backupError) {
-          console.warn("Unable to write latest accounts backup:", backupError.message);
-        }
-        callback(null);
-      });
+      accountsCache = payload;
+      callback(null);
+      scheduleAccountsBackup(payload);
     });
   });
 }
@@ -1298,6 +1326,22 @@ function writeLatestStoreBackup(state, callback = () => {}) {
   });
 }
 
+function scheduleStoreBackup(state) {
+  pendingStoreBackup = sanitizeJsonValue(state || {});
+  if (storeBackupTimer) clearTimeout(storeBackupTimer);
+  storeBackupTimer = setTimeout(() => {
+    const snapshot = pendingStoreBackup;
+    pendingStoreBackup = null;
+    storeBackupTimer = null;
+    writeLatestStoreBackup(snapshot, (backupError) => {
+      if (backupError) {
+        console.warn("Unable to write latest store backup:", backupError.message);
+      }
+    });
+  }, 900);
+  storeBackupTimer.unref?.();
+}
+
 function writeStore(state, callback) {
   fs.mkdir(DATA_DIR, { recursive: true }, (mkdirError) => {
     if (mkdirError) {
@@ -1312,11 +1356,7 @@ function writeStore(state, callback) {
       }
       storeCache = state;
       callback(null);
-      writeLatestStoreBackup(state, (backupError) => {
-        if (backupError) {
-          console.warn("Unable to write latest store backup:", backupError.message);
-        }
-      });
+      scheduleStoreBackup(state);
     });
   });
 }
@@ -2280,6 +2320,38 @@ function handleOrderUpdate(req, res, orderId) {
   }, { maxBytes: 20000 });
 }
 
+function handleOrderDelete(req, res, orderId) {
+  const account = requireAuth(req, res);
+  if (!account || account.role !== "admin") {
+    if (account) sendJson(res, 403, { ok: false, error: "Admin access required" });
+    return;
+  }
+  readStore((readError, current) => {
+    if (readError) {
+      sendJson(res, 500, { ok: false, error: "Store unavailable" });
+      return;
+    }
+    const orders = current?.orders || [];
+    const exists = orders.some((order) => order.id === orderId);
+    if (!exists) {
+      sendJson(res, 404, { ok: false, error: "Order not found" });
+      return;
+    }
+    const next = {
+      ...(current || {}),
+      orders: orders.filter((order) => order.id !== orderId),
+      reviews: (current?.reviews || []).filter((review) => review.orderId !== orderId)
+    };
+    writeStore(next, (writeError) => {
+      if (writeError) {
+        sendJson(res, 500, { ok: false, error: "Order delete failed" });
+        return;
+      }
+      sendJson(res, 200, { ok: true, orderId });
+    });
+  });
+}
+
 function handleOrderReceive(req, res, orderId) {
   const account = requireAuth(req, res);
   if (!account) return;
@@ -2680,6 +2752,11 @@ function createServer() {
   }
 
   const orderUpdateMatch = String(req.url || "").match(/^\/api\/orders\/([^/?]+)$/);
+  if (req.method === "DELETE" && orderUpdateMatch) {
+    handleOrderDelete(req, res, orderUpdateMatch[1]);
+    return;
+  }
+
   if (req.method === "PATCH" && orderUpdateMatch) {
     handleOrderUpdate(req, res, orderUpdateMatch[1]);
     return;

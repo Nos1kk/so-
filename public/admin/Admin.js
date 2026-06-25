@@ -13,6 +13,7 @@ let reviewQuery = "";
 let reviewStatusFilter = "all";
 let adminSearchTimer = 0;
   let supportDialog = "";
+  let supportActionsOpen = false;
   let editingProductId = "";
   let editingAdId = "";
   let preserveNextRender = false;
@@ -505,6 +506,7 @@ let adminSearchTimer = 0;
       const status = select(Object.entries(window.SonaOrders?.STATUS || {}), normalizedOrder.status || "pending", () => markDirty());
       const total = Math.max(0, Number(order.total) || 0);
       const paid = Math.max(0, Math.min(total, Number(order.paidAmount) || 0));
+      const initialDebt = Math.max(0, total - paid);
       const payment = el("label", "sona-admin-order-payment");
       const paidInput = el("input", "");
       paidInput.type = "number";
@@ -513,7 +515,7 @@ let adminSearchTimer = 0;
       paidInput.step = "1";
       paidInput.value = String(paid);
       paidInput.setAttribute("aria-label", "Оплаченная сумма");
-      const debt = el("strong", "", `Долг: ${money(Math.max(0, total - paid))}`);
+      const debt = el("strong", initialDebt <= 0 ? "is-clear" : "", `Долг: ${money(initialDebt)}`);
       const save = el("button", "sona-admin-order-save", "Сохранить");
       save.type = "button";
       save.disabled = true;
@@ -521,7 +523,9 @@ let adminSearchTimer = 0;
         dirty = true;
         save.disabled = false;
         const nextPaid = Math.max(0, Math.min(total, Number(paidInput.value) || 0));
-        debt.textContent = `Долг: ${money(total - nextPaid)}`;
+        const nextDebt = Math.max(0, total - nextPaid);
+        debt.textContent = `Долг: ${money(nextDebt)}`;
+        debt.classList.toggle("is-clear", nextDebt <= 0);
       }
       paidInput.addEventListener("input", markDirty);
       save.addEventListener("click", async () => {
@@ -945,6 +949,15 @@ let adminSearchTimer = 0;
       history.append(item);
     });
     const threadActions = el("div", "sona-admin-actions");
+    const actionPanel = el("div", "sona-admin-thread-actions");
+    actionPanel.hidden = !supportActionsOpen;
+    actionPanel.classList.toggle("is-open", supportActionsOpen);
+    const toggleActions = el("button", "sona-admin-soft", supportActionsOpen ? "Скрыть действия" : "Показать действия");
+    toggleActions.type = "button";
+    toggleActions.addEventListener("click", () => {
+      supportActionsOpen = !supportActionsOpen;
+      context.render();
+    });
     const back = el("button", "sona-admin-soft", "К списку обращений");
     back.type = "button";
     back.addEventListener("click", () => {
@@ -955,25 +968,31 @@ let adminSearchTimer = 0;
     if (activeDialog) {
       const contact = el("p", "sona-admin-support-contact", [activeDialog.title, activeDialog.phone, activeDialog.email].filter(Boolean).join(" · "));
       history.prepend(contact);
+      const closed = activeDialog.messages.every((message) => message.status === "closed");
+      const unread = activeDialog.messages.some((message) => message.role === "user" && message.status !== "read" && message.status !== "closed");
+      contact.append(el("b", closed ? "is-closed" : unread ? "is-new" : "is-read", closed ? "Закрыто" : unread ? "Есть новые" : "Прочитано"));
     }
-    threadActions.append(actionButtons([
+    const updateThreadStatus = async (status) => {
+      const targetThreadId = active;
+      if (!targetThreadId) return false;
+      window.SonaStore.update((data) => {
+        data.supportMessages = (data.supportMessages || []).map((message) => (
+          (window.SonaSupport?.threadIdFor?.(message) || message.threadId) === targetThreadId
+            ? { ...message, status }
+            : message
+        ));
+      });
+      await window.SonaStore.flushSync?.().catch(() => null);
+      await window.SonaStore.refresh?.().catch(() => null);
+      context.render();
+      return true;
+    };
+    actionPanel.append(actionButtons([
       ["Пометить прочитанным", async () => {
-        window.SonaStore.update((data) => {
-          data.supportMessages = (data.supportMessages || []).map((message) => (
-            messages.some((item) => item.id === message.id) ? { ...message, status: "read" } : message
-          ));
-        });
-        await window.SonaStore.flushSync?.().catch(() => null);
-        context.render();
+        await updateThreadStatus("read");
       }],
       ["Закрыть обращение", async () => {
-        window.SonaStore.update((data) => {
-          data.supportMessages = (data.supportMessages || []).map((message) => (
-            messages.some((item) => item.id === message.id) ? { ...message, status: "closed" } : message
-          ));
-        });
-        await window.SonaStore.flushSync?.().catch(() => null);
-        context.render();
+        await updateThreadStatus("closed");
       }]
     ]));
     const form = el("form", "sona-admin-reply");
@@ -1031,8 +1050,8 @@ let adminSearchTimer = 0;
     });
     const right = el("div", "sona-admin-chat-main");
     if (active) {
-      threadActions.prepend(back);
-      right.append(history, threadActions, form);
+      threadActions.append(back, toggleActions);
+      right.append(history, threadActions, actionPanel, form);
     } else {
       right.append(el("div", "sona-admin-chat-empty", "Выберите обращение из списка, чтобы открыть переписку."));
     }

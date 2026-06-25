@@ -682,11 +682,27 @@
     }
   }
 
-  function deleteAdminOrder(orderId) {
-    store.update((data) => {
-      data.orders = (data.orders || []).filter((order) => order.id !== orderId);
-    });
-    render();
+  async function deleteAdminOrder(orderId) {
+    try {
+      const response = await fetch(apiUrl(`/api/orders/${encodeURIComponent(orderId)}`), {
+        method: "DELETE",
+        credentials: "include",
+        headers: { Accept: "application/json" }
+      });
+      if (!response.ok) throw new Error("Order delete failed");
+      (store.updateFromServer || store.update)((data) => {
+        data.orders = (data.orders || []).filter((order) => order.id !== orderId);
+        data.reviews = (data.reviews || []).filter((review) => review.orderId !== orderId);
+      });
+      window.SonaAdmin?.preserveScroll?.();
+      renderAdminPage();
+      renderProfilePage();
+      showToast("Заказ удалён");
+      return true;
+    } catch (error) {
+      showToast("Не удалось удалить заказ");
+      return false;
+    }
   }
 
   function updateAdminReview(reviewId, patch) {
