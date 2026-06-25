@@ -1490,3 +1490,603 @@
     grid-row: auto !important;
   }
 }
+
+/* Premium desktop catalog block v2. Mobile is isolated by the media query. */
+@media (min-width: 761px) {
+  :root {
+    --premium-bg: #f3f7fb;
+    --premium-ink: #071a3d;
+    --premium-blue: #0057d8;
+    --premium-muted: #61718a;
+    --premium-line: rgba(174, 198, 222, .52);
+    --premium-glass: rgba(255, 255, 255, .78);
+    --premium-card: rgba(255, 255, 255, .82);
+    --premium-shadow: 0 22px 60px rgba(20, 44, 74, .1);
+  }
+
+  body {
+    background: linear-gradient(180deg, #f3f7fb 0%, #eef4fa 48%, #f7fafd 100%) !important;
+  }
+
+  .site-header,
+  .header-grid {
+    isolation: isolate;
+  }
+
+  .site-header {
+    z-index: 900 !important;
+  }
+
+  .search {
+    position: relative;
+    z-index: 1200 !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background:
+      linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(135deg, rgba(125, 190, 244, .92), rgba(0, 87, 216, .54)) border-box !important;
+    box-shadow:
+      0 0 0 6px rgba(197, 226, 249, .52),
+      0 18px 46px rgba(7, 26, 61, .14) !important;
+    outline: 0 !important;
+  }
+
+  .search:focus-within {
+    transform: none !important;
+    box-shadow:
+      0 0 0 7px rgba(198, 229, 255, .72),
+      0 24px 64px rgba(7, 26, 61, .2) !important;
+  }
+
+  .search input,
+  .search input:focus {
+    outline: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .search-results {
+    z-index: 1300 !important;
+    top: calc(100% + 14px) !important;
+    border: 1px solid rgba(205, 222, 238, .9) !important;
+    border-radius: 28px !important;
+    background: rgba(255, 255, 255, .985) !important;
+    box-shadow: 0 34px 90px rgba(7, 26, 61, .22) !important;
+  }
+
+  .search-result {
+    position: relative;
+    z-index: 1;
+    background: #fff;
+  }
+
+  .quick-nav,
+  .hero-banner,
+  .catalog-hub,
+  .promo-showcase,
+  .hits-showcase,
+  .all-products-section {
+    position: relative;
+    z-index: 1;
+  }
+
+  .catalog-hub {
+    width: min(1920px, calc(100vw - 28px)) !important;
+    max-width: none !important;
+    min-height: 780px;
+    margin-left: calc(50% - 50vw + 14px);
+    padding: 34px 36px !important;
+    overflow: hidden;
+    border: 1px solid rgba(202, 220, 238, .82) !important;
+    border-radius: 32px !important;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, .9), rgba(238, 246, 253, .84)),
+      rgba(255, 255, 255, .74) !important;
+    box-shadow: var(--premium-shadow) !important;
+    backdrop-filter: blur(22px);
+  }
+
+  .catalog-hub::before {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    z-index: 0;
+    border-radius: 30px;
+    background:
+      radial-gradient(circle at 78% 8%, rgba(0, 87, 216, .06), transparent 30%),
+      linear-gradient(180deg, rgba(255, 255, 255, .62), rgba(255, 255, 255, .18));
+    pointer-events: none;
+  }
+
+  .catalog-hub > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .catalog-hub-head {
+    min-height: 118px;
+    align-items: start !important;
+    gap: 28px;
+  }
+
+  .catalog-hub-head .eyebrow {
+    margin-bottom: 8px;
+    color: var(--premium-blue) !important;
+    font-size: .82rem !important;
+    font-weight: 950;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+  }
+
+  .catalog-hub-head h2 {
+    max-width: 900px;
+    color: var(--premium-ink);
+    font-size: clamp(3rem, 3vw, 3.5rem) !important;
+    line-height: 1.02 !important;
+    letter-spacing: 0 !important;
+  }
+
+  .catalog-hub-head span {
+    max-width: 760px;
+    color: var(--premium-muted);
+    font-size: clamp(1.15rem, 1.2vw, 1.35rem) !important;
+    line-height: 1.45;
+  }
+
+  .catalog-hub-head .soft-button {
+    min-height: 54px;
+    padding: 0 26px;
+    border: 0;
+    background: #fff;
+    color: var(--premium-ink);
+    box-shadow: 0 16px 34px rgba(7, 26, 61, .1);
+  }
+
+  .catalog-hub-head .soft-button::after {
+    content: "→";
+    margin-left: 10px;
+    color: var(--premium-blue);
+  }
+
+  .catalog-hub-grid {
+    height: 548px;
+    display: grid !important;
+    grid-template-columns: minmax(560px, .95fr) minmax(300px, .44fr) minmax(300px, .44fr) !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+  }
+
+  .catalog-hub-card {
+    min-width: 0;
+    min-height: 0 !important;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(209, 225, 240, .75) !important;
+    border-radius: 30px !important;
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, .94), rgba(238, 247, 255, .78)),
+      var(--premium-card) !important;
+    box-shadow: 0 18px 42px rgba(20, 44, 74, .08) !important;
+    color: var(--premium-ink);
+  }
+
+  .catalog-hub-card:hover {
+    transform: translateY(-2px) !important;
+    border-color: rgba(161, 194, 225, .9) !important;
+    box-shadow: 0 24px 56px rgba(20, 44, 74, .12) !important;
+  }
+
+  .catalog-hub-card--hero {
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+    padding: 34px 38px !important;
+    align-content: end !important;
+  }
+
+  .catalog-hub-card--hero .catalog-hub-card__label,
+  .catalog-hub-card__label {
+    width: fit-content;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 20px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .9);
+    color: var(--premium-blue);
+    box-shadow: 0 12px 24px rgba(7, 26, 61, .08);
+    font-size: .78rem !important;
+    font-weight: 950;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+  }
+
+  .catalog-hub-card--hero .catalog-hub-photo {
+    inset: 72px 42px auto 130px !important;
+    width: auto !important;
+    height: 292px !important;
+    min-height: 0 !important;
+    display: grid;
+    place-items: center;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .catalog-hub-card--hero .catalog-hub-photo::before {
+    content: "";
+    position: absolute;
+    inset: 26px 54px 0;
+    border-radius: 36px;
+    background: rgba(255, 255, 255, .74);
+    box-shadow: 0 24px 60px rgba(7, 26, 61, .08);
+  }
+
+  .catalog-hub-card--hero .catalog-hub-photo img {
+    position: relative;
+    z-index: 1;
+    width: 96%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 22px 30px rgba(7, 26, 61, .11));
+  }
+
+  .catalog-hub-card--hero strong {
+    max-width: 460px;
+    margin-top: 0;
+    color: var(--premium-ink);
+    font-size: clamp(3.8rem, 4vw, 5.1rem) !important;
+    line-height: .92 !important;
+    letter-spacing: 0 !important;
+  }
+
+  .catalog-hub-card--hero small {
+    max-width: 480px;
+    margin: 14px 0 0;
+    color: #17335f;
+    font-size: 1.18rem !important;
+    line-height: 1.45;
+  }
+
+  .catalog-hub-card--hero b {
+    width: 66px;
+    height: 66px;
+    margin-top: 26px;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--premium-blue);
+    box-shadow: 0 16px 34px rgba(7, 26, 61, .12);
+  }
+
+  .catalog-hub-card--bed {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1.02fr;
+    align-items: center;
+    padding: 30px 30px 28px !important;
+  }
+
+  .catalog-hub-card--chair {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    display: grid !important;
+    align-content: end;
+    padding: 28px !important;
+  }
+
+  .catalog-hub-card--service {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 190px !important;
+    align-items: end;
+    padding: 30px !important;
+  }
+
+  .catalog-hub-card--sale {
+    grid-column: 3 !important;
+    grid-row: 2 !important;
+    display: grid !important;
+    align-content: end;
+    padding: 28px !important;
+    border-color: rgba(19, 48, 94, .38) !important;
+    background:
+      linear-gradient(135deg, rgba(7, 26, 61, .98), rgba(14, 43, 99, .96)) !important;
+    color: #fff;
+  }
+
+  .catalog-hub-card--product-tile .catalog-hub-photo {
+    width: 100%;
+    height: 150px !important;
+    min-height: 0 !important;
+    margin: 0;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  .catalog-hub-card--bed .catalog-hub-photo {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    height: 184px !important;
+  }
+
+  .catalog-hub-card--chair .catalog-hub-photo {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    left: 24px;
+    height: 150px !important;
+  }
+
+  .catalog-hub-card--product-tile .catalog-hub-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 24px rgba(7, 26, 61, .1));
+  }
+
+  .catalog-hub-card--product-tile strong {
+    max-width: 280px;
+    color: var(--premium-ink);
+    font-size: clamp(2.15rem, 2.2vw, 2.85rem) !important;
+    line-height: 1 !important;
+  }
+
+  .catalog-hub-card--bed strong::after {
+    content: "Мягкие модели для спокойного сна и красивой спальни.";
+  }
+
+  .catalog-hub-card--chair strong::after {
+    content: "Уютные акценты для гостиной, кабинета и зоны отдыха.";
+  }
+
+  .catalog-hub-card--product-tile strong::after {
+    display: block;
+    margin-top: 12px;
+    color: var(--premium-muted);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .catalog-hub-card--product-tile::after {
+    right: 26px !important;
+    bottom: 26px !important;
+    width: 52px !important;
+    height: 52px !important;
+    background: #fff !important;
+    color: var(--premium-blue) !important;
+    box-shadow: 0 14px 28px rgba(7, 26, 61, .1);
+  }
+
+  .catalog-hub-card--service .catalog-hub-photo {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    width: 190px;
+    height: 178px !important;
+    min-height: 0 !important;
+    align-self: center;
+  }
+
+  .catalog-hub-card--service .catalog-hub-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 24px rgba(7, 26, 61, .12));
+  }
+
+  .catalog-hub-card--service .catalog-hub-card__label::after {
+    content: "УСЛУГИ";
+  }
+
+  .catalog-hub-card--service strong::after {
+    content: "Услуги SONA";
+    color: var(--premium-ink);
+    font-size: clamp(2rem, 2.05vw, 2.65rem);
+    line-height: 1;
+  }
+
+  .catalog-hub-card--service small::after {
+    content: "Сайты, боты и приложения для бизнеса.";
+    color: var(--premium-muted);
+    font-size: 1.02rem;
+    line-height: 1.35;
+  }
+
+  .catalog-service-banner__action {
+    display: inline-flex !important;
+    width: fit-content;
+    min-height: 42px;
+    align-items: center;
+    padding: 0 18px;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--premium-ink);
+    box-shadow: 0 14px 28px rgba(7, 26, 61, .1);
+    font-size: 0 !important;
+  }
+
+  .catalog-service-banner__action::before {
+    content: "Посмотреть услуги";
+    font-size: .95rem;
+    font-weight: 900;
+  }
+
+  .catalog-service-banner__action span {
+    margin-left: 10px;
+    color: var(--premium-blue);
+    font-size: 1rem !important;
+  }
+
+  .catalog-sale-banner__image {
+    position: absolute;
+    right: -42px;
+    bottom: -10px;
+    width: 72%;
+    height: 64%;
+    object-fit: contain;
+    opacity: .9;
+  }
+
+  .catalog-sale-banner__content {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 12px;
+    max-width: 260px;
+  }
+
+  .catalog-sale-banner__discount {
+    width: fit-content;
+    padding: 8px 15px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .94);
+    color: var(--premium-ink);
+    font-size: 0 !important;
+    font-weight: 950;
+  }
+
+  .catalog-sale-banner__discount::after {
+    content: "До −40%";
+    font-size: 1rem;
+  }
+
+  .catalog-sale-banner__content strong {
+    font-size: 0 !important;
+  }
+
+  .catalog-sale-banner__content strong::after {
+    content: "Выгодные предложения недели";
+    color: #fff;
+    font-size: 2rem;
+    line-height: 1.05;
+  }
+
+  .catalog-sale-banner__content small {
+    color: rgba(255, 255, 255, .78);
+    font-size: 0 !important;
+  }
+
+  .catalog-sale-banner__content small::after {
+    content: "Подборки мебели и выгодные предложения недели";
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  .catalog-sale-banner__content b {
+    width: fit-content;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 17px;
+    border: 1px solid rgba(255, 255, 255, .42);
+    border-radius: 999px;
+    color: #fff;
+    font-size: 0 !important;
+  }
+
+  .catalog-sale-banner__content b::before {
+    content: "Смотреть предложения";
+    font-size: .94rem;
+    font-weight: 900;
+  }
+
+  .catalog-sale-banner__content b span {
+    margin-left: 10px;
+    font-size: 1rem !important;
+  }
+
+  .home-picks-group .product-card,
+  .home-product-grid .product-card {
+    height: auto !important;
+    min-height: 0 !important;
+    grid-template-rows: 178px auto !important;
+  }
+
+  .home-picks-group .product-media,
+  .home-picks-group .product-placeholder {
+    height: 178px !important;
+    min-height: 178px !important;
+  }
+
+  .home-picks-group .product-body {
+    min-height: 0 !important;
+    padding: 12px 14px !important;
+    display: grid;
+    grid-template-rows: auto auto auto !important;
+  }
+
+  .home-picks-group .product-top-line {
+    min-height: 0 !important;
+  }
+
+  .home-picks-group .product-footer {
+    display: grid;
+    gap: 8px !important;
+  }
+
+  .home-picks-group .price {
+    min-height: 0 !important;
+  }
+
+  .home-picks-group .primary-button {
+    width: 100%;
+    min-height: 40px !important;
+  }
+
+  .lookbook-card {
+    height: auto !important;
+    min-height: 0 !important;
+    grid-template-rows: 168px auto !important;
+  }
+
+  .lookbook-media {
+    height: 168px !important;
+    min-height: 168px !important;
+  }
+
+  .lookbook-copy {
+    min-height: 0 !important;
+  }
+
+  .lookbook-meta,
+  .lookbook-specs,
+  .product-meta {
+    gap: 7px !important;
+  }
+
+  .lookbook-discount,
+  .tag.discount-tag {
+    border: 0 !important;
+    background: transparent !important;
+    color: #ff0f4f !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .lookbook-price .lookbook-discount {
+    margin-left: 8px;
+  }
+
+  .product-card .tag.discount-tag {
+    font-size: .9rem !important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1480px) {
+  .catalog-hub {
+    min-height: 700px;
+  }
+
+  .catalog-hub-grid {
+    height: auto;
+    grid-template-columns: minmax(440px, 1fr) minmax(260px, .7fr) minmax(260px, .7fr) !important;
+  }
+
+  .catalog-hub-card--hero .catalog-hub-photo {
+    left: 96px !important;
+    height: 250px !important;
+  }
+
+  .catalog-hub-card--hero strong {
+    font-size: clamp(3rem, 4vw, 4.2rem) !important;
+  }
+}
