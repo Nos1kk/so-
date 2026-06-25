@@ -334,11 +334,20 @@
 
     const wasOpen = Boolean(container.querySelector(".sona-support-widget.is-open"));
     const wasHidden = localStorage.getItem(HIDDEN_KEY) === "true";
+    const previousInput = container.querySelector(".sona-support-form textarea");
+    const previousInputValue = previousInput?.value || "";
+    const inputWasFocused = document.activeElement === previousInput;
+    const previousList = container.querySelector(".sona-support-messages");
+    const previousScrollTop = Number(previousList?.scrollTop) || 0;
+    const wasNearBottom = previousList
+      ? previousList.scrollHeight - previousList.scrollTop - previousList.clientHeight < 80
+      : true;
     const data = window.SonaStore.read();
     const canUseChat = isProfileActive(data);
     const admin = false;
     const threads = visibleThreads(data, { admin: false, userMode: true });
     const activeThread = threads[0];
+    const threadClosed = Boolean(activeThread?.messages?.length) && activeThread.messages.every((message) => message.status === "closed");
     const activeThreadId = activeThread?.last?.threadId || userThreadId(data);
     const root = el("div", "sona-support-widget");
     const launcher = el("button", "sona-support-launcher");
@@ -354,6 +363,7 @@
     const attach = el("button", `sona-support-attach${canUseChat ? "" : " is-login-required"}`);
     const notice = el("p", "sona-support-form-note", canUseChat ? "До 3 файлов, каждый до 10 МБ." : "Войдите в аккаунт, чтобы писать в поддержку.");
     const send = el("button", "sona-support-send", canUseChat ? "Отправить" : "Войти");
+    if (wasOpen) root.classList.add("is-restored");
 
     const openProfile = () => document.getElementById("profileButton")?.click();
     const renderAttachIcon = (count = 0) => {
@@ -372,9 +382,6 @@
       panel.setAttribute("aria-hidden", String(!open));
       panel.style.display = open ? "grid" : "";
       launcher.setAttribute("aria-expanded", String(open));
-      if (open && canUseChat) {
-        window.requestAnimationFrame(() => input.focus({ preventScroll: true }));
-      }
     }
 
     function setHidden(hidden) {
@@ -428,6 +435,7 @@
     );
 
     input.placeholder = canUseChat ? "Опишите вопрос по заказу, доставке или товару" : "Войдите в аккаунт, чтобы написать";
+    input.value = previousInputValue;
     input.readOnly = !canUseChat;
     if (!canUseChat) {
       input.classList.add("is-login-required");
@@ -498,18 +506,35 @@
       panel.style.display = "grid";
       panel.setAttribute("aria-hidden", "false");
       launcher.setAttribute("aria-expanded", "true");
-      nextList.scrollTop = nextList.scrollHeight;
+      window.requestAnimationFrame(() => {
+        nextList.scrollTop = nextList.scrollHeight;
+      });
       window.SonaStore.flushSync?.()
         .then(() => window.SonaStore.refresh?.())
         .catch(() => null);
       options.onChange?.();
     });
 
-    panel.append(headWrap, renderMessages(activeThread?.messages || []), form);
+    const messagesNode = renderMessages(activeThread?.messages || []);
+    if (threadClosed) {
+      const closedNote = el("div", "sona-support-thread-note", "Обращение закрыто, но история сохранена. Напишите сюда, если нужно продолжить диалог.");
+      messagesNode.prepend(closedNote);
+    }
+    panel.append(headWrap, messagesNode, form);
     root.append(launcher, hide, restore, panel);
     container.replaceChildren(root);
     setHidden(wasHidden);
     setOpen(wasOpen);
+    const restoredList = container.querySelector(".sona-support-messages");
+    if (wasOpen && restoredList) {
+      window.requestAnimationFrame(() => {
+        restoredList.scrollTop = wasNearBottom ? restoredList.scrollHeight : previousScrollTop;
+      });
+    }
+    const compactViewport = window.matchMedia?.("(max-width: 640px)")?.matches;
+    if (inputWasFocused && wasOpen && canUseChat && !compactViewport) {
+      input.focus({ preventScroll: true });
+    }
   }
 
   window.SonaSupport = {

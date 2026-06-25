@@ -22,8 +22,8 @@ const STORE_BACKUP_SCHEMA = "sona-admin-backup/v1";
 const ACCOUNTS_DIR = path.join(DATA_DIR, "accounts");
 const ACCOUNTS_FILE = path.join(ACCOUNTS_DIR, "accounts.json");
 const SESSIONS_FILE = path.join(ACCOUNTS_DIR, "sessions.json");
-const ADMIN_EMAIL = String(process.env.SONA_ADMIN_EMAIL || "kcel046@gmail.com").trim().toLowerCase();
-const SUPPORT_EMAIL = String(process.env.SONA_SUPPORT_EMAIL || "sonahome@yandex.ru").trim().toLowerCase();
+const ADMIN_EMAIL = envFileValue("SONA_ADMIN_EMAIL", process.env.SONA_ADMIN_EMAIL || "kcel046@gmail.com").trim().toLowerCase();
+const SUPPORT_EMAIL = envFileValue("SONA_SUPPORT_EMAIL", process.env.SONA_SUPPORT_EMAIL || ADMIN_EMAIL || "sonahome@yandex.ru").trim().toLowerCase();
 const AUTH_SECRET = resolveAuthSecret();
 const emailCodes = new Map();
 const telegramLoginCodes = new Map();
@@ -543,6 +543,24 @@ function publicStoreState(state, account = null) {
       new: Array.isArray(state?.homeCollections?.new) ? state.homeCollections.new : []
     }
   };
+}
+
+function envFileValue(key, fallback = "") {
+  const filePath = path.join(__dirname, ".env");
+  if (!fs.existsSync(filePath)) return String(fallback || "");
+  let value = "";
+  fs.readFileSync(filePath, "utf8").split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) return;
+    const separator = trimmed.indexOf("=");
+    if (separator < 1 || trimmed.slice(0, separator).trim() !== key) return;
+    let next = trimmed.slice(separator + 1).trim();
+    if ((next.startsWith('"') && next.endsWith('"')) || (next.startsWith("'") && next.endsWith("'"))) {
+      next = next.slice(1, -1);
+    }
+    value = next;
+  });
+  return String(value || fallback || "");
 }
 
 function mergeNewRows(existing, incoming, predicate) {

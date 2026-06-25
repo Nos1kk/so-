@@ -4081,7 +4081,7 @@
       renderProfilePage();
       renderFavoritesPage();
       navigateTo("profile");
-      showToast("Заявка оформлена. В ближайшее время сотрудник позвонит для уточнения заказа.");
+      showToast("Заявка оформлена. Менеджер подтвердит заказ и способ полной оплаты.");
     } catch (error) {
       showToast("Не удалось оформить заказ. Попробуйте ещё раз.");
       renderCart();
