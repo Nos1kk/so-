@@ -278,12 +278,18 @@
     return state;
   }
 
-  function updateFromServer(recipe) {
+  function updateFromServer(recipe, options = {}) {
     window.clearTimeout(syncTimer);
     syncTimer = 0;
     const state = read();
     recipe(state);
     cache = normalize(state);
+    serverSnapshot = clone(cache);
+    syncedVersion = syncVersion;
+    if (Number(options.revision) > serverRevision) {
+      serverRevision = Number(options.revision);
+      storeEtag = "";
+    }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
     } catch (error) {
