@@ -275,6 +275,8 @@
     let photos = normalizePhotos(draft);
     let variants = normalizeVariants(draft);
     let errors = {};
+    let isSaving = false;
+    let saveError = "";
     const root = el("section", "sona-product-editor");
 
     const rerender = () => {
@@ -343,7 +345,7 @@
         content.append(window.SonaProductPreview.render(draft, photos));
       }
 
-      const saveWithStatus = (status) => {
+      const saveWithStatus = async (status) => {
         const next = toProductPayload(draft, photos, variants, status);
         errors = validate(next, photos, context.products || []);
         if (Object.keys(errors).some((key) => errors[key])) {
@@ -351,7 +353,16 @@
           rerender();
           return;
         }
-        onSave(next);
+        isSaving = true;
+        saveError = "";
+        rerender();
+        try {
+          await onSave(next);
+        } catch (error) {
+          isSaving = false;
+          saveError = "Не удалось сохранить товар на сервере. Попробуйте ещё раз.";
+          rerender();
+        }
       };
 
       [
@@ -363,11 +374,13 @@
         ["Очистить форму", () => { draft = createDraft({}, type); photos = []; variants = []; errors = {}; activeTab = "main"; rerender(); }, "is-danger"],
         ["Отмена", onCancel, "sona-admin-soft"]
       ].forEach(([title, action, className]) => {
-        const button = el("button", className, title);
+        const button = el("button", className, isSaving && className === "is-primary" ? "Сохраняем..." : title);
         button.type = "button";
+        button.disabled = isSaving;
         button.addEventListener("click", action);
         actions.append(button);
       });
+      if (saveError) actions.prepend(el("p", "sona-editor-error", saveError));
 
       const photo = photos.find((item) => item.main) || photos[0];
       if (photo?.src) {
