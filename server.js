@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const net = require("net");
 const tls = require("tls");
 const { spawn } = require("child_process");
+const { DomainStore, AnalyticsJournal, MediaStore, MailOutbox } = require("./lib/infrastructure");
 
 loadEnvFile(path.join(__dirname, ".env"));
 
@@ -39,6 +40,12 @@ let storeBackupTimer = null;
 let pendingStoreBackup = null;
 let accountsBackupTimer = null;
 let pendingAccountsBackup = null;
+const domainStore = new DomainStore({ dataDir: DATA_DIR, legacyFile: STORE_FILE });
+const analyticsJournal = new AnalyticsJournal(DATA_DIR);
+const mediaStore = new MediaStore(DATA_DIR);
+const storeEventClients = new Set();
+const staticAssetCache = new Map();
+let mailOutbox = null;
 const CODE_TTL_MS = 10 * 60 * 1000;
 const BLOCK_TTL_MS = 24 * 60 * 60 * 1000;
 const SESSION_IDLE_TTL_MS = 5 * 24 * 60 * 60 * 1000;
@@ -49,8 +56,13 @@ const SESSION_COOKIE = "sona_session";
 const PASSWORD_SCRYPT = Object.freeze({ N: 16384, r: 8, p: 1, keylen: 64, maxmem: 64 * 1024 * 1024 });
 const DUMMY_PASSWORD_SALT = Buffer.alloc(16, 0x53);
 const DUMMY_PASSWORD_HASH = crypto.scryptSync("sona-invalid-password", DUMMY_PASSWORD_SALT, PASSWORD_SCRYPT.keylen, PASSWORD_SCRYPT);
-const ADMIN_PASSWORD_VERSION = "admin-password-20260621-v1";
-const ADMIN_PASSWORD_HASH = "scrypt$16384$8$1$rZv_NWOYY4yBvVnzoPJ-Ug$pCyzvs15cGESnnsRL47UHHg13E8DjQJ_e9QybbaxIJpt9lL4OAOeLxV80v4Xs_u3Qqb3RpqnwRRgtF85rZz4nw";
+const TEST_ADMIN_PASSWORD = process.env.NODE_ENV === "test" ? String(process.env.SONA_TEST_ADMIN_PASSWORD || "") : "";
+const ADMIN_PASSWORD_VERSION = TEST_ADMIN_PASSWORD ? "admin-password-test-v1" : "admin-password-20260621-v1";
+const ADMIN_PASSWORD_HASH = TEST_ADMIN_PASSWORD ? (() => {
+  const salt = crypto.createHash("sha256").update("sona-test-admin").digest().subarray(0, 16);
+  const derived = crypto.scryptSync(TEST_ADMIN_PASSWORD, salt, PASSWORD_SCRYPT.keylen, PASSWORD_SCRYPT);
+  return ["scrypt", PASSWORD_SCRYPT.N, PASSWORD_SCRYPT.r, PASSWORD_SCRYPT.p, salt.toString("base64url"), derived.toString("base64url")].join("$");
+})() : "scrypt$16384$8$1$rZv_NWOYY4yBvVnzoPJ-Ug$pCyzvs15cGESnnsRL47UHHg13E8DjQJ_e9QybbaxIJpt9lL4OAOeLxV80v4Xs_u3Qqb3RpqnwRRgtF85rZz4nw";
 const adminCredentialsChanged = ensureAdminCredentials();
 loadPersistentSessions();
 if (adminCredentialsChanged) revokeSessionsForEmail(ADMIN_EMAIL);
@@ -79,6 +91,8 @@ if (process.env.NODE_ENV === "production" && !isStrongAuthSecret(AUTH_SECRET)) {
 if (process.env.NODE_ENV === "production" && process.env.SMTP_SECURE === "false") {
   throw new Error("SMTP_SECURE=false is not allowed in production");
 }
+mailOutbox = new MailOutbox(DATA_DIR, sendSmtpMail);
+domainStore.on("change", broadcastStoreChange);
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -90,7 +104,16 @@ const MIME_TYPES = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
-  ".ico": "image/x-icon"
+  ".gif": "image/gif",
+  ".ico": "image/x-icon",
+  ".pdf": "application/pdf",
+  ".zip": "application/zip",
+  ".txt": "text/plain; charset=utf-8",
+  ".csv": "text/csv; charset=utf-8",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mp3": "audio/mpeg",
+  ".ogg": "audio/ogg"
 };
 
 function loadEnvFile(filePath, options = {}) {
@@ -161,14 +184,15 @@ function setSecurityHeaders(res) {
   );
 }
 
-function sendJson(res, statusCode, payload) {
+function sendJson(res, statusCode, payload, options = {}) {
   setSecurityHeaders(res);
   setApiCorsHeaders(res);
   res.writeHead(statusCode, {
     "Content-Type": MIME_TYPES[".json"],
-    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    "Cache-Control": options.cacheControl || "no-store, no-cache, must-revalidate, proxy-revalidate",
     "Pragma": "no-cache",
-    "Expires": "0"
+    "Expires": "0",
+    ...(options.headers || {})
   });
   res.end(JSON.stringify(payload));
 }
@@ -614,7 +638,7 @@ function notifySupportMessage(message) {
     attachments
   ].join("\n");
 
-  sendSmtpMail({ to: SUPPORT_EMAIL, subject, text })
+  queueMail({ to: SUPPORT_EMAIL, subject, text })
     .catch((error) => console.warn("Unable to send support notification:", error.message));
 }
 
@@ -662,7 +686,10 @@ function mergeCustomerStoreState(current, incoming, account) {
         const dataUrl = String(attachment?.dataUrl || "");
         const type = String(attachment?.type || "").toLowerCase();
         const acceptedType = /^(?:image\/(?:png|jpeg|webp|gif)|application\/(?:pdf|json|zip|msword|vnd\.openxmlformats-officedocument\.(?:wordprocessingml\.document|spreadsheetml\.sheet|presentationml\.presentation)|vnd\.ms-(?:excel|powerpoint)|x-zip-compressed)|text\/(?:plain|csv)|video\/(?:mp4|webm|quicktime)|audio\/(?:mpeg|wav|ogg))$/.test(type);
-        return acceptedType && dataUrlPayloadBytes(dataUrl) <= 10 * 1024 * 1024 && dataUrl.toLowerCase().startsWith(`data:${type};`);
+        const storedMedia = /^\/media\/[a-f0-9]{64}\.[a-z0-9]{2,5}$/i.test(dataUrl);
+        return acceptedType && (storedMedia || (
+          dataUrlPayloadBytes(dataUrl) <= 10 * 1024 * 1024 && dataUrl.toLowerCase().startsWith(`data:${type};`)
+        ));
       });
     return {
       ...message,
@@ -691,19 +718,79 @@ function mergeCustomerStoreState(current, incoming, account) {
   };
 }
 
-function cacheControlFor(ext) {
-  if ([".html", ".css", ".js", ".json"].includes(ext)) {
-    return "no-store, no-cache, must-revalidate, proxy-revalidate";
+function cacheControlFor(ext, urlPath = "") {
+  if (ext === ".html") return "no-cache, must-revalidate";
+  if ([".css", ".js"].includes(ext)) {
+    return /[?&]v=[a-z0-9._-]+/i.test(urlPath)
+      ? "public, max-age=31536000, immutable"
+      : "public, max-age=3600, must-revalidate";
   }
-  if ([".png", ".jpg", ".jpeg", ".webp", ".svg", ".ico"].includes(ext)) {
-    return "public, max-age=604800";
+  if (ext === ".json") return "public, max-age=300, stale-while-revalidate=86400";
+  if ([".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".ico", ".pdf", ".zip", ".mp4", ".webm", ".mp3", ".ogg"].includes(ext)) {
+    return "public, max-age=2592000, stale-while-revalidate=86400";
   }
-  return "no-store";
+  return "public, max-age=3600";
 }
 
 function canGzip(req, contentType) {
   const acceptsGzip = String(req.headers["accept-encoding"] || "").includes("gzip");
   return acceptsGzip && /^(text\/|application\/(javascript|json)|image\/svg\+xml)/.test(contentType);
+}
+
+function serveFile(req, res, filePath, stats, options = {}) {
+  const ext = path.extname(filePath).toLowerCase();
+  const contentType = MIME_TYPES[ext] || "application/octet-stream";
+  const etag = `W/\"${stats.size.toString(16)}-${Math.floor(stats.mtimeMs).toString(16)}\"`;
+  const headers = {
+    "Content-Type": contentType,
+    "Cache-Control": options.cacheControl || cacheControlFor(ext, req.url || ""),
+    ETag: etag,
+    "Last-Modified": stats.mtime.toUTCString()
+  };
+  setSecurityHeaders(res);
+  if (String(req.headers["if-none-match"] || "") === etag) {
+    res.writeHead(304, headers);
+    res.end();
+    return;
+  }
+  if (req.method === "HEAD") {
+    res.writeHead(200, { ...headers, "Content-Length": stats.size });
+    res.end();
+    return;
+  }
+
+  if (stats.size > 1024 && canGzip(req, contentType)) {
+    const cacheKey = `${filePath}:${stats.mtimeMs}:gzip`;
+    const cached = staticAssetCache.get(cacheKey);
+    if (cached) {
+      res.writeHead(200, { ...headers, "Content-Encoding": "gzip", Vary: "Accept-Encoding", "Content-Length": cached.length });
+      res.end(cached);
+      return;
+    }
+    fs.readFile(filePath, (readError, content) => {
+      if (readError) {
+        sendJson(res, 500, { error: "Server error" });
+        return;
+      }
+      zlib.gzip(content, { level: 6 }, (zipError, zipped) => {
+        if (zipError) {
+          res.writeHead(200, { ...headers, "Content-Length": content.length });
+          res.end(content);
+          return;
+        }
+        staticAssetCache.set(cacheKey, zipped);
+        if (staticAssetCache.size > 120) staticAssetCache.delete(staticAssetCache.keys().next().value);
+        res.writeHead(200, { ...headers, "Content-Encoding": "gzip", Vary: "Accept-Encoding", "Content-Length": zipped.length });
+        res.end(zipped);
+      });
+    });
+    return;
+  }
+
+  res.writeHead(200, { ...headers, "Content-Length": stats.size });
+  const stream = fs.createReadStream(filePath);
+  stream.on("error", () => res.destroy());
+  stream.pipe(res);
 }
 
 function readJsonBody(req, callback, options = {}) {
@@ -794,6 +881,12 @@ function hashAuthCode(email, code) {
 }
 
 function createAuthCode(email) {
+  const testCode = process.env.NODE_ENV === "test" ? String(process.env.SONA_TEST_AUTH_CODE || "") : "";
+  if (/^\d{6}$/.test(testCode)) {
+    const hash = hashAuthCode(email, testCode);
+    lastCodeHashes.set(normalizeEmail(email), hash);
+    return { code: testCode, hash };
+  }
   let code = "";
   let hash = "";
   const previousHash = lastCodeHashes.get(normalizeEmail(email));
@@ -1250,46 +1343,20 @@ function blockInfo(req, email) {
 }
 
 function readStore(callback) {
-  if (storeCache) {
-    try {
-      callback(null, JSON.parse(JSON.stringify(storeCache)));
-    } catch (error) {
-      callback(error);
-    }
-    return;
+  try {
+    const state = domainStore.read();
+    state.analytics = analyticsJournal.snapshot();
+    callback(null, state);
+  } catch (error) {
+    callback(error);
   }
-
-  fs.readFile(STORE_FILE, "utf8", (error, content) => {
-    if (error) {
-      if (error.code === "ENOENT") {
-        readLatestStoreBackup((backupError, backupState) => {
-          if (backupError || !backupState) {
-            callback(null, null);
-            return;
-          }
-          writeStore(backupState, (writeError) => {
-            callback(writeError || null, backupState);
-          });
-        });
-        return;
-      }
-      callback(error);
-      return;
-    }
-
-    try {
-      storeCache = JSON.parse(content);
-      callback(null, JSON.parse(JSON.stringify(storeCache)));
-    } catch (parseError) {
-      callback(parseError);
-    }
-  });
 }
 
 function cleanStoreSnapshot(state) {
   const clean = sanitizeJsonValue(state || {});
   delete clean.admin;
   delete clean.users;
+  delete clean.__revision;
   return clean;
 }
 
@@ -1361,21 +1428,51 @@ function scheduleStoreBackup(state) {
 }
 
 function writeStore(state, callback) {
-  fs.mkdir(DATA_DIR, { recursive: true }, (mkdirError) => {
-    if (mkdirError) {
-      callback(mkdirError);
-      return;
-    }
+  domainStore.write(state)
+    .then((result) => {
+      callback(null, result);
+      scheduleStoreBackup(domainStore.read());
+    })
+    .catch(callback);
+}
 
-    writeJsonAtomic(STORE_FILE, state, (writeError) => {
-      if (writeError) {
-        callback(writeError);
-        return;
-      }
-      storeCache = state;
-      callback(null);
-      scheduleStoreBackup(state);
-    });
+function storeRevisionTag(req, account) {
+  const audience = account?.id || account?.email || "public";
+  const audienceHash = crypto.createHash("sha256").update(String(audience)).digest("hex").slice(0, 10);
+  return `W/\"store-${domainStore.revision}-${audienceHash}\"`;
+}
+
+function broadcastStoreChange(change) {
+  const payload = JSON.stringify({
+    revision: change.revision,
+    domains: change.domains || [],
+    keys: (change.keys || []).filter((key) => !["customerStates", "supportMessages"].includes(key))
+  });
+  storeEventClients.forEach((client) => {
+    try {
+      client.write(`event: store\ndata: ${payload}\n\n`);
+    } catch (error) {
+      storeEventClients.delete(client);
+    }
+  });
+}
+
+function handleStoreEvents(req, res) {
+  setSecurityHeaders(res);
+  setApiCorsHeaders(res);
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no"
+  });
+  res.write(`event: ready\ndata: ${JSON.stringify({ revision: domainStore.revision })}\n\n`);
+  storeEventClients.add(res);
+  const heartbeat = setInterval(() => res.write(": heartbeat\n\n"), 25000);
+  heartbeat.unref?.();
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    storeEventClients.delete(res);
   });
 }
 
@@ -1404,16 +1501,81 @@ function handleStoreGet(req, res) {
     }
 
     const session = sessionFor(req, res);
+    const etag = storeRevisionTag(req, session?.account || null);
+    if (String(req.headers["if-none-match"] || "") === etag) {
+      setSecurityHeaders(res);
+      setApiCorsHeaders(res);
+      res.writeHead(304, { ETag: etag, "Cache-Control": "private, no-cache, must-revalidate" });
+      res.end();
+      return;
+    }
     if (session?.account?.role !== "admin") {
-      sendJson(res, 200, { ok: true, state: publicStoreState(state || {}, session?.account || null) });
+      sendJson(res, 200, {
+        ok: true,
+        revision: domainStore.revision,
+        state: publicStoreState(state || {}, session?.account || null)
+      }, { cacheControl: "private, no-cache, must-revalidate", headers: { ETag: etag } });
       return;
     }
 
     readAccounts((accountsError, accountsState) => {
       const accounts = accountsError ? [] : accountsState.accounts.map(safeAccount);
-      sendJson(res, 200, { ok: true, state: { ...state, users: accounts } });
+      sendJson(res, 200, {
+        ok: true,
+        revision: domainStore.revision,
+        state: { ...state, users: accounts }
+      }, { cacheControl: "private, no-cache, must-revalidate", headers: { ETag: etag } });
     });
   });
+}
+
+function handleStorePatch(req, res) {
+  const account = requireAuth(req, res);
+  if (!account) return;
+  readJsonBody(req, async (bodyError, body) => {
+    const changes = body?.changes;
+    if (bodyError || !changes || typeof changes !== "object" || Array.isArray(changes)) {
+      sendJson(res, 400, { ok: false, error: "Invalid store patch" });
+      return;
+    }
+    const denied = new Set(["analytics", "users", "admin", "customerStates", "__revision"]);
+    const cleanChanges = Object.fromEntries(Object.entries(sanitizeJsonValue(changes)).filter(([key]) => !denied.has(key)));
+    readStore(async (readError, current) => {
+        if (readError) {
+          sendJson(res, 500, { ok: false, error: "Store unavailable" });
+          return;
+        }
+        const existingSupportIds = supportMessageIds(current?.supportMessages);
+        let next;
+        try {
+          if (account.role === "admin") {
+            const storedChanges = await mediaStore.externalize(cleanChanges);
+            next = { ...(current || {}), ...storedChanges };
+          } else {
+          const allowedCustomerKeys = new Set([
+            "cart", "favorites", "viewedProductIds", "profile", "accountSessions", "orders", "reviews", "supportMessages"
+          ]);
+          const customerChanges = Object.fromEntries(Object.entries(cleanChanges).filter(([key]) => allowedCustomerKeys.has(key)));
+          const storedCustomerChanges = await mediaStore.externalize(customerChanges);
+          const incoming = { ...publicStoreState(current || {}, account), ...storedCustomerChanges };
+          next = mergeCustomerStoreState(current || {}, incoming, account);
+          }
+          const supportToNotify = account.role === "admin" ? [] : (next.supportMessages || []).filter((message) => (
+            message?.role === "user" && !existingSupportIds.has(message.id)
+          ));
+          writeStore(next, (writeError, result) => {
+            if (writeError) {
+              sendJson(res, 500, { ok: false, error: "Store patch failed" });
+              return;
+            }
+            sendJson(res, 200, { ok: true, revision: result?.revision || domainStore.revision });
+            supportToNotify.forEach(notifySupportMessage);
+          });
+        } catch (error) {
+          sendJson(res, 400, { ok: false, error: error.message || "Invalid media payload" });
+        }
+      });
+  }, { maxBytes: 40 * 1024 * 1024 });
 }
 
 function handleStorePut(req, res) {
@@ -1437,14 +1599,16 @@ function handleStorePut(req, res) {
       const supportToNotify = account.role === "admin" ? [] : (next.supportMessages || []).filter((message) => (
         message?.role === "user" && !existingSupportIds.has(message.id)
       ));
-      writeStore(next, (writeError) => {
-        if (writeError) {
-          sendJson(res, 500, { ok: false, error: "Store write failed" });
-          return;
-        }
-        sendJson(res, 200, { ok: true });
-        supportToNotify.forEach(notifySupportMessage);
-      });
+      mediaStore.externalize(next).then((externalized) => {
+        writeStore(externalized, (writeError, result) => {
+          if (writeError) {
+            sendJson(res, 500, { ok: false, error: "Store write failed" });
+            return;
+          }
+          sendJson(res, 200, { ok: true, revision: result?.revision || domainStore.revision });
+          supportToNotify.forEach(notifySupportMessage);
+        });
+      }).catch((mediaError) => sendJson(res, 400, { ok: false, error: mediaError.message || "Invalid media payload" }));
     });
   }, { maxBytes: 40 * 1024 * 1024 });
 }
@@ -1624,6 +1788,11 @@ async function sendSmtpMail({ to, subject, text }) {
   }
 }
 
+function queueMail(mail) {
+  if (!mailOutbox) return Promise.reject(new Error("Mail outbox is unavailable"));
+  return mailOutbox.queue(mail);
+}
+
 function sendEmailCode(email, code, callback, purpose = "register") {
   const isReset = purpose === "reset";
   const subject = isReset ? "Восстановление доступа SONA" : "Подтверждение почты SONA";
@@ -1634,7 +1803,7 @@ function sendEmailCode(email, code, callback, purpose = "register") {
     "Если вы не запрашивали этот код, просто проигнорируйте письмо."
   ].join("\n");
 
-  sendSmtpMail({ to: email, subject, text })
+  queueMail({ to: email, subject, text })
     .then((result) => callback(null, result))
     .catch(callback);
 }
@@ -2186,26 +2355,9 @@ function handleAnalyticsEvent(req, res) {
       at: Date.now()
     };
 
-    readStore((readError, state) => {
-      if (readError) {
-        sendJson(res, 500, { ok: false, error: "Store unavailable" });
-        return;
-      }
-      const next = state || {};
-      const events = Array.isArray(next.analytics?.events) ? next.analytics.events : [];
-      next.analytics = {
-        ...(next.analytics || {}),
-        events: [...events.slice(-4999), event],
-        updatedAt: event.at
-      };
-      writeStore(next, (writeError) => {
-        if (writeError) {
-          sendJson(res, 500, { ok: false, error: "Analytics write failed" });
-          return;
-        }
-        sendJson(res, 202, { ok: true });
-      });
-    });
+    analyticsJournal.append(event)
+      .then(() => sendJson(res, 202, { ok: true }))
+      .catch(() => sendJson(res, 500, { ok: false, error: "Analytics write failed" }));
   }, { maxBytes: 16 * 1024 });
 }
 
@@ -2235,6 +2387,8 @@ function handleOrderCreate(req, res) {
     return;
   }
   readJsonBody(req, (bodyError, body) => {
+    const idempotencyKey = String(req.headers["idempotency-key"] || body?.idempotencyKey || "")
+      .replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 120);
     const phone = String(body?.profile?.phone || "").replace(/[^\d+]/g, "").slice(0, 18);
     const items = (Array.isArray(body?.items) ? body.items : []).slice(0, 50).map((item) => ({
       id: String(item?.id || "").slice(0, 100),
@@ -2242,7 +2396,7 @@ function handleOrderCreate(req, res) {
       quantity: Math.max(1, Math.min(20, Math.floor(Number(item?.quantity) || 1)))
     })).filter((item) => item.id);
     const total = Math.max(0, Math.min(100000000, Math.round(Number(body?.total) || 0)));
-    if (bodyError || !items.length || phone.replace(/\D/g, "").length < 10 || !isValidEmail(account.email) || !total) {
+    if (bodyError || !items.length || phone.replace(/\D/g, "").length < 10 || !isValidEmail(account.email) || !total || idempotencyKey.length < 12) {
       sendJson(res, 400, { ok: false, error: "Order requires a valid phone, email and items" });
       return;
     }
@@ -2254,6 +2408,7 @@ function handleOrderCreate(req, res) {
       status: "pending",
       total,
       paidAmount: 0,
+      idempotencyKey,
       profile: {
         name: String(body.profile?.name || account.name || "").slice(0, 80),
         email: account.email,
@@ -2268,6 +2423,13 @@ function handleOrderCreate(req, res) {
         sendJson(res, 500, { ok: false, error: "Store unavailable" });
         return;
       }
+      const duplicate = (current?.orders || []).find((item) => (
+        item.idempotencyKey === idempotencyKey && normalizeEmail(item.profile?.email) === normalizeEmail(account.email)
+      ));
+      if (duplicate) {
+        sendJson(res, 200, { ok: true, order: duplicate, duplicate: true, notified: true });
+        return;
+      }
       const next = current || {};
       order.profile.name = resolveCustomerName(next, account, { ...(body.profile || {}), phone });
       next.orders = [...(next.orders || []), order];
@@ -2277,7 +2439,7 @@ function handleOrderCreate(req, res) {
           return;
         }
         sendJson(res, 201, { ok: true, order, notified: true });
-        sendSmtpMail({
+        queueMail({
           to: ADMIN_EMAIL,
           subject: `Новая заявка ${order.id}`,
           text: ["Поступила новая заявка. Позвоните клиенту для уточнения и подтвердите заказ в админ-панели.", "", ...orderEmailLines(order)].join("\n")
@@ -2325,7 +2487,7 @@ function handleOrderUpdate(req, res, orderId) {
         }
         if (status === "arrived" && previous.status !== "arrived" && isValidEmail(updated.profile?.email)) {
           sendJson(res, 200, { ok: true, order: updated, notified: true });
-          sendSmtpMail({
+          queueMail({
             to: updated.profile.email,
             subject: `Ваш заказ ${updated.id} прибыл`,
             text: [`Ваш заказ ${updated.id} прибыл.`, "Пожалуйста, подтвердите получение в личном кабинете после фактической передачи заказа.", "", ...orderEmailLines(updated)].join("\n")
@@ -2754,6 +2916,16 @@ function createServer() {
     return;
   }
 
+  if (req.method === "GET" && req.url === "/api/events") {
+    handleStoreEvents(req, res);
+    return;
+  }
+
+  if (req.method === "PATCH" && req.url === "/api/store") {
+    handleStorePatch(req, res);
+    return;
+  }
+
   if (req.method === "PUT" && req.url === "/api/store") {
     handleStorePut(req, res);
     return;
@@ -2797,7 +2969,21 @@ function createServer() {
   }
 
   if (req.url === "/health") {
-    sendJson(res, 200, { status: "ok", service: "sona-marketplace" });
+    sendJson(res, 200, {
+      status: "ok",
+      service: "sona-marketplace",
+      storeRevision: domainStore.revision,
+      realtimeClients: storeEventClients.size
+    });
+    return;
+  }
+
+  const mediaPath = mediaStore.resolve(req.url || "");
+  if (mediaPath) {
+    fs.stat(mediaPath, (mediaError, mediaStats) => {
+      if (mediaError || !mediaStats.isFile()) sendJson(res, 404, { error: "Media not found" });
+      else serveFile(req, res, mediaPath, mediaStats, { cacheControl: "public, max-age=31536000, immutable" });
+    });
     return;
   }
 
@@ -2811,72 +2997,16 @@ function createServer() {
   fs.stat(filePath, (statError, stats) => {
     if (statError || !stats.isFile()) {
       const fallbackPath = path.join(PUBLIC_DIR, "index.html");
-
-      fs.readFile(fallbackPath, (fallbackError, fallbackContent) => {
-        if (fallbackError) {
+      fs.stat(fallbackPath, (fallbackError, fallbackStats) => {
+        if (fallbackError || !fallbackStats.isFile()) {
           sendJson(res, 404, { error: "Not found" });
           return;
         }
-
-        setSecurityHeaders(res);
-        res.writeHead(200, {
-          "Content-Type": MIME_TYPES[".html"],
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
-        });
-        res.end(req.method === "HEAD" ? undefined : fallbackContent);
+        serveFile(req, res, fallbackPath, fallbackStats, { cacheControl: "no-cache, must-revalidate" });
       });
       return;
     }
-
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || "application/octet-stream";
-    const cacheControl = cacheControlFor(ext);
-
-    fs.readFile(filePath, (readError, content) => {
-      if (readError) {
-        sendJson(res, 500, { error: "Server error" });
-        return;
-      }
-
-      setSecurityHeaders(res);
-      const headers = {
-        "Content-Type": contentType,
-        "Cache-Control": cacheControl
-      };
-      if ([".html", ".css", ".js", ".json"].includes(ext)) {
-        headers.Pragma = "no-cache";
-        headers.Expires = "0";
-      }
-
-      if (req.method === "HEAD") {
-        res.writeHead(200, headers);
-        res.end();
-        return;
-      }
-
-      if (content.length > 1024 && canGzip(req, contentType)) {
-        zlib.gzip(content, { level: 6 }, (zipError, zipped) => {
-          if (zipError) {
-            res.writeHead(200, headers);
-            res.end(content);
-            return;
-          }
-
-          res.writeHead(200, {
-            ...headers,
-            "Content-Encoding": "gzip",
-            "Vary": "Accept-Encoding"
-          });
-          res.end(zipped);
-        });
-        return;
-      }
-
-      res.writeHead(200, headers);
-      res.end(content);
-    });
+    serveFile(req, res, filePath, stats);
   });
   });
 }
