@@ -2,10 +2,10 @@
   "use strict";
 
   const STORAGE_KEY = "sona.marketplace.v1";
-  function apiUrl() {
+  function apiUrl(path = "/api/store") {
     const localPreview = window.location.protocol === "file:"
       || (["127.0.0.1", "localhost"].includes(window.location.hostname) && window.location.port !== "8000");
-    return localPreview ? "http://127.0.0.1:8000/api/store" : "/api/store";
+    return localPreview ? `http://127.0.0.1:8000${path}` : path;
   }
   const fallbackState = {
     cart: {},
@@ -65,6 +65,11 @@
   let syncVersion = 0;
   let syncedVersion = 0;
   let lastSyncError = null;
+  let serverSnapshot = null;
+  let serverRevision = 0;
+  let storeEtag = "";
+  let eventSource = null;
+  const listeners = new Set();
 
   function normalize(parsed) {
     return {
@@ -122,6 +127,20 @@
     return clone(cache);
   }
 
+  function changedTopLevel(previous, next) {
+    const ignored = new Set(["analytics", "users", "admin"]);
+    const keys = new Set([...Object.keys(previous || {}), ...Object.keys(next || {})]);
+    return Object.fromEntries([...keys]
+      .filter((key) => !ignored.has(key) && JSON.stringify(previous?.[key]) !== JSON.stringify(next?.[key]))
+      .map((key) => [key, clone(next?.[key])]));
+  }
+
+  function notify(data, reason = "server") {
+    listeners.forEach((listener) => {
+      try { listener(clone(data), reason); } catch (error) { /* A listener must not break synchronization. */ }
+    });
+  }
+
   function syncNow() {
     if (!cache) return Promise.resolve(cache);
     if (syncInFlight) {
@@ -130,17 +149,34 @@
     }
 
     const snapshot = clone(cache);
+    const changes = changedTopLevel(serverSnapshot || fallbackState, snapshot);
+    if (!Object.keys(changes).length) {
+      syncedVersion = Math.max(syncedVersion, syncVersion);
+      serverSnapshot = snapshot;
+      return Promise.resolve(cache);
+    }
     const version = syncVersion;
     syncInFlight = true;
     syncPending = false;
     syncPromise = (async () => {
-      const response = await fetch(apiUrl(), {
-        method: "PUT",
+      let response = await fetch(apiUrl(), {
+        method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ state: snapshot })
+        body: JSON.stringify({ changes, baseRevision: serverRevision })
       });
+      if ([404, 405].includes(response.status)) {
+        response = await fetch(apiUrl(), {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ state: snapshot })
+        });
+      }
       if (!response.ok) throw new Error("Store sync failed");
+      const payload = await response.json().catch(() => ({}));
+      serverRevision = Math.max(serverRevision, Number(payload.revision) || 0);
+      serverSnapshot = snapshot;
       syncedVersion = Math.max(syncedVersion, version);
       lastSyncError = null;
       return cache;
@@ -177,15 +213,43 @@
   }
 
   async function refresh() {
+    if (syncInFlight) return read();
+    const headers = { Accept: "application/json" };
+    if (storeEtag) headers["If-None-Match"] = storeEtag;
     const response = await fetch(apiUrl(), {
       credentials: "include",
-      headers: { Accept: "application/json" },
-      cache: "no-store"
+      headers,
+      cache: "no-cache"
     });
+    if (response.status === 304) return read();
     if (!response.ok) throw new Error("Store refresh failed");
     const payload = await response.json();
-    if (payload?.state) cache = normalize(payload.state);
+    if (payload?.state) {
+      const fresh = normalize(payload.state);
+      const pendingChanges = syncedVersion < syncVersion ? changedTopLevel(serverSnapshot || fallbackState, cache) : {};
+      cache = normalize({ ...fresh, ...pendingChanges });
+      serverSnapshot = fresh;
+      serverRevision = Math.max(serverRevision, Number(payload.revision) || 0);
+      storeEtag = response.headers.get("ETag") || storeEtag;
+    }
     return read();
+  }
+
+  function connectEvents() {
+    if (!("EventSource" in window) || eventSource) return;
+    eventSource = new EventSource(apiUrl("/api/events"), { withCredentials: true });
+    eventSource.addEventListener("store", (event) => {
+      let message = {};
+      try { message = JSON.parse(event.data || "{}"); } catch (error) { return; }
+      if (Number(message.revision) <= serverRevision) return;
+      refresh().then((data) => notify(data, "realtime")).catch(() => null);
+    });
+  }
+
+  function subscribe(listener) {
+    if (typeof listener !== "function") return () => {};
+    listeners.add(listener);
+    return () => listeners.delete(listener);
   }
 
   function scheduleSync() {
@@ -238,23 +302,12 @@
   async function init() {
     cache = readLocalFallback();
     try {
-      const response = await fetch(apiUrl(), {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-        cache: "no-store"
-      });
-      if (response.ok) {
-        const payload = await response.json();
-        if (payload && payload.state) {
-          cache = normalize(payload.state);
-          return cache;
-        }
-      }
-
-      await syncNow();
+      await refresh();
     } catch (error) {
       cache = readLocalFallback();
     }
+    serverSnapshot = clone(cache);
+    connectEvents();
     return cache;
   }
 
@@ -267,6 +320,7 @@
     flushSync,
     update,
     updateFromServer,
-    clearProfile
+    clearProfile,
+    subscribe
   };
 })();
