@@ -198,7 +198,12 @@
         product,
         type: selectedType || product.productType || "other",
         context,
-        onSave: (payload) => { context.actions.saveProduct(payload); mode = "list"; editingId = ""; },
+        onSave: async (payload) => {
+          await context.actions.saveProduct(payload);
+          mode = "list";
+          editingId = "";
+          root.replaceChildren(render(context));
+        },
         onCancel: () => { mode = "list"; editingId = ""; root.replaceChildren(render(context)); },
         onDuplicate: (payload) => context.actions.saveProduct({ ...payload, id: "", name: `${payload.name || "Товар"} копия` })
       }));

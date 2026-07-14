@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { DomainStore, MediaStore, migrateStoreMedia } = require("../lib/infrastructure");
 
 const dataDir = path.join(os.tmpdir(), `sona-integration-${process.pid}-${Date.now()}`);
 process.env.NODE_ENV = "test";
@@ -13,6 +14,31 @@ process.env.SONA_TEST_ADMIN_PASSWORD = "SonaTest2026!";
 process.env.SONA_TEST_AUTH_CODE = "123456";
 
 const { createServer } = require("../server");
+
+test("legacy Base64 catalog media is migrated to compact persistent files", async (context) => {
+  const migrationDir = path.join(os.tmpdir(), `sona-media-migration-${process.pid}-${Date.now()}`);
+  context.after(() => fs.rmSync(migrationDir, { recursive: true, force: true }));
+  const legacyStore = new DomainStore({ dataDir: migrationDir, legacyFile: path.join(migrationDir, "store.json") });
+  const legacyMedia = new MediaStore(migrationDir);
+  const dataUrl = `data:image/png;base64,${Buffer.alloc(256 * 1024, 7).toString("base64")}`;
+  await legacyStore.write({
+    customProducts: Array.from({ length: 6 }, (_, index) => ({
+      id: `legacy-${index}`,
+      name: `Legacy ${index}`,
+      image: dataUrl
+    }))
+  });
+  const beforeBytes = Buffer.byteLength(JSON.stringify(legacyStore.read()));
+  const migration = await migrateStoreMedia(legacyStore, legacyMedia);
+  const migrated = legacyStore.read();
+  const afterBytes = Buffer.byteLength(JSON.stringify(migrated));
+
+  assert.equal(migration.migratedItems, 6);
+  assert.ok(afterBytes < beforeBytes / 100);
+  assert.ok(migrated.customProducts.every((product) => /^\/media\/[a-f0-9]{64}\.png$/.test(product.image)));
+  assert.equal(fs.readdirSync(path.join(migrationDir, "media")).length, 1);
+  context.diagnostic(`legacy catalog bytes: ${beforeBytes} -> ${afterBytes}; migrated media: ${migration.migratedItems}`);
+});
 
 function jar() {
   return { cookie: "" };
@@ -79,11 +105,22 @@ test("marketplace performance and critical commerce regression", async (context)
     hidden: false,
     image: ""
   };
-  const created = await request(baseUrl, "/api/store", {
-    method: "PATCH",
-    body: { changes: { customProducts: [product] } }
+  const imageDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+  const media = await request(baseUrl, "/api/admin/media", {
+    method: "POST",
+    body: { dataUrl: imageDataUrl }
+  }, adminJar);
+  assert.equal(media.response.status, 201);
+  assert.match(media.data.url, /^\/media\/[a-f0-9]{64}\.png$/);
+  product.image = media.data.url;
+  const createBody = { product, baseProduct: false };
+  assert.ok(Buffer.byteLength(JSON.stringify(createBody)) < 5000);
+  const created = await request(baseUrl, `/api/admin/products/${product.id}`, {
+    method: "PUT",
+    body: createBody
   }, adminJar);
   assert.equal(created.response.status, 200);
+  assert.match(created.response.headers.get("server-timing"), /^sona;dur=/);
 
   let eventText = "";
   const eventDeadline = Date.now() + 3000;
@@ -102,13 +139,40 @@ test("marketplace performance and critical commerce regression", async (context)
   assert.equal(publicStore.data.state.customProducts.find((item) => item.id === product.id)?.price, 88000);
 
   product.price = 91000;
-  product.image = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-  await request(baseUrl, "/api/store", { method: "PATCH", body: { changes: { customProducts: [product] } } }, adminJar);
+  const editStartedAt = performance.now();
+  const productEdit = await request(baseUrl, `/api/admin/products/${product.id}`, {
+    method: "PUT",
+    body: { product, baseProduct: false }
+  }, adminJar);
+  const editDuration = performance.now() - editStartedAt;
+  assert.equal(productEdit.response.status, 200);
+  assert.ok(editDuration < 1000, `compact product edit took ${editDuration.toFixed(1)} ms`);
   const editedStore = await request(baseUrl, "/api/store");
   const edited = editedStore.data.state.customProducts.find((item) => item.id === product.id);
   assert.equal(edited.price, 91000);
   assert.match(edited.image, /^\/media\/[a-f0-9]{64}\.png$/);
+  assert.ok(Buffer.byteLength(JSON.stringify(editedStore.data)) < 50000);
   assert.equal((await fetch(`${baseUrl}${edited.image}`)).status, 200);
+
+  const editDurations = [];
+  const serverDurations = [];
+  for (let index = 0; index < 12; index += 1) {
+    product.price = 91000 + index;
+    const startedAt = performance.now();
+    const result = await request(baseUrl, `/api/admin/products/${product.id}`, {
+      method: "PUT",
+      body: { product, baseProduct: false }
+    }, adminJar);
+    editDurations.push(performance.now() - startedAt);
+    serverDurations.push(Number((result.response.headers.get("server-timing") || "").match(/dur=([\d.]+)/)?.[1] || 0));
+    assert.equal(result.response.status, 200);
+  }
+  const sortedDurations = [...editDurations].sort((left, right) => left - right);
+  const p95 = sortedDurations[Math.ceil(sortedDurations.length * 0.95) - 1];
+  const average = editDurations.reduce((total, value) => total + value, 0) / editDurations.length;
+  const serverAverage = serverDurations.reduce((total, value) => total + value, 0) / serverDurations.length;
+  assert.ok(p95 < 100, `compact product edit p95 took ${p95.toFixed(1)} ms`);
+  context.diagnostic(`compact product edit (12 runs): avg=${average.toFixed(1)}ms p95=${p95.toFixed(1)}ms server-avg=${serverAverage.toFixed(1)}ms body=${Buffer.byteLength(JSON.stringify({ product, baseProduct: false }))}B store=${Buffer.byteLength(JSON.stringify(editedStore.data))}B`);
 
   const domainDir = path.join(dataDir, "domains");
   const domainTimes = new Map(fs.readdirSync(domainDir).map((name) => [name, fs.statSync(path.join(domainDir, name)).mtimeMs]));

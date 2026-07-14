@@ -55,12 +55,14 @@
       }
       const reader = new FileReader();
       reader.addEventListener("load", () => {
-        onAdd({
+        const uploadedFile = {
           id: `FAB-${Date.now()}-${Math.random().toString(16).slice(2)}`,
           name: file.name || "file",
           type: file.type || "application/octet-stream",
           src: String(reader.result || "")
-        });
+        };
+        window.dispatchEvent(new CustomEvent("sona:media-selected", { detail: { dataUrl: uploadedFile.src } }));
+        onAdd(uploadedFile);
       });
       reader.readAsDataURL(file);
     });

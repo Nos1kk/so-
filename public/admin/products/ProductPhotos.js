@@ -25,13 +25,15 @@
       }
       const reader = new FileReader();
       reader.addEventListener("load", () => {
-        onAdd({
+        const photo = {
           id: `IMG-${Date.now()}-${Math.random().toString(16).slice(2)}`,
           src: String(reader.result || ""),
           alt: file.name.replace(/\.[^.]+$/, ""),
           main: false,
           type: file.type
-        });
+        };
+        window.dispatchEvent(new CustomEvent("sona:media-selected", { detail: { dataUrl: photo.src } }));
+        onAdd(photo);
       });
       reader.readAsDataURL(file);
     });

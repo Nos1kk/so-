@@ -3,6 +3,7 @@
 
   const security = window.SonaSecurity;
   const store = window.SonaStore;
+  const mediaUploadCache = new Map();
   const ALL_VALUE = "все";
   const REMOVED_PRODUCT_IDS = new Set([
     "luna-cloud",
@@ -491,6 +492,46 @@
     return localPreview ? `http://127.0.0.1:8000${path}` : path;
   }
 
+  function queueAdminMediaUpload(dataUrl) {
+    if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:")) return Promise.resolve(dataUrl);
+    if (mediaUploadCache.has(dataUrl)) return mediaUploadCache.get(dataUrl);
+
+    const upload = fetch(apiUrl("/api/admin/media"), {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ dataUrl })
+    }).then(async (response) => {
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.url) throw new Error(result.error || "Media upload failed");
+      window.setTimeout(() => mediaUploadCache.delete(dataUrl), 60 * 1000);
+      return result.url;
+    }).catch((error) => {
+      mediaUploadCache.delete(dataUrl);
+      throw error;
+    });
+    mediaUploadCache.set(dataUrl, upload);
+    return upload;
+  }
+
+  async function externalizeAdminMedia(value, depth = 0) {
+    if (depth > 12) return value;
+    if (typeof value === "string") return value.startsWith("data:") ? queueAdminMediaUpload(value) : value;
+    if (Array.isArray(value)) return Promise.all(value.map((item) => externalizeAdminMedia(item, depth + 1)));
+    if (!value || typeof value !== "object") return value;
+    const entries = await Promise.all(Object.entries(value).map(async ([key, item]) => (
+      [key, await externalizeAdminMedia(item, depth + 1)]
+    )));
+    return Object.fromEntries(entries);
+  }
+
+  window.addEventListener("sona:media-selected", (event) => {
+    const dataUrl = event.detail?.dataUrl;
+    if (typeof dataUrl === "string" && dataUrl.startsWith("data:")) {
+      queueAdminMediaUpload(dataUrl).catch(() => null);
+    }
+  });
+
   function isAdminAccount(data = store.read()) {
     return data?.profile?.role === "admin" || Boolean(window.SonaAdmin?.isAdmin?.(data));
   }
@@ -583,7 +624,7 @@
     state.products = applyProductAdminState(state.baseProducts);
   }
 
-  function saveAdminProduct(product) {
+  async function saveAdminProduct(product) {
     const productInput = { ...product };
     delete productInput.imageFile;
     delete productInput.shortDescription;
@@ -630,35 +671,63 @@
         .filter(Boolean)
     };
 
-    store.update((data) => {
-      const baseExists = state.baseProducts.some((item) => item.id === cleanId);
-      if (baseExists) {
-        data.productOverrides = {
-          ...(data.productOverrides || {}),
-          [cleanId]: normalized
-        };
-      } else {
-        const rows = (data.customProducts || []).filter((item) => item.id !== cleanId);
-        rows.push(normalized);
-        data.customProducts = rows;
-      }
-      data.deletedProducts = (data.deletedProducts || []).filter((id) => id !== cleanId);
-    });
+    const baseExists = state.baseProducts.some((item) => item.id === cleanId);
+    try {
+      const compactProduct = await externalizeAdminMedia(normalized);
+      const response = await fetch(apiUrl(`/api/admin/products/${encodeURIComponent(cleanId)}`), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ product: compactProduct, baseProduct: baseExists })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.product) throw new Error(result.error || "Product save failed");
 
-    refreshProductsFromAdmin();
-    render();
-    showToast("Товар сохранён");
+      (store.updateFromServer || store.update)((data) => {
+        if (result.kind === "override") {
+          data.productOverrides = {
+            ...(data.productOverrides || {}),
+            [cleanId]: result.product
+          };
+        } else {
+          const rows = (data.customProducts || []).filter((item) => item.id !== cleanId);
+          rows.push(result.product);
+          data.customProducts = rows;
+        }
+        data.deletedProducts = (data.deletedProducts || []).filter((id) => id !== cleanId);
+      }, { revision: result.revision });
+
+      refreshProductsFromAdmin();
+      render();
+      showToast("Товар сохранён на сервере");
+      return result.product;
+    } catch (error) {
+      showToast("Не удалось сохранить товар");
+      throw error;
+    }
   }
 
-  function deleteAdminProduct(productId) {
-    store.update((data) => {
-      data.deletedProducts = [...new Set([...(data.deletedProducts || []), productId])];
-      data.customProducts = (data.customProducts || []).filter((item) => item.id !== productId);
-    });
-
-    refreshProductsFromAdmin();
-    render();
-    showToast("Товар удалён с витрины");
+  async function deleteAdminProduct(productId) {
+    try {
+      const response = await fetch(apiUrl(`/api/admin/products/${encodeURIComponent(productId)}`), {
+        method: "DELETE",
+        credentials: "include",
+        headers: { Accept: "application/json" }
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.error || "Product delete failed");
+      (store.updateFromServer || store.update)((data) => {
+        data.deletedProducts = [...new Set([...(data.deletedProducts || []), productId])];
+        data.customProducts = (data.customProducts || []).filter((item) => item.id !== productId);
+      }, { revision: result.revision });
+      refreshProductsFromAdmin();
+      render();
+      showToast("Товар удалён с витрины");
+      return true;
+    } catch (error) {
+      showToast("Не удалось удалить товар");
+      throw error;
+    }
   }
 
   async function updateAdminOrder(orderId, patch) {

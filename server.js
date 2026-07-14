@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const net = require("net");
 const tls = require("tls");
 const { spawn } = require("child_process");
-const { DomainStore, AnalyticsJournal, MediaStore, MailOutbox } = require("./lib/infrastructure");
+const { DomainStore, AnalyticsJournal, MediaStore, MailOutbox, migrateStoreMedia } = require("./lib/infrastructure");
 
 loadEnvFile(path.join(__dirname, ".env"));
 
@@ -37,7 +37,6 @@ const telegramLinkTokens = new Map();
 let storeCache = null;
 let accountsCache = null;
 let storeBackupTimer = null;
-let pendingStoreBackup = null;
 let accountsBackupTimer = null;
 let pendingAccountsBackup = null;
 const domainStore = new DomainStore({ dataDir: DATA_DIR, legacyFile: STORE_FILE });
@@ -208,7 +207,7 @@ function setApiCorsHeaders(res) {
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Vary", "Origin");
   }
-  res.setHeader("Access-Control-Allow-Methods", "GET, PUT, POST, PATCH, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, PUT, POST, PATCH, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
 }
 
@@ -1411,13 +1410,11 @@ function writeLatestStoreBackup(state, callback = () => {}) {
   });
 }
 
-function scheduleStoreBackup(state) {
-  pendingStoreBackup = sanitizeJsonValue(state || {});
+function scheduleStoreBackup() {
   if (storeBackupTimer) clearTimeout(storeBackupTimer);
   storeBackupTimer = setTimeout(() => {
-    const snapshot = pendingStoreBackup;
-    pendingStoreBackup = null;
     storeBackupTimer = null;
+    const snapshot = domainStore.read();
     writeLatestStoreBackup(snapshot, (backupError) => {
       if (backupError) {
         console.warn("Unable to write latest store backup:", backupError.message);
@@ -1431,7 +1428,7 @@ function writeStore(state, callback) {
   domainStore.write(state)
     .then((result) => {
       callback(null, result);
-      scheduleStoreBackup(domainStore.read());
+      scheduleStoreBackup();
     })
     .catch(callback);
 }
@@ -1611,6 +1608,137 @@ function handleStorePut(req, res) {
       }).catch((mediaError) => sendJson(res, 400, { ok: false, error: mediaError.message || "Invalid media payload" }));
     });
   }, { maxBytes: 40 * 1024 * 1024 });
+}
+
+function normalizeProductId(value) {
+  return String(value || "").trim().replace(/[^a-z0-9-]/gi, "").slice(0, 48);
+}
+
+function serverTimingHeader(startedAt) {
+  const duration = Number(process.hrtime.bigint() - startedAt) / 1e6;
+  return `sona;dur=${duration.toFixed(1)}`;
+}
+
+function handleAdminMediaUpload(req, res) {
+  if (!requireAdmin(req, res)) return;
+  const startedAt = process.hrtime.bigint();
+  readJsonBody(req, async (error, body) => {
+    const dataUrl = typeof body?.dataUrl === "string" ? body.dataUrl : "";
+    if (error || !/^data:[^;,]+;base64,/i.test(dataUrl)) {
+      sendJson(res, 400, { ok: false, error: "Invalid media payload" });
+      return;
+    }
+    try {
+      const url = await mediaStore.saveDataUrl(dataUrl);
+      sendJson(res, 201, { ok: true, url }, {
+        headers: { "Server-Timing": serverTimingHeader(startedAt) }
+      });
+    } catch (mediaError) {
+      sendJson(res, 400, { ok: false, error: mediaError.message || "Media upload failed" });
+    }
+  }, { maxBytes: 28 * 1024 * 1024 });
+}
+
+function handleAdminProductUpsert(req, res, rawProductId) {
+  if (!requireAdmin(req, res)) return;
+  const startedAt = process.hrtime.bigint();
+  let productId = "";
+  try {
+    productId = normalizeProductId(decodeURIComponent(rawProductId));
+  } catch (error) {
+    productId = "";
+  }
+  if (!productId) {
+    sendJson(res, 400, { ok: false, error: "Invalid product id" });
+    return;
+  }
+
+  readJsonBody(req, async (error, body) => {
+    const cleanProduct = sanitizeJsonValue(body?.product);
+    if (error || !cleanProduct || typeof cleanProduct !== "object" || Array.isArray(cleanProduct)) {
+      sendJson(res, 400, { ok: false, error: "Invalid product payload" });
+      return;
+    }
+
+    try {
+      cleanProduct.id = productId;
+      const storedProduct = await mediaStore.externalize(cleanProduct);
+      readStore((readError, current) => {
+        if (readError) {
+          sendJson(res, 500, { ok: false, error: "Store unavailable" });
+          return;
+        }
+
+        const baseProduct = body?.baseProduct === true;
+        const next = { ...(current || {}) };
+        if (baseProduct) {
+          next.productOverrides = {
+            ...(current?.productOverrides || {}),
+            [productId]: storedProduct
+          };
+        } else {
+          next.customProducts = [
+            ...(current?.customProducts || []).filter((item) => item?.id !== productId),
+            storedProduct
+          ];
+        }
+        next.deletedProducts = (current?.deletedProducts || []).filter((id) => id !== productId);
+
+        writeStore(next, (writeError, result) => {
+          if (writeError) {
+            sendJson(res, 500, { ok: false, error: "Product save failed" });
+            return;
+          }
+          sendJson(res, 200, {
+            ok: true,
+            product: storedProduct,
+            kind: baseProduct ? "override" : "custom",
+            revision: result?.revision || domainStore.revision
+          }, { headers: { "Server-Timing": serverTimingHeader(startedAt) } });
+        });
+      });
+    } catch (mediaError) {
+      sendJson(res, 400, { ok: false, error: mediaError.message || "Invalid product media" });
+    }
+  }, { maxBytes: 28 * 1024 * 1024 });
+}
+
+function handleAdminProductDelete(req, res, rawProductId) {
+  if (!requireAdmin(req, res)) return;
+  const startedAt = process.hrtime.bigint();
+  let productId = "";
+  try {
+    productId = normalizeProductId(decodeURIComponent(rawProductId));
+  } catch (error) {
+    productId = "";
+  }
+  if (!productId) {
+    sendJson(res, 400, { ok: false, error: "Invalid product id" });
+    return;
+  }
+
+  readStore((readError, current) => {
+    if (readError) {
+      sendJson(res, 500, { ok: false, error: "Store unavailable" });
+      return;
+    }
+    const next = {
+      ...(current || {}),
+      customProducts: (current?.customProducts || []).filter((item) => item?.id !== productId),
+      deletedProducts: [...new Set([...(current?.deletedProducts || []), productId])]
+    };
+    writeStore(next, (writeError, result) => {
+      if (writeError) {
+        sendJson(res, 500, { ok: false, error: "Product delete failed" });
+        return;
+      }
+      sendJson(res, 200, {
+        ok: true,
+        productId,
+        revision: result?.revision || domainStore.revision
+      }, { headers: { "Server-Timing": serverTimingHeader(startedAt) } });
+    });
+  });
 }
 
 function handleStoreBackupDownload(req, res) {
@@ -2911,6 +3039,22 @@ function createServer() {
     return;
   }
 
+  if (req.method === "POST" && req.url === "/api/admin/media") {
+    handleAdminMediaUpload(req, res);
+    return;
+  }
+
+  const adminProductMatch = String(req.url || "").match(/^\/api\/admin\/products\/([^/?]+)$/);
+  if (["PUT", "PATCH"].includes(req.method) && adminProductMatch) {
+    handleAdminProductUpsert(req, res, adminProductMatch[1]);
+    return;
+  }
+
+  if (req.method === "DELETE" && adminProductMatch) {
+    handleAdminProductDelete(req, res, adminProductMatch[1]);
+    return;
+  }
+
   if (req.method === "GET" && req.url === "/api/store") {
     handleStoreGet(req, res);
     return;
@@ -3013,10 +3157,21 @@ function createServer() {
 
 if (require.main === module) {
   const server = createServer();
-  server.listen(PORT, HOST, () => {
-    console.log(`SONA marketplace is running on http://${HOST}:${PORT}`);
-    startTelegramPolling();
-  });
+  migrateStoreMedia(domainStore, mediaStore)
+    .then((migration) => {
+      if (migration.changed) {
+        console.log(`Migrated ${migration.migratedItems} legacy media items to persistent files.`);
+        scheduleStoreBackup();
+      }
+      server.listen(PORT, HOST, () => {
+        console.log(`SONA marketplace is running on http://${HOST}:${PORT}`);
+        startTelegramPolling();
+      });
+    })
+    .catch((error) => {
+      console.error(`Unable to prepare persistent store: ${error.message}`);
+      process.exitCode = 1;
+    });
 
   function shutdown(signal) {
     console.log(`Received ${signal}. Closing SONA server...`);
@@ -3030,5 +3185,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-  createServer
+  createServer,
+  migrateStoreMedia: () => migrateStoreMedia(domainStore, mediaStore)
 };
