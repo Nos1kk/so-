@@ -491,6 +491,10 @@
     return localPreview ? `http://127.0.0.1:8000${path}` : path;
   }
 
+  function isAdminAccount(data = store.read()) {
+    return data?.profile?.role === "admin" || Boolean(window.SonaAdmin?.isAdmin?.(data));
+  }
+
   function analyticsSessionId() {
     const key = "sona.analytics.session.v1";
     const now = Date.now();
@@ -1167,10 +1171,17 @@
     closeFilters();
     closeProduct();
     closeSortMenu();
-    renderRoute();
-    trackAnalytics(route === "category" ? "category_view" : "route_view", {
-      category: route === "category" ? String(state.categoryPage?.key || "all") : route
-    });
+    const renderNextRoute = () => {
+      renderRoute();
+      trackAnalytics(route === "category" ? "category_view" : "route_view", {
+        category: route === "category" ? String(state.categoryPage?.key || "all") : route
+      });
+    };
+    if (window.SonaModules?.ready?.(nextRoute) === false) {
+      window.SonaModules.ensure(nextRoute).then(renderNextRoute).catch(renderNextRoute);
+    } else {
+      renderNextRoute();
+    }
 
     if (syncUrl) {
       const currentPath = `${window.location.pathname}${window.location.search}`;
@@ -2912,11 +2923,11 @@
     els.checkoutButton.disabled = !rows.length;
     if (els.cartSummary) els.cartSummary.hidden = !rows.length;
     if (els.profileButtonLabel) {
-      els.profileButtonLabel.textContent = window.SonaAdmin?.isAdmin(store.read()) ? "Админ" : (isProfileActive() ? "Профиль" : "Войти");
+      els.profileButtonLabel.textContent = isAdminAccount() ? "Админ" : (isProfileActive() ? "Профиль" : "Войти");
     }
     const mobileProfileLabel = document.querySelector('[data-mobile-action="profile"] strong');
     if (mobileProfileLabel) {
-      mobileProfileLabel.textContent = window.SonaAdmin?.isAdmin(store.read()) ? "Админ" : (isProfileActive() ? "Профиль" : "Войти");
+      mobileProfileLabel.textContent = isAdminAccount() ? "Админ" : (isProfileActive() ? "Профиль" : "Войти");
     }
 
     if (!rows.length) {
@@ -3226,7 +3237,7 @@
 
   function renderProfilePage() {
     if (!els.profilePageContent || !state.products.length || !window.SonaProfile) return;
-    if (window.SonaAdmin?.isAdmin(store.read())) return;
+    if (isAdminAccount()) return;
 
     window.SonaProfile.render({
       container: els.profilePageContent,
@@ -3730,10 +3741,14 @@
   }
 
   function renderRoute() {
-    if (state.route === "profile" && window.SonaAdmin?.isAdmin(store.read())) {
+    if (state.route === "profile" && isAdminAccount()) {
       state.route = "admin";
       if (window.location.pathname !== "/admin") {
         window.history.replaceState({ route: "admin" }, "", "/admin");
+      }
+      if (window.SonaModules?.ready?.("admin") === false) {
+        window.SonaModules.ensure("admin").then(renderRoute).catch(() => null);
+        return;
       }
     }
 
@@ -3756,11 +3771,11 @@
     document.body.classList.toggle("profile-view", isProfile);
     document.body.classList.toggle("admin-view", isAdmin);
 
-    renderCart();
-    renderCategoryPage();
-    renderProfilePage();
-    renderFavoritesPage();
-    renderAdminPage();
+    if (isCart) renderCart();
+    if (isCategory) renderCategoryPage();
+    if (isProfile) renderProfilePage();
+    if (isFavorites) renderFavoritesPage();
+    if (isAdmin) renderAdminPage();
     renderSupportChat();
     updateNavState();
     updateQuickNav();
@@ -4075,11 +4090,18 @@
 
     els.checkoutButton.disabled = true;
     try {
+      const checkoutKeyName = "sona.checkout.idempotency.v1";
+      let idempotencyKey = sessionStorage.getItem(checkoutKeyName);
+      if (!idempotencyKey) {
+        idempotencyKey = crypto.randomUUID?.() || `checkout-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        sessionStorage.setItem(checkoutKeyName, idempotencyKey);
+      }
       const response = await fetch(apiUrl("/api/orders"), {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json", "Idempotency-Key": idempotencyKey },
         body: JSON.stringify({
+          idempotencyKey,
           total,
           profile: {
             name: security.sanitizeText(profile.name, 40),
@@ -4092,6 +4114,7 @@
       });
       const result = await response.json();
       if (!response.ok || !result.order) throw new Error(result.error || "Checkout failed");
+      sessionStorage.removeItem(checkoutKeyName);
       store.update((nextData) => {
         nextData.orders = [...(nextData.orders || []).filter((order) => order.id !== result.order.id), result.order];
         nextData.cart = {};
@@ -4447,7 +4470,7 @@
         if (action === "catalog") goToCatalog();
         if (action === "favorites") showFavorites();
         if (action === "cart") openCart();
-        if (action === "profile") navigateTo(window.SonaAdmin?.isAdmin(store.read()) ? "admin" : "profile");
+        if (action === "profile") navigateTo(isAdminAccount() ? "admin" : "profile");
         button.blur();
       });
     });
@@ -4455,7 +4478,7 @@
     document.querySelectorAll("[data-close-product]").forEach((button) => button.addEventListener("click", closeProduct));
     els.checkoutButton.addEventListener("click", checkout);
 
-    els.profileButton.addEventListener("click", () => navigateTo(window.SonaAdmin?.isAdmin(store.read()) ? "admin" : "profile"));
+    els.profileButton.addEventListener("click", () => navigateTo(isAdminAccount() ? "admin" : "profile"));
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         if (closeProductShareMenu()) return;
@@ -4487,6 +4510,19 @@
     let refreshPending = false;
     let signature = storeStateSignature(store.read());
 
+    const applyRefreshedState = (data) => {
+      const nextSignature = storeStateSignature(data || store.read());
+      if (nextSignature === signature) return;
+      signature = nextSignature;
+      refreshProductsFromAdmin();
+      if (state.route === "admin") {
+        renderAdminPage();
+        renderAds();
+      } else if (["profile", "product", "home", "category", "cart", "favorites"].includes(state.route)) {
+        render();
+      }
+    };
+
     const refreshWhenActive = async () => {
       if (refreshPending || document.hidden) return;
       const supportOpen = Boolean(document.querySelector(".sona-support-widget.is-open")) || state.route === "admin";
@@ -4495,17 +4531,7 @@
       refreshPending = true;
       try {
         const data = await store.refresh?.();
-        const nextSignature = storeStateSignature(data || store.read());
-        if (nextSignature === signature) return;
-
-        signature = nextSignature;
-        refreshProductsFromAdmin();
-        if (state.route === "admin") {
-          renderAdminPage();
-          renderAds();
-        } else if (supportOpen || ["profile", "product", "home", "category"].includes(state.route)) {
-          render();
-        }
+        applyRefreshedState(data);
       } catch (error) {
         // Keep the current UI intact when background synchronization is unavailable.
       } finally {
@@ -4517,21 +4543,25 @@
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) refreshWhenActive();
     }, { passive: true });
-    window.setInterval(refreshWhenActive, 5000);
+    store.subscribe?.((data) => applyRefreshedState(data));
+    window.setInterval(refreshWhenActive, 60000);
   }
 
   async function init() {
     try {
-      await store.init?.();
       bindEvents();
       initExperience();
-      const response = await fetch("data/products.json", { headers: { Accept: "application/json" } });
+      const [storeResult, response] = await Promise.all([
+        store.init?.(),
+        fetch("data/products.json", { headers: { Accept: "application/json" } })
+      ]);
       if (!response.ok) {
         throw new Error("Products loading failed");
       }
       state.baseProducts = [...await response.json(), ...PERMANENT_SOFA_PRODUCTS];
       refreshProductsFromAdmin();
       state.route = routeFromLocation();
+      await window.SonaModules?.ensure?.(state.route);
       render();
       trackAnalytics("visit", { category: state.route });
       bindPassiveStoreRefresh();
@@ -4543,4 +4573,3 @@
 
   init();
 })();
-
