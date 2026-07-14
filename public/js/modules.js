@@ -7,11 +7,11 @@
     admin: [
       "admin/products/productSchemas.js?v=20260714-1",
       "admin/products/ProductCategorySelect.js?v=20260714-1",
-      "admin/products/ProductPhotos.js?v=20260714-1",
-      "admin/products/ProductVariants.js?v=20260714-1",
+      "admin/products/ProductPhotos.js?v=20260715-1",
+      "admin/products/ProductVariants.js?v=20260715-1",
       "admin/products/ProductPreview.js?v=20260714-1",
-      "admin/products/ProductEditor.js?v=20260714-1",
-      "admin/products/ProductsPage.js?v=20260714-1",
+      "admin/products/ProductEditor.js?v=20260715-1",
+      "admin/products/ProductsPage.js?v=20260715-1",
       "admin/Admin.js?v=20260714-1"
     ]
   };
