@@ -2090,3 +2090,206 @@
     font-size: clamp(3rem, 4vw, 4.2rem) !important;
   }
 }
+
+/* Desktop-only homepage card corrections (mobile stays isolated at <= 760px). */
+@media (min-width: 761px) {
+  /* The catalog drawer must start below the complete desktop header. */
+  body:not(.is-scrolled-down) .filter-panel {
+    inset: 228px auto auto 20px !important;
+    max-height: calc(100dvh - 246px) !important;
+  }
+
+  body.is-scrolled-down .filter-panel {
+    inset: 86px auto auto 20px !important;
+    max-height: calc(100dvh - 104px) !important;
+  }
+
+  /* Remove the extra white plates around all category cut-out images. */
+  .catalog-hub-card .catalog-hub-photo {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .catalog-hub-card .catalog-hub-photo::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .catalog-hub-card .catalog-hub-photo img {
+    padding: 0 !important;
+    transform: none !important;
+    transition: transform 320ms cubic-bezier(.22, 1, .36, 1), filter 320ms ease !important;
+  }
+
+  /* The main sofa fills the card without a background plate. */
+  .catalog-hub-card--hero .catalog-hub-photo {
+    position: absolute !important;
+    inset: 6px 4px auto 38px !important;
+    width: calc(100% - 42px) !important;
+    height: 320px !important;
+    overflow: hidden !important;
+    transform: none !important;
+  }
+
+  .catalog-hub-card--hero .catalog-hub-photo img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    object-fit: cover !important;
+    object-position: 50% 42% !important;
+  }
+
+  /* Chair copy moves up while the chair itself sits on the right. */
+  .catalog-hub-card--chair {
+    align-content: start !important;
+  }
+
+  .catalog-hub-card--chair .catalog-hub-photo {
+    inset: 8px 0 auto auto !important;
+    width: 62% !important;
+    height: 188px !important;
+  }
+
+  .catalog-hub-card--chair strong {
+    position: relative;
+    z-index: 2;
+    max-width: 51% !important;
+    margin-top: 28px !important;
+    padding-top: 0 !important;
+  }
+
+  /* Use the same full-card artwork that is already used on mobile services. */
+  .catalog-hub-card--service {
+    display: block !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .catalog-hub-card--service .catalog-service-banner {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    object-fit: cover !important;
+    object-position: center !important;
+  }
+
+  .catalog-hub-card--service .catalog-service-banner__action,
+  .catalog-hub-card--service .catalog-hub-photo,
+  .catalog-hub-card--service .catalog-hub-card__label,
+  .catalog-hub-card--service strong,
+  .catalog-hub-card--service small,
+  .catalog-hub-card--service .catalog-service-list {
+    display: none !important;
+  }
+
+  /* The weekly offer artwork now covers the complete card. */
+  .catalog-hub-card--sale {
+    padding: 0 !important;
+  }
+
+  .catalog-sale-banner__image {
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    opacity: 1 !important;
+    transition: transform 320ms cubic-bezier(.22, 1, .36, 1), filter 320ms ease !important;
+  }
+
+  .catalog-sale-banner__content {
+    position: absolute !important;
+    inset: 0 auto 0 0 !important;
+    width: 72% !important;
+    min-height: 0 !important;
+    max-width: 72% !important;
+    box-sizing: border-box !important;
+    align-content: center !important;
+    padding: 24px !important;
+  }
+
+  .catalog-sale-banner__discount {
+    display: none !important;
+  }
+
+  /* One shared arrow implementation for every desktop catalog card. */
+  .catalog-hub-card--hero b,
+  .catalog-sale-banner__content b,
+  .catalog-hub-card--service .catalog-service-banner__action {
+    display: none !important;
+  }
+
+  .catalog-hub-card::after {
+    content: "\2192" !important;
+    position: absolute !important;
+    right: 24px !important;
+    bottom: 22px !important;
+    left: auto !important;
+    z-index: 6 !important;
+    width: 54px !important;
+    height: 54px !important;
+    display: grid !important;
+    place-items: center !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, .94) !important;
+    color: var(--premium-blue) !important;
+    font-size: 1.45rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    opacity: 1 !important;
+    box-shadow: 0 14px 28px rgba(7, 26, 61, .13) !important;
+    transform: translate3d(0, 0, 0) scale(1) !important;
+    transition: transform 220ms cubic-bezier(.22, 1, .36, 1), background-color 180ms ease, box-shadow 220ms ease !important;
+    pointer-events: none;
+  }
+
+  .catalog-hub-card--hero::after {
+    right: 38px !important;
+    bottom: 34px !important;
+    left: auto !important;
+  }
+
+  .catalog-hub-card:hover::after,
+  .catalog-hub-card:focus-visible::after {
+    background: #fff !important;
+    box-shadow: 0 17px 32px rgba(7, 26, 61, .18) !important;
+    transform: translate3d(4px, 0, 0) scale(1.045) !important;
+  }
+
+  .catalog-hub-card:active::after {
+    transform: translate3d(2px, 0, 0) scale(.9) !important;
+    transition-duration: 90ms !important;
+  }
+
+  /* Cards stay still; only their artwork gets a small, stable zoom. */
+  .catalog-hub-card,
+  .catalog-hub-card:hover,
+  .catalog-hub-card:focus-visible {
+    transform: none !important;
+  }
+
+  .catalog-hub-card:hover .catalog-hub-photo,
+  .catalog-hub-card:focus-visible .catalog-hub-photo {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .catalog-hub-card:hover .catalog-hub-photo img,
+  .catalog-hub-card:focus-visible .catalog-hub-photo img,
+  .catalog-hub-card--service:hover .catalog-service-banner,
+  .catalog-hub-card--service:focus-visible .catalog-service-banner,
+  .catalog-sale-banner:hover .catalog-sale-banner__image,
+  .catalog-sale-banner:focus-visible .catalog-sale-banner__image {
+    transform: scale(1.025) !important;
+  }
+}
