@@ -369,6 +369,1183 @@
   }
 }
 
+/* Final desktop regression pass. Keep this last: the stylesheet contains older
+   desktop experiments above, while mobile remains fully isolated at <= 760px. */
+@media (min-width: 761px) {
+  /* Header, search and category rail layering. */
+  .site-header {
+    z-index: 1200 !important;
+    overflow: visible !important;
+  }
+
+  .header-grid {
+    position: relative;
+    z-index: 30 !important;
+    overflow: visible !important;
+  }
+
+  .search {
+    z-index: 60 !important;
+    overflow: visible !important;
+    isolation: isolate;
+  }
+
+  .search-results {
+    z-index: 2400 !important;
+    max-height: min(430px, calc(100dvh - 170px)) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  .quick-nav {
+    z-index: 1 !important;
+    box-sizing: border-box;
+    width: 100%;
+    height: 104px !important;
+    min-height: 0 !important;
+    max-height: 104px !important;
+    overflow: hidden !important;
+    opacity: 1;
+    visibility: visible;
+    transform: translate3d(0, 0, 0);
+    transform-origin: top center;
+    will-change: height, opacity, transform;
+    transition:
+      height 360ms cubic-bezier(.22, 1, .36, 1),
+      max-height 360ms cubic-bezier(.22, 1, .36, 1),
+      padding 360ms cubic-bezier(.22, 1, .36, 1),
+      opacity 220ms ease,
+      transform 360ms cubic-bezier(.22, 1, .36, 1),
+      visibility 0s linear 0s !important;
+  }
+
+  body.is-scrolled-down .quick-nav {
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate3d(0, -14px, 0);
+    transition:
+      height 360ms cubic-bezier(.22, 1, .36, 1),
+      max-height 360ms cubic-bezier(.22, 1, .36, 1),
+      padding 360ms cubic-bezier(.22, 1, .36, 1),
+      opacity 180ms ease,
+      transform 360ms cubic-bezier(.22, 1, .36, 1),
+      visibility 0s linear 360ms !important;
+  }
+
+  /* The sofa source has transparent top/bottom space. This centers its alpha
+     bounds instead of stretching and clipping the real upholstery. */
+  .catalog-hub-card--hero .catalog-hub-photo {
+    inset: 4px 20px auto 20px !important;
+    width: calc(100% - 40px) !important;
+    height: 320px !important;
+    overflow: hidden !important;
+  }
+
+  .catalog-hub-card--hero .catalog-hub-photo img {
+    position: absolute !important;
+    inset: auto !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 88% !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    aspect-ratio: 1 / 1;
+    object-fit: contain !important;
+    object-position: center !important;
+    transform: translate3d(-50%, -50%, 0) scale(1) !important;
+    transform-origin: center;
+  }
+
+  .catalog-hub-card--hero:is(:hover, :focus-visible) .catalog-hub-photo img {
+    transform: translate3d(-50%, -50%, 0) scale(1.018) !important;
+  }
+
+  /* Weekly offers: compact cards, larger artwork and icon actions. */
+  .promo-showcase,
+  .promo-lookbook {
+    align-items: start !important;
+  }
+
+  .lookbook-card,
+  .lookbook-card.is-featured {
+    position: relative;
+    height: 370px !important;
+    min-height: 370px !important;
+    max-height: 370px !important;
+    grid-template-rows: 210px 160px !important;
+  }
+
+  .lookbook-media,
+  .lookbook-media .product-placeholder {
+    height: 210px !important;
+    min-height: 210px !important;
+  }
+
+  .lookbook-media .product-placeholder.has-image img {
+    width: 100%;
+    height: 100%;
+    padding: 4px 8px !important;
+    object-fit: contain !important;
+  }
+
+  .lookbook-copy,
+  .lookbook-card.is-featured .lookbook-copy {
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: auto auto auto minmax(0, 1fr) !important;
+    gap: 7px !important;
+    padding: 11px 13px 12px !important;
+  }
+
+  .lookbook-copy h3,
+  .lookbook-card.is-featured h3 {
+    min-height: 2.1em !important;
+    font-size: 1rem !important;
+  }
+
+  .lookbook-meta {
+    max-height: 50px;
+    overflow: hidden;
+  }
+
+  .lookbook-actions {
+    min-height: 0 !important;
+    margin: 0 !important;
+  }
+
+  .lookbook-link {
+    display: none !important;
+  }
+
+  .lookbook-favorite,
+  .lookbook-cart {
+    position: absolute !important;
+    top: 12px !important;
+    z-index: 9 !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border: 1px solid rgba(200, 216, 231, .9) !important;
+    border-radius: 13px !important;
+    background: rgba(255, 255, 255, .96) !important;
+    color: #102844 !important;
+    box-shadow: 0 9px 20px rgba(20, 45, 78, .13) !important;
+    font-size: 0 !important;
+  }
+
+  .lookbook-favorite { right: 12px !important; }
+  .lookbook-cart { right: 60px !important; }
+
+  .lookbook-cart .product-cart-icon,
+  .lookbook-card .product-cart-icon {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+    fill: none;
+    stroke: currentColor;
+  }
+
+  .lookbook-cart.is-in-cart {
+    border-color: #102844 !important;
+    background: #102844 !important;
+    color: #fff !important;
+  }
+
+  .lookbook-favorite:is(:hover, :focus-visible, :active),
+  .lookbook-cart:is(:hover, :focus-visible, :active) {
+    background: #102844 !important;
+    color: #fff !important;
+    transform: translateY(-1px) scale(1.04) !important;
+  }
+
+  /* Hits/new products: both halves use the same compact geometry. */
+  .home-picks-layout {
+    align-items: start !important;
+  }
+
+  .home-picks-group {
+    align-self: start !important;
+    grid-template-rows: auto auto !important;
+  }
+
+  .home-picks-group .home-product-grid {
+    align-items: start !important;
+    grid-auto-rows: 350px !important;
+  }
+
+  .home-picks-group .product-card,
+  .home-product-grid .product-card {
+    height: 350px !important;
+    min-height: 350px !important;
+    max-height: 350px !important;
+    grid-template-rows: 224px 126px !important;
+  }
+
+  .home-picks-group .product-media,
+  .home-picks-group .product-placeholder {
+    height: 224px !important;
+    min-height: 224px !important;
+  }
+
+  .home-picks-group .product-placeholder.has-image img {
+    padding: 2px 4px !important;
+    object-fit: contain !important;
+  }
+
+  .home-picks-group .product-body {
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: auto auto minmax(0, 1fr) !important;
+    gap: 4px !important;
+    padding: 9px 11px 10px !important;
+  }
+
+  .home-picks-group .product-title-row h3,
+  .home-picks-group .product-card h3 {
+    min-height: 1.2em !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .home-picks-group .product-footer {
+    align-self: end !important;
+    gap: 5px !important;
+  }
+
+  .home-picks-group .primary-button {
+    min-height: 36px !important;
+  }
+
+  /* Likes and popular products. */
+  .favorites-grid,
+  .favorites-hits-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    align-items: start !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-card {
+    position: relative;
+    height: 350px !important;
+    min-height: 350px !important;
+    max-height: 350px !important;
+    grid-template-rows: 238px 112px !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-media,
+  :is(.favorites-grid, .favorites-hits-grid) .product-placeholder {
+    height: 238px !important;
+    min-height: 238px !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-placeholder.has-image img {
+    padding: 5px 7px !important;
+    object-fit: contain !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-body {
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: 18px 24px 32px !important;
+    align-content: center !important;
+    gap: 4px !important;
+    padding: 10px 13px 12px !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) :is(.product-category-copy, .product-meta, .swatches, .service-note, .delivery-note, .economy) {
+    display: none !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-title-row h3 {
+    min-height: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-footer {
+    display: block !important;
+    align-self: center !important;
+    justify-self: end !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-tags .discount-tag {
+    display: none !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) :is(.favorite-button, .product-cart-button) {
+    position: absolute !important;
+    top: 12px !important;
+    z-index: 9 !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border-radius: 13px !important;
+    font-size: 0 !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .favorite-button { right: 12px !important; }
+  :is(.favorites-grid, .favorites-hits-grid) .product-cart-button { right: 60px !important; }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-cart-icon {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-cart-button.is-in-cart {
+    border-color: #102844 !important;
+    background: #102844 !important;
+    color: #fff !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .rating,
+  .cart-recommendation-rating,
+  .similar-card-rating {
+    color: #f2a000 !important;
+    font-weight: 900 !important;
+  }
+
+  /* Cart recommendations use the same card and action pattern. */
+  .cart-recommendation-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    align-items: start !important;
+  }
+
+  .cart-recommendation-card {
+    position: relative;
+    height: 350px !important;
+    min-height: 350px !important;
+    max-height: 350px !important;
+    display: grid !important;
+    grid-template-rows: 238px 112px !important;
+    overflow: hidden;
+  }
+
+  .cart-recommendation-photo {
+    width: 100% !important;
+    height: 238px !important;
+    min-height: 238px !important;
+    padding: 0 !important;
+  }
+
+  .cart-recommendation-photo img {
+    width: 100%;
+    height: 100%;
+    padding: 5px 7px !important;
+    object-fit: contain !important;
+  }
+
+  .cart-recommendation-body {
+    min-height: 0 !important;
+    display: grid !important;
+    align-content: center;
+    gap: 6px !important;
+    padding: 11px 13px !important;
+  }
+
+  .cart-recommendation-actions {
+    position: absolute !important;
+    top: 12px;
+    right: 12px;
+    z-index: 9;
+    display: flex !important;
+    gap: 8px;
+  }
+
+  .cart-recommendation-actions :is(.product-cart-button, .favorite-button) {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border-radius: 13px !important;
+    font-size: 0 !important;
+  }
+
+  .cart-recommendation-actions .product-cart-icon {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+  }
+
+  .cart-recommendation-actions .product-cart-button.is-in-cart {
+    border-color: #102844 !important;
+    background: #102844 !important;
+    color: #fff !important;
+  }
+
+  /* Product detail is above the sticky header and ends with its content. */
+  .product-modal,
+  .product-modal.is-open {
+    z-index: 5000 !important;
+  }
+
+  .product-detail {
+    border-radius: 0 !important;
+  }
+
+  .detail-main {
+    min-height: 0 !important;
+    grid-template-columns: minmax(430px, .92fr) minmax(520px, 1.08fr) !important;
+  }
+
+  .detail-gallery {
+    min-height: 620px !important;
+    padding: 24px !important;
+  }
+
+  .detail-info {
+    min-height: 0 !important;
+    gap: 13px !important;
+    padding: 26px 30px 30px !important;
+  }
+
+  .detail-stage,
+  .detail-stage .product-placeholder {
+    min-height: 500px !important;
+  }
+
+  .detail-description,
+  .detail-characteristics {
+    padding: 14px !important;
+  }
+
+  .detail-delivery {
+    padding-top: 4px !important;
+  }
+
+  .detail-reviews,
+  .detail-similar {
+    padding-block: 24px !important;
+  }
+
+  /* Complete related-product cards. */
+  .detail-similar .similar-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+    overflow: visible !important;
+    padding: 2px !important;
+  }
+
+  .detail-similar .similar-card {
+    min-width: 0 !important;
+    min-height: 350px !important;
+    height: 350px !important;
+    position: relative;
+    display: grid !important;
+    grid-template-rows: 238px 112px !important;
+    overflow: hidden;
+    border-radius: 22px !important;
+  }
+
+  .detail-similar .similar-card > .product-placeholder {
+    width: 100%;
+    height: 238px !important;
+    min-height: 238px !important;
+    padding: 0 !important;
+  }
+
+  .detail-similar .similar-card > .product-placeholder img {
+    width: 100%;
+    height: 100%;
+    padding: 5px 7px !important;
+    object-fit: contain !important;
+  }
+
+  .detail-similar .similar-card-body {
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: 18px 22px 16px 30px !important;
+    align-content: center;
+    gap: 3px !important;
+    padding: 9px 12px 11px !important;
+  }
+
+  .detail-similar .similar-card-body strong {
+    min-height: 0 !important;
+    overflow: hidden;
+    font-size: .96rem !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .detail-similar .similar-card-meta {
+    min-height: 0 !important;
+  }
+
+  .detail-similar .similar-card-actions[hidden] {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    display: flex !important;
+    gap: 8px;
+  }
+
+  .detail-similar .similar-card-actions :is(.product-cart-button, .favorite-button) {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border: 1px solid rgba(200, 216, 231, .9) !important;
+    border-radius: 13px !important;
+    background: rgba(255, 255, 255, .96) !important;
+    color: #102844 !important;
+    box-shadow: 0 9px 20px rgba(20, 45, 78, .13) !important;
+    font-size: 0 !important;
+  }
+
+  .detail-similar .similar-card-actions .product-cart-icon {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+  }
+
+  .detail-similar .similar-card-actions .product-cart-button.is-in-cart {
+    border-color: #102844 !important;
+    background: #102844 !important;
+    color: #fff !important;
+  }
+
+  :is(.lookbook-card, .favorites-page-grid, .cart-recommendations, .detail-similar) .product-cart-button.is-added .product-cart-icon {
+    animation: desktopCartIconAdd 680ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  :is(.lookbook-card, .favorites-page-grid, .cart-recommendations, .detail-similar) .product-cart-button.is-removed .product-cart-icon {
+    animation: desktopCartIconRemove 680ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  .favorites-grid,
+  .favorites-hits-grid,
+  .cart-recommendation-grid,
+  .detail-similar .similar-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Desktop marketplace stability and card consistency pass (mobile remains <= 760px). */
+@media (min-width: 761px) {
+  /* Search suggestions must render above the category rail instead of being clipped by the search shell. */
+  .site-header {
+    z-index: 1200 !important;
+    overflow: visible !important;
+  }
+
+  .header-grid {
+    position: relative;
+    z-index: 4;
+    overflow: visible !important;
+  }
+
+  .search {
+    z-index: 12 !important;
+    overflow: visible !important;
+    isolation: isolate;
+  }
+
+  .search-results {
+    z-index: 2400 !important;
+    max-height: min(430px, calc(100dvh - 170px));
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .quick-nav {
+    z-index: 1 !important;
+  }
+
+  /* A fixed animated height prevents the desktop category rail from snapping during scroll. */
+  .quick-nav {
+    box-sizing: border-box;
+    width: 100%;
+    height: 104px;
+    min-height: 0 !important;
+    max-height: 104px;
+    overflow: hidden !important;
+    opacity: 1;
+    visibility: visible;
+    transform: translate3d(0, 0, 0);
+    transform-origin: top center;
+    will-change: height, opacity, transform;
+    transition:
+      height 360ms cubic-bezier(.22, 1, .36, 1),
+      max-height 360ms cubic-bezier(.22, 1, .36, 1),
+      padding 360ms cubic-bezier(.22, 1, .36, 1),
+      opacity 220ms ease,
+      transform 360ms cubic-bezier(.22, 1, .36, 1),
+      visibility 0s linear 0s !important;
+  }
+
+  body.is-scrolled-down .quick-nav {
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate3d(0, -14px, 0);
+    transition:
+      height 360ms cubic-bezier(.22, 1, .36, 1),
+      max-height 360ms cubic-bezier(.22, 1, .36, 1),
+      padding 360ms cubic-bezier(.22, 1, .36, 1),
+      opacity 180ms ease,
+      transform 360ms cubic-bezier(.22, 1, .36, 1),
+      visibility 0s linear 360ms !important;
+  }
+
+  /* The transparent source is square: center the artwork instead of using cover and cutting the sofa. */
+  .catalog-hub-card--hero .catalog-hub-photo {
+    inset: 4px 20px auto 20px !important;
+    width: calc(100% - 40px) !important;
+    height: 320px !important;
+  }
+
+  .catalog-hub-card--hero .catalog-hub-photo img {
+    inset: auto !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: calc(100% - 54px) !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+    object-fit: contain !important;
+    object-position: center !important;
+    transform: translate3d(-50%, -50%, 0) scale(1) !important;
+    transform-origin: center;
+  }
+
+  .catalog-hub-card--hero:is(:hover, :focus-visible) .catalog-hub-photo img {
+    transform: translate3d(-50%, -50%, 0) scale(1.018) !important;
+  }
+
+  /* Weekly deals: larger media, compact body and icon-only cart action next to the heart. */
+  .promo-showcase,
+  .promo-lookbook {
+    align-items: start !important;
+  }
+
+  .lookbook-card,
+  .lookbook-card.is-featured {
+    height: 370px !important;
+    min-height: 0 !important;
+    grid-template-rows: 210px minmax(0, 160px) !important;
+  }
+
+  .lookbook-media,
+  .lookbook-media .product-placeholder {
+    height: 210px !important;
+    min-height: 210px !important;
+  }
+
+  .lookbook-media .product-placeholder.has-image img {
+    width: 100%;
+    height: 100%;
+    padding: 4px 8px !important;
+    object-fit: contain;
+  }
+
+  .lookbook-copy,
+  .lookbook-card.is-featured .lookbook-copy {
+    min-height: 0 !important;
+    grid-template-rows: auto auto auto minmax(0, 1fr) !important;
+    gap: 7px !important;
+    padding: 11px 13px 12px !important;
+  }
+
+  .lookbook-copy h3,
+  .lookbook-card.is-featured h3 {
+    min-height: 2.1em !important;
+    font-size: 1rem !important;
+  }
+
+  .lookbook-meta {
+    max-height: 50px;
+    overflow: hidden;
+  }
+
+  .lookbook-actions {
+    min-height: 0 !important;
+    margin: 0 !important;
+  }
+
+  .lookbook-link {
+    display: none !important;
+  }
+
+  .lookbook-favorite,
+  .lookbook-cart {
+    position: absolute !important;
+    top: 12px !important;
+    z-index: 8 !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border: 1px solid rgba(200, 216, 231, .9) !important;
+    border-radius: 13px !important;
+    background: rgba(255, 255, 255, .96) !important;
+    color: #102844 !important;
+    box-shadow: 0 9px 20px rgba(20, 45, 78, .13) !important;
+    font-size: 0 !important;
+  }
+
+  .lookbook-favorite {
+    right: 12px !important;
+  }
+
+  .lookbook-cart {
+    right: 60px !important;
+  }
+
+  .lookbook-cart .product-cart-icon,
+  .lookbook-card .product-cart-icon {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+    fill: none;
+    stroke: currentColor;
+  }
+
+  .lookbook-cart.is-in-cart {
+    border-color: #102844 !important;
+    background: #102844 !important;
+    color: #fff !important;
+  }
+
+  .lookbook-favorite:is(:hover, :focus-visible, :active),
+  .lookbook-cart:is(:hover, :focus-visible, :active) {
+    background: #102844 !important;
+    color: #fff !important;
+    transform: translateY(-1px) scale(1.04) !important;
+  }
+
+  /* Home picks no longer stretch the right group to match the extra row on the left. */
+  .home-picks-layout {
+    align-items: start !important;
+  }
+
+  .home-picks-group {
+    align-self: start !important;
+    grid-template-rows: auto auto !important;
+  }
+
+  .home-picks-group .home-product-grid {
+    align-items: start !important;
+    grid-auto-rows: 336px !important;
+  }
+
+  .home-picks-group .product-card,
+  .home-product-grid .product-card {
+    height: 336px !important;
+    min-height: 336px !important;
+    max-height: 336px !important;
+    grid-template-rows: 202px 134px !important;
+  }
+
+  .home-picks-group .product-media,
+  .home-picks-group .product-placeholder {
+    height: 202px !important;
+    min-height: 202px !important;
+  }
+
+  .home-picks-group .product-placeholder.has-image img {
+    padding: 0 3px !important;
+    object-fit: contain !important;
+  }
+
+  .home-picks-group .product-body {
+    min-height: 0 !important;
+    grid-template-rows: auto auto minmax(0, 1fr) !important;
+    gap: 4px !important;
+    padding: 9px 11px 10px !important;
+  }
+
+  .home-picks-group .product-title-row h3,
+  .home-picks-group .product-card h3 {
+    min-height: 1.2em !important;
+    -webkit-line-clamp: 1 !important;
+  }
+
+  .home-picks-group .product-footer {
+    align-self: end !important;
+    gap: 5px !important;
+  }
+
+  .home-picks-group .primary-button {
+    min-height: 36px !important;
+  }
+
+  /* Likes and popular products share one compact card and one pair of working action icons. */
+  .favorites-grid,
+  .favorites-hits-grid {
+    align-items: start;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-card {
+    height: 350px !important;
+    min-height: 350px !important;
+    max-height: 350px !important;
+    grid-template-rows: 238px 112px !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-media,
+  :is(.favorites-grid, .favorites-hits-grid) .product-placeholder {
+    height: 238px !important;
+    min-height: 238px !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-placeholder.has-image img {
+    padding: 5px 7px !important;
+    object-fit: contain !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-body {
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: 18px 24px 32px !important;
+    align-content: center !important;
+    gap: 4px !important;
+    padding: 10px 13px 12px !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) :is(.product-category-copy, .product-meta, .swatches, .service-note, .delivery-note, .economy) {
+    display: none !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-title-row h3 {
+    min-height: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-footer {
+    display: block !important;
+    align-self: center !important;
+    justify-self: end !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-tags .discount-tag {
+    display: none !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) :is(.favorite-button, .product-cart-button) {
+    position: absolute !important;
+    top: 12px !important;
+    z-index: 9 !important;
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border-radius: 13px !important;
+    font-size: 0 !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .favorite-button {
+    right: 12px !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-cart-button {
+    right: 60px !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-cart-icon {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .product-cart-button.is-in-cart {
+    border-color: #102844 !important;
+    background: #102844 !important;
+    color: #fff !important;
+  }
+
+  :is(.favorites-grid, .favorites-hits-grid) .rating,
+  .cart-recommendation-rating,
+  .similar-card-rating {
+    color: #f2a000 !important;
+    font-weight: 900 !important;
+  }
+
+  /* Cart recommendations use the same visual language and always show both icons. */
+  .cart-recommendation-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    align-items: start;
+  }
+
+  .cart-recommendation-card {
+    height: 350px !important;
+    min-height: 350px !important;
+    position: relative;
+    display: grid !important;
+    grid-template-rows: 238px 112px !important;
+    overflow: hidden;
+  }
+
+  .cart-recommendation-photo {
+    width: 100% !important;
+    height: 238px !important;
+    min-height: 238px !important;
+    grid-row: 1;
+    padding: 0 !important;
+  }
+
+  .cart-recommendation-photo img {
+    width: 100%;
+    height: 100%;
+    padding: 5px 7px !important;
+    object-fit: contain !important;
+  }
+
+  .cart-recommendation-body {
+    grid-row: 2;
+    min-height: 0 !important;
+    display: grid !important;
+    align-content: center;
+    gap: 6px !important;
+    padding: 11px 13px !important;
+  }
+
+  .cart-recommendation-actions {
+    position: absolute !important;
+    top: 12px;
+    right: 12px;
+    z-index: 9;
+    display: flex !important;
+    gap: 8px;
+  }
+
+  .cart-recommendation-actions :is(.product-cart-button, .favorite-button) {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border-radius: 13px !important;
+    font-size: 0 !important;
+  }
+
+  .cart-recommendation-actions .product-cart-icon {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+  }
+
+  .cart-recommendation-actions .product-cart-button.is-in-cart {
+    border-color: #102844 !important;
+    background: #102844 !important;
+    color: #fff !important;
+  }
+
+  /* Product detail sits above the sticky header and ends when its content ends. */
+  .product-modal,
+  .product-modal.is-open {
+    z-index: 5000 !important;
+  }
+
+  .product-detail {
+    border-radius: 0 !important;
+  }
+
+  .detail-main {
+    min-height: 0 !important;
+    grid-template-columns: minmax(430px, .92fr) minmax(520px, 1.08fr) !important;
+  }
+
+  .detail-gallery {
+    min-height: 620px !important;
+    padding: 24px !important;
+  }
+
+  .detail-info {
+    min-height: 0 !important;
+    gap: 13px !important;
+    padding: 26px 30px 30px !important;
+  }
+
+  .detail-stage,
+  .detail-stage .product-placeholder {
+    min-height: 500px !important;
+  }
+
+  .detail-description,
+  .detail-characteristics {
+    padding: 14px !important;
+  }
+
+  .detail-delivery {
+    padding-top: 4px !important;
+  }
+
+  .detail-reviews,
+  .detail-similar {
+    padding-block: 24px !important;
+  }
+
+  /* Related products are complete cards, not image-only tiles. */
+  .detail-similar .similar-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+    overflow: visible !important;
+    padding: 2px !important;
+  }
+
+  .detail-similar .similar-card {
+    min-width: 0 !important;
+    min-height: 350px !important;
+    height: 350px !important;
+    position: relative;
+    display: grid !important;
+    grid-template-rows: 238px 112px !important;
+    overflow: hidden;
+    border-radius: 22px !important;
+  }
+
+  .detail-similar .similar-card > .product-placeholder {
+    width: 100%;
+    height: 238px !important;
+    min-height: 238px !important;
+    padding: 0 !important;
+  }
+
+  .detail-similar .similar-card > .product-placeholder img {
+    width: 100%;
+    height: 100%;
+    padding: 5px 7px !important;
+    object-fit: contain !important;
+  }
+
+  .detail-similar .similar-card-body {
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-rows: 18px 22px 16px 30px;
+    align-content: center;
+    gap: 3px !important;
+    padding: 9px 12px 11px !important;
+  }
+
+  .detail-similar .similar-card-body strong {
+    min-height: 0 !important;
+    overflow: hidden;
+    font-size: .96rem !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .detail-similar .similar-card-meta {
+    min-height: 0 !important;
+  }
+
+  .detail-similar .similar-card-price {
+    align-self: end;
+  }
+
+  .detail-similar .similar-card-actions[hidden] {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    display: flex !important;
+    gap: 8px;
+  }
+
+  .detail-similar .similar-card-actions :is(.product-cart-button, .favorite-button) {
+    width: 40px !important;
+    min-width: 40px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border: 1px solid rgba(200, 216, 231, .9) !important;
+    border-radius: 13px !important;
+    background: rgba(255, 255, 255, .96) !important;
+    color: #102844 !important;
+    box-shadow: 0 9px 20px rgba(20, 45, 78, .13) !important;
+    font-size: 0 !important;
+  }
+
+  .detail-similar .similar-card-actions .product-cart-icon {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+  }
+
+  .detail-similar .similar-card-actions .product-cart-button.is-in-cart {
+    border-color: #102844 !important;
+    background: #102844 !important;
+    color: #fff !important;
+  }
+
+  /* Button state stays obvious on add and remove even where legacy rules lock the button transform. */
+  :is(.lookbook-card, .favorites-page-grid, .cart-recommendations, .detail-similar) .product-cart-button.is-added .product-cart-icon {
+    animation: desktopCartIconAdd 680ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  :is(.lookbook-card, .favorites-page-grid, .cart-recommendations, .detail-similar) .product-cart-button.is-removed .product-cart-icon {
+    animation: desktopCartIconRemove 680ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  .favorites-grid,
+  .favorites-hits-grid,
+  .cart-recommendation-grid,
+  .detail-similar .similar-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@keyframes desktopCartIconAdd {
+  0% { transform: scale(1) rotate(0deg); }
+  38% { transform: scale(.72) rotate(-12deg); }
+  70% { transform: scale(1.2) rotate(6deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes desktopCartIconRemove {
+  0% { transform: scale(1) rotate(0deg); opacity: 1; }
+  38% { transform: scale(.78) rotate(12deg); opacity: .55; }
+  72% { transform: scale(1.12) rotate(-5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
 @media (min-width: 761px) and (max-width: 1180px) {
   .app-shell { width: min(1120px, calc(100% - 32px)); }
   .header-grid { grid-template-columns: auto auto minmax(240px, 1fr); }
