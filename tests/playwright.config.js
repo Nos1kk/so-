@@ -16,7 +16,7 @@ delete serverEnv.Path;
 
 module.exports = defineConfig({
   testDir: ".",
-  testMatch: "ui.e2e.spec.js",
+  testMatch: ["ui.e2e.spec.js", "desktop-home-design.e2e.spec.js"],
   reporter: "line",
   timeout: 90000,
   webServer: {
