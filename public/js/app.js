@@ -1633,7 +1633,7 @@
     const meta = createElement("div", "lookbook-meta");
     const actions = createElement("div", "lookbook-actions");
     const details = createElement("button", "lookbook-link", "Смотреть");
-    const cart = createElement("button", "lookbook-cart", product.category === "услуга" ? "Заказать" : "В корзину");
+    const cart = createElement("button", "lookbook-cart", "");
 
     card.style.setProperty("--stagger", `${index * 90}ms`);
     media.type = "button";
@@ -1666,6 +1666,8 @@
     cart.classList.add("product-cart-button");
     cart.dataset.cartProductId = product.id;
     cart.dataset.cartDefaultLabel = product.category === "услуга" ? "Заказать" : "В корзину";
+    cart.setAttribute("aria-label", product.category === "услуга" ? `Заказать ${product.name}` : `Добавить ${product.name} в корзину`);
+    cart.append(createSvgIcon("cart", "product-cart-icon"));
     setCartButtonState(cart, Number(data.cart?.[product.id]) > 0);
     details.addEventListener("click", () => openProduct(product.id));
     cart.addEventListener("click", () => toggleCart(product.id, cart));
@@ -2748,22 +2750,61 @@
   }
 
   function createSimilarCard(product) {
-    const card = createElement("button", "similar-card");
+    const data = store.read();
+    const isFavorite = (data.favorites || []).includes(product.id);
+    const isInCart = Number(data.cart?.[product.id]) > 0;
+    const card = createElement("article", "similar-card");
     const media = createProductPlaceholder(product, "Фото");
     const body = createElement("span", "similar-card-body");
+    const rating = createElement("span", "similar-card-rating", reviewLabel(product.id, data));
     const meta = createElement("span", "similar-card-meta", (product.specs || product.materials || []).slice(0, 2).join(" · "));
     const title = createElement("strong", "", product.name);
-    const price = createElement("span", "", money(product.price));
+    const price = createStructuredPrice(product);
+    const actions = createElement("span", "similar-card-actions");
+    const cart = createElement("button", "product-cart-button", "");
+    const favorite = createElement("button", "favorite-button", "");
 
-    card.type = "button";
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `Открыть ${product.name}`);
     card.dataset.similarProductId = product.id;
     card.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
+      if (event.target.closest("button")) return;
       openProduct(product.id);
     });
-    body.append(title, meta, price);
-    card.append(media, body);
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openProduct(product.id);
+    });
+
+    cart.type = "button";
+    cart.dataset.cartProductId = product.id;
+    cart.dataset.cartDefaultLabel = product.category === "услуга" ? "Заказать" : "В корзину";
+    cart.setAttribute("aria-label", product.category === "услуга" ? `Заказать ${product.name}` : `Добавить ${product.name} в корзину`);
+    cart.append(createSvgIcon("cart", "product-cart-icon"));
+    setCartButtonState(cart, isInCart);
+    cart.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleCart(product.id, cart);
+    });
+
+    favorite.type = "button";
+    favorite.dataset.favoriteProductId = product.id;
+    favorite.setAttribute("aria-label", isFavorite ? "Удалить из избранного" : `Добавить ${product.name} в избранное`);
+    favorite.classList.toggle("is-active", isFavorite);
+    favorite.append(createSvgIcon("heart", "favorite-icon"));
+    favorite.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleFavorite(product.id);
+    });
+
+    actions.hidden = true;
+    actions.append(cart, favorite);
+    body.append(rating, title, meta, price);
+    card.append(media, actions, body);
     return card;
   }
 
