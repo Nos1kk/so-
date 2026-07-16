@@ -2765,7 +2765,6 @@
     const media = createProductPlaceholder(product, "Фото");
     const body = createElement("span", "similar-card-body");
     const rating = createElement("span", "similar-card-rating", reviewLabel(product.id, data));
-    const meta = createElement("span", "similar-card-meta", (product.specs || product.materials || []).slice(0, 2).join(" · "));
     const title = createElement("strong", "", product.name);
     const price = createStructuredPrice(product);
     const actions = createElement("span", "similar-card-actions");
@@ -2811,7 +2810,7 @@
 
     actions.hidden = true;
     actions.append(cart, favorite);
-    body.append(rating, title, meta, price);
+    body.append(rating, title, price);
     card.append(media, actions, body);
     return card;
   }
@@ -2949,14 +2948,20 @@
         delete data.cart[id];
       }
     });
-    preserveElementViewportPosition(
-      state.route === "cart" ? els.cartRecommendations : null,
-      renderCart
-    );
     refreshProfileAfterMotion();
     syncCartButtons(id);
     playCartMotion(triggerButton, added);
     triggerButton?.blur();
+    if (state.route === "cart") {
+      updateCartTotalsView();
+      window.clearTimeout(toggleCart.renderTimer);
+      toggleCart.renderTimer = window.setTimeout(() => {
+        if (state.route !== "cart") return;
+        preserveElementViewportPosition(els.cartRecommendations, renderCart);
+      }, reduceMotion ? 0 : 720);
+    } else {
+      renderCart();
+    }
     if (stableScrollY !== null) {
       window.requestAnimationFrame(() => window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" }));
     }
@@ -3127,6 +3132,19 @@
     const button = createElement("button", "soft-button", "");
     const favorite = createElement("button", "favorite-button", "");
 
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `Открыть ${product.name}`);
+    card.addEventListener("click", (event) => {
+      if (event.target.closest("button")) return;
+      openProduct(product.id);
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.target !== card || (event.key !== "Enter" && event.key !== " ")) return;
+      event.preventDefault();
+      openProduct(product.id);
+    });
+
     thumb.classList.add("cart-recommendation-photo");
     button.type = "button";
     button.classList.add("product-cart-button");
@@ -3178,7 +3196,17 @@
 
     remove.type = "button";
     remove.setAttribute("aria-label", "Удалить товар");
-    remove.addEventListener("click", () => setQuantity(product.id, 0));
+    remove.addEventListener("click", () => {
+      if (item.classList.contains("is-removing")) return;
+      if (reduceMotion) {
+        setQuantity(product.id, 0);
+        return;
+      }
+      item.classList.add("is-removing");
+      item.setAttribute("aria-busy", "true");
+      item.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+      window.setTimeout(() => setQuantity(product.id, 0), 480);
+    });
 
     minus.type = "button";
     minus.setAttribute("aria-label", "Уменьшить количество");
