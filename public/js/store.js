@@ -187,7 +187,7 @@
       })
       .finally(() => {
         syncInFlight = false;
-        if (syncPending || syncedVersion < syncVersion) {
+        if (!lastSyncError && (syncPending || syncedVersion < syncVersion)) {
           syncNow().catch(() => {
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));

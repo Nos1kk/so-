@@ -1176,12 +1176,15 @@
     button.classList.toggle("is-in-cart", isInCart);
     button.setAttribute("aria-pressed", String(isInCart));
     const label = isInCart ? "В корзине" : (button.dataset.cartDefaultLabel || "В корзину");
-    const textNode = [...button.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
-    if (textNode) {
-      textNode.textContent = label;
-    } else {
-      button.prepend(document.createTextNode(label));
+    let labelNode = button.querySelector(":scope > .product-cart-label");
+    if (!labelNode) {
+      labelNode = createElement("span", "product-cart-label", label);
+      [...button.childNodes]
+        .filter((node) => node.nodeType === Node.TEXT_NODE)
+        .forEach((node) => node.remove());
+      button.prepend(labelNode);
     }
+    labelNode.textContent = displayText(label);
   }
 
   function routeFromLocation() {
@@ -1625,12 +1628,10 @@
     const media = createElement("button", "lookbook-media");
     const copy = createElement("div", "lookbook-copy");
     const top = createElement("div", "lookbook-topline");
-    const number = createElement("span", "lookbook-number", String(index + 1).padStart(2, "0"));
     const collection = createElement("span", "", product.marketSection || product.category || "SONA");
-    const favorite = createElement("button", "lookbook-favorite");
+    const favorite = createElement("button", "lookbook-favorite favorite-button");
     const title = createElement("h3", "", product.name);
     const price = createElement("div", "lookbook-price");
-    const meta = createElement("div", "lookbook-meta");
     const actions = createElement("div", "lookbook-actions");
     const details = createElement("button", "lookbook-link", "Смотреть");
     const cart = createElement("button", "lookbook-cart", "");
@@ -1647,20 +1648,16 @@
     favorite.classList.toggle("is-active", isFavorite);
     favorite.append(createSvgIcon("heart", "favorite-icon"));
     favorite.addEventListener("click", (event) => {
+      event.preventDefault();
       event.stopPropagation();
       toggleFavorite(product.id);
     });
 
-    top.append(number, collection);
+    top.append(collection);
     price.append(createElement("strong", "", product.priceMode === "from" ? `от ${money(product.price)}` : money(product.price)));
     if (product.oldPrice) {
       price.append(createElement("del", "", money(product.oldPrice)), createElement("span", "lookbook-discount", `−${discount}%`));
     }
-    (product.specs || product.materials || []).slice(0, index === 0 ? 3 : 2).forEach((item) => {
-      meta.append(createElement("span", "", item));
-    });
-    meta.append(createElement("span", "", productDeliveryText(product, true)));
-
     details.type = "button";
     cart.type = "button";
     cart.classList.add("product-cart-button");
@@ -1670,9 +1667,13 @@
     cart.append(createSvgIcon("cart", "product-cart-icon"));
     setCartButtonState(cart, Number(data.cart?.[product.id]) > 0);
     details.addEventListener("click", () => openProduct(product.id));
-    cart.addEventListener("click", () => toggleCart(product.id, cart));
+    cart.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleCart(product.id, cart);
+    });
     actions.append(details, cart);
-    copy.append(top, title, price, meta, actions);
+    copy.append(top, title, price, actions);
     card.append(media, favorite, copy);
     return card;
   }
@@ -1718,7 +1719,8 @@
 
     let scheduled = false;
     let elevated = false;
-    let compact = false;
+    let railHidden = false;
+    let directionAnchor = window.scrollY || document.documentElement.scrollTop || 0;
     const update = () => {
       scheduled = false;
       const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
@@ -1726,12 +1728,23 @@
 
       if (!elevated && scrollTop > 16) elevated = true;
       if (elevated && scrollTop < 4) elevated = false;
-      if (!compact && scrollTop > 120) compact = true;
-      if (compact && scrollTop < 72) compact = false;
+      if (isMobile || scrollTop < 72) {
+        railHidden = false;
+        directionAnchor = scrollTop;
+      } else {
+        const directionDelta = scrollTop - directionAnchor;
+        if (directionDelta >= 10 && scrollTop > 120) {
+          railHidden = true;
+          directionAnchor = scrollTop;
+        } else if (directionDelta <= -8) {
+          railHidden = false;
+          directionAnchor = scrollTop;
+        }
+      }
 
       header.classList.toggle("is-elevated", elevated);
-      header.classList.toggle("is-compact", compact && !isMobile);
-      document.body.classList.toggle("is-scrolled-down", compact && !isMobile);
+      header.classList.remove("is-compact");
+      document.body.classList.toggle("is-scrolled-down", railHidden && !isMobile);
     };
 
     const request = () => {
@@ -2068,11 +2081,6 @@
     addButton.setAttribute("aria-label", product.category === "услуга" ? "Заказать услугу" : `Добавить ${product.name} в корзину`);
     addButton.append(createSvgIcon("cart", "product-cart-icon"));
     setCartButtonState(addButton, isInCart);
-
-    if (product.oldPrice && !isSofaProduct(product)) {
-      const discount = product.discountPercent || Math.round((1 - product.price / product.oldPrice) * 100);
-      tagWrap.append(createElement("span", "tag discount-tag", `−${discount}%`));
-    }
 
     (product.tags || [])
       .filter((tag) => {
@@ -2821,6 +2829,7 @@
 
   function toggleFavorite(productId) {
     const id = security.safeProductId(productId);
+    const stableFavoritesScrollY = state.route === "favorites" ? window.scrollY : null;
     let added = false;
 
     store.update((data) => {
@@ -2830,14 +2839,38 @@
         : data.favorites.filter((item) => item !== id);
     });
     syncFavoriteButtons(id);
+    playFavoriteMotion(id, added);
     refreshProfileAfterMotion();
     if (state.route === "favorites") {
-      renderFavoritesPage();
+      window.clearTimeout(toggleFavorite.renderTimer);
+      toggleFavorite.renderTimer = window.setTimeout(() => {
+        if (state.route !== "favorites") return;
+        renderFavoritesPage();
+        if (stableFavoritesScrollY !== null) {
+          window.requestAnimationFrame(() => window.scrollTo({ top: stableFavoritesScrollY, left: 0, behavior: "instant" }));
+        }
+      }, reduceMotion ? 0 : 540);
     }
     if (state.filters.favoritesOnly) {
       renderProducts();
     }
     showToast(added ? "В избранном" : "Удалено из избранного");
+  }
+
+  function playFavoriteMotion(productId, added) {
+    if (reduceMotion) return;
+    const buttons = [...document.querySelectorAll(`[data-favorite-product-id="${productId}"]`)];
+    buttons.forEach((button) => {
+      window.clearTimeout(button.favoriteMotionTimer);
+      button.classList.remove("is-favorite-animating", "is-favorite-removing");
+    });
+    if (buttons[0]) void buttons[0].offsetWidth;
+    buttons.forEach((button) => {
+      button.classList.add(added ? "is-favorite-animating" : "is-favorite-removing");
+      button.favoriteMotionTimer = window.setTimeout(() => {
+        button.classList.remove("is-favorite-animating", "is-favorite-removing");
+      }, 560);
+    });
   }
 
   function removeFavorite(productId) {
@@ -3102,13 +3135,21 @@
     button.setAttribute("aria-label", `Добавить ${product.name} в корзину`);
     button.append(createSvgIcon("cart", "product-cart-icon"));
     setCartButtonState(button, Number(store.read().cart?.[product.id]) > 0);
-    button.addEventListener("click", () => toggleCart(product.id, button));
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleCart(product.id, button);
+    });
     favorite.type = "button";
     favorite.dataset.favoriteProductId = product.id;
     favorite.setAttribute("aria-label", `Добавить ${product.name} в избранное`);
     favorite.classList.toggle("is-active", store.read().favorites.includes(product.id));
     favorite.append(createSvgIcon("heart", "favorite-icon"));
-    favorite.addEventListener("click", () => toggleFavorite(product.id));
+    favorite.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleFavorite(product.id);
+    });
     actions.append(button, favorite);
     body.append(title, rating, price);
     card.append(thumb, actions, body);
@@ -3121,6 +3162,7 @@
     const body = createElement("div", "cart-item-body");
     const titleRow = createElement("div", "cart-item-title");
     const title = createElement("strong", "", product.name);
+    const rating = createElement("span", "cart-item-rating", reviewLabel(product.id));
     const remove = createElement("button", "remove-button", "×");
     const quantityRow = createElement("div", "quantity-row");
     const control = createElement("div", "quantity-control");
@@ -3157,7 +3199,7 @@
     titleRow.append(title, remove);
     control.append(minus, amount, plus);
     quantityRow.append(control, price);
-    body.append(titleRow, quantityRow);
+    body.append(titleRow, rating, quantityRow);
     item.append(thumb, body);
 
     return item;

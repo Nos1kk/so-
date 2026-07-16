@@ -336,3 +336,284 @@
   .cart-recommendation-grid,
   .detail-similar .similar-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
 }
+
+/* Requested desktop corrections. This layer intentionally never applies to <= 760px. */
+@media (min-width: 761px) {
+  /* The category rail is taken out of document flow so hiding it cannot move the page. */
+  .site-header {
+    isolation: isolate;
+  }
+
+  .quick-nav {
+    position: absolute !important;
+    top: 100%;
+    left: 50%;
+    width: min(1770px, calc(100vw - 64px)) !important;
+    height: 104px !important;
+    min-height: 104px !important;
+    max-height: 104px !important;
+    padding-block: 0 !important;
+    opacity: 1 !important;
+    visibility: visible;
+    transform: translate3d(-50%, 0, 0) !important;
+    will-change: transform, opacity;
+    transition:
+      opacity 180ms ease,
+      transform 280ms cubic-bezier(.22, 1, .36, 1),
+      visibility 0s linear 0s !important;
+  }
+
+  body.is-scrolled-down .quick-nav {
+    height: 104px !important;
+    min-height: 104px !important;
+    max-height: 104px !important;
+    padding-block: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate3d(-50%, calc(-100% - 10px), 0) !important;
+    transition:
+      opacity 160ms ease,
+      transform 260ms cubic-bezier(.22, 1, .36, 1),
+      visibility 0s linear 260ms !important;
+  }
+
+  .marketplace,
+  .cart-page,
+  .account-page {
+    margin-top: 104px !important;
+  }
+
+  /* Keep the main header at one stable height; only the category rail moves. */
+  .site-header.is-compact .header-grid {
+    min-height: 78px !important;
+  }
+
+  /* Icon-only cart buttons have one explicit label node, so the SVG stays truly centered. */
+  :is(
+    .lookbook-cart,
+    #productGrid .product-cart-button,
+    .category-product-grid .product-cart-button,
+    .favorites-hits-grid .product-cart-button,
+    .cart-recommendation-actions .product-cart-button,
+    .similar-card-actions .product-cart-button,
+    .sona-profile-showcase-card__cart
+  ) > .product-cart-label {
+    display: none !important;
+  }
+
+  :is(
+    .lookbook-cart,
+    #productGrid .product-cart-button,
+    .category-product-grid .product-cart-button,
+    .favorites-hits-grid .product-cart-button,
+    .cart-recommendation-actions .product-cart-button,
+    .similar-card-actions .product-cart-button,
+    .sona-profile-showcase-card__cart
+  ) {
+    grid-template: 1fr / 1fr !important;
+    place-items: center !important;
+    line-height: 0 !important;
+  }
+
+  :is(
+    .lookbook-cart,
+    #productGrid .product-cart-button,
+    .category-product-grid .product-cart-button,
+    .favorites-hits-grid .product-cart-button,
+    .cart-recommendation-actions .product-cart-button,
+    .similar-card-actions .product-cart-button,
+    .sona-profile-showcase-card__cart
+  ) .product-cart-icon {
+    grid-area: 1 / 1 !important;
+    width: 23px !important;
+    height: 23px !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  /* The old red discount badge above media is removed; price, old price and discount remain below. */
+  .product-tags .discount-tag {
+    display: none !important;
+  }
+
+  /* One heart interaction and one ring/burst animation everywhere. */
+  .favorite-button.is-active {
+    animation: none !important;
+  }
+
+  .favorite-button.is-favorite-animating,
+  .favorite-button.is-favorite-removing {
+    animation: desktopFavoritePop 520ms cubic-bezier(.22, 1.55, .36, 1) both !important;
+  }
+
+  .favorite-button.is-favorite-animating::before,
+  .favorite-button.is-favorite-removing::before {
+    animation: favoriteBurst 520ms ease-out !important;
+  }
+
+  .favorite-button.is-favorite-animating::after,
+  .favorite-button.is-favorite-removing::after {
+    animation: favoriteRing 520ms ease-out !important;
+  }
+
+  .favorite-button:is(.is-favorite-animating, .is-favorite-removing) .favorite-icon {
+    animation: desktopFavoriteHeart 500ms ease-out !important;
+  }
+
+  /* Weekly deals: no card numbers or clipped specification chips. */
+  .lookbook-copy,
+  .lookbook-card.is-featured .lookbook-copy {
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    align-content: stretch !important;
+    gap: 6px !important;
+    padding: 10px 13px 13px !important;
+  }
+
+  .lookbook-topline {
+    justify-content: flex-end !important;
+    min-height: 16px;
+  }
+
+  .lookbook-number,
+  .lookbook-meta {
+    display: none !important;
+  }
+
+  .lookbook-copy h3,
+  .lookbook-card.is-featured h3 {
+    min-height: 0 !important;
+    align-self: start;
+    margin-top: 0 !important;
+  }
+
+  .lookbook-price {
+    align-self: end;
+    min-height: 28px;
+    margin-top: auto;
+  }
+
+  .lookbook-actions {
+    position: absolute !important;
+    inset: 0 !important;
+    pointer-events: none;
+  }
+
+  .lookbook-actions .lookbook-cart {
+    pointer-events: auto;
+  }
+
+  /* Reviews use one yellow accent in all desktop card families. */
+  :is(
+    .rating,
+    .detail-rating,
+    .similar-card-rating,
+    .cart-recommendation-rating,
+    .cart-item-rating,
+    .sona-profile-showcase-card__meta
+  ) {
+    color: #f2a000 !important;
+    font-weight: 900 !important;
+  }
+
+  /* Product detail controls are large enough to read at desktop scale. */
+  .detail-share-button {
+    width: 52px !important;
+    min-width: 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+  }
+
+  .detail-share-button .share-icon {
+    width: 25px !important;
+    height: 25px !important;
+    stroke-width: 2.2;
+  }
+
+  /* Cart rows: larger media, product name, review line and remove control. */
+  .cart-item {
+    min-height: 196px;
+    grid-template-columns: 190px minmax(0, 1fr) !important;
+    align-items: center;
+    gap: 24px !important;
+    padding: 20px !important;
+  }
+
+  .cart-item .cart-placeholder,
+  .cart-item .cart-placeholder.has-image {
+    width: 190px !important;
+    height: 154px !important;
+    min-height: 154px !important;
+    padding: 4px !important;
+  }
+
+  .cart-item .cart-placeholder.has-image img {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+    object-fit: contain !important;
+  }
+
+  .cart-item-body {
+    align-self: stretch;
+    align-content: center;
+    gap: 12px !important;
+  }
+
+  .cart-item-title strong {
+    font-size: 1.2rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .cart-item-rating {
+    font-size: .94rem;
+  }
+
+  .remove-button {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+    font-size: 1.45rem !important;
+    line-height: 1 !important;
+  }
+
+  .cart-item-price {
+    font-family: inherit;
+    font-size: 1.12rem;
+    font-weight: 900;
+  }
+
+  /* Recommendation cards keep their last row visible and use the same price typography. */
+  .cart-recommendation-card {
+    height: 386px !important;
+    min-height: 386px !important;
+    max-height: 386px !important;
+    grid-template-rows: 238px 148px !important;
+  }
+
+  .cart-recommendation-body {
+    min-height: 148px !important;
+    align-content: center !important;
+    padding: 12px 14px 20px !important;
+  }
+
+  .cart-recommendation-price {
+    color: #102844 !important;
+    font-family: inherit !important;
+    font-size: 1.05rem !important;
+    font-weight: 900 !important;
+    line-height: 1.2;
+  }
+}
+
+@keyframes desktopFavoritePop {
+  0% { transform: scale(.82); }
+  52% { transform: scale(1.17); }
+  100% { transform: scale(1); }
+}
+
+@keyframes desktopFavoriteHeart {
+  0% { transform: scale(.68) rotate(-7deg); }
+  48% { transform: scale(1.24) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
