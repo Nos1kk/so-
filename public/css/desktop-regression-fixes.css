@@ -263,7 +263,7 @@
   .detail-similar .similar-card-actions :is(.product-cart-button, .favorite-button) {
     position: static !important;
     inset: auto !important;
-    transform: none !important;
+    transform: none;
   }
 
   .product-modal,
@@ -435,7 +435,7 @@
     width: 23px !important;
     height: 23px !important;
     margin: 0 !important;
-    transform: none !important;
+    transform: none;
     fill: none !important;
     stroke: currentColor !important;
   }
@@ -813,10 +813,10 @@
     .similar-card-actions .product-cart-button,
     .sona-profile-showcase-card__cart
   ).is-in-cart {
-    border-color: #7d8996 !important;
-    background: linear-gradient(145deg, #89939f, #717d8b) !important;
+    border-color: #15598f !important;
+    background: linear-gradient(145deg, #2478b8, #15558e) !important;
     color: #fff !important;
-    box-shadow: 0 10px 22px rgba(61, 75, 91, .2) !important;
+    box-shadow: 0 12px 26px rgba(20, 91, 148, .3) !important;
   }
 
   :is(
@@ -945,6 +945,118 @@
   .cart-item.is-removing .cart-item-body {
     animation: desktopCartBodyExit 420ms cubic-bezier(.4, 0, .2, 1) forwards;
   }
+
+  /* Final universal action state: every current and future card gets the same motion. */
+  body .product-cart-button.is-in-cart,
+  body .detail-actions .product-cart-button.is-in-cart {
+    border-color: #15598f !important;
+    background: linear-gradient(145deg, #2478b8, #15558e) !important;
+    color: #fff !important;
+    box-shadow: 0 12px 26px rgba(20, 91, 148, .3) !important;
+  }
+
+  body .product-cart-button.is-added {
+    animation: desktopCartStandardAdd 680ms cubic-bezier(.22, 1.45, .36, 1) both !important;
+  }
+
+  body .product-cart-button.is-removed {
+    animation: desktopCartStandardRemove 680ms cubic-bezier(.22, 1.25, .36, 1) both !important;
+  }
+
+  body .product-cart-button:is(.is-added, .is-removed) .product-cart-icon {
+    animation: desktopCartStandardIcon 680ms cubic-bezier(.22, 1.5, .36, 1) both !important;
+  }
+
+  body .favorite-button:is(.is-favorite-animating, .is-favorite-removing) {
+    animation: desktopFavoriteReference 560ms cubic-bezier(.22, 1.55, .36, 1) both !important;
+  }
+
+  body .favorite-button:is(.is-favorite-animating, .is-favorite-removing)::before {
+    animation: favoriteBurst 560ms ease-out !important;
+  }
+
+  body .favorite-button:is(.is-favorite-animating, .is-favorite-removing)::after {
+    animation: favoriteRing 560ms ease-out !important;
+  }
+
+  body .favorite-button:is(.is-favorite-animating, .is-favorite-removing) .favorite-icon {
+    animation: desktopFavoriteReferenceIcon 560ms cubic-bezier(.22, 1.5, .36, 1) both !important;
+  }
+
+  /* Full-bleed, compact, solid footer without radial background shimmer. */
+  .site-footer.app-shell {
+    box-sizing: border-box;
+    width: 100vw !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    grid-template-columns: minmax(320px, 1.15fr) minmax(250px, .85fr) minmax(250px, .72fr);
+    gap: clamp(22px, 3vw, 48px) !important;
+    margin: 34px calc(50% - 50vw) 0 !important;
+    padding: 30px max(34px, calc((100vw - 1770px) / 2 + 34px)) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #10233b !important;
+    box-shadow: none !important;
+  }
+
+  .site-footer.app-shell::before {
+    inset: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .site-footer.app-shell::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  .site-footer .footer-brand-panel {
+    min-height: 0 !important;
+    align-content: start !important;
+    gap: 14px !important;
+  }
+
+  .site-footer .footer-brand {
+    font-size: clamp(1.55rem, 2vw, 2.25rem) !important;
+  }
+
+  .site-footer .footer-brand img {
+    width: 52px !important;
+    height: 52px !important;
+    border-radius: 13px !important;
+  }
+
+  .site-footer .footer-brand-panel h2 {
+    max-width: 650px !important;
+    font-size: clamp(2.35rem, 3.6vw, 4.25rem) !important;
+    line-height: .96 !important;
+  }
+
+  .site-footer .footer-brand-panel p {
+    max-width: 560px !important;
+    font-size: .94rem !important;
+    line-height: 1.5 !important;
+  }
+
+  .site-footer .footer-contact-card,
+  .site-footer .footer-payment {
+    padding: 12px 14px !important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  .site-footer.app-shell {
+    grid-template-columns: minmax(300px, 1.1fr) minmax(300px, .9fr) !important;
+    padding-inline: 28px !important;
+  }
+
+  .site-footer .footer-brand-panel {
+    grid-column: auto !important;
+  }
+
+  .site-footer .footer-contact-panel {
+    grid-column: 2;
+  }
 }
 
 @keyframes desktopFavoritePop {
@@ -956,6 +1068,20 @@
 @keyframes desktopFavoriteHeart {
   0% { transform: scale(.68) rotate(-7deg); }
   48% { transform: scale(1.24) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@keyframes desktopFavoriteReference {
+  0% { transform: scale(1); }
+  32% { transform: scale(.82) rotate(-5deg); }
+  66% { transform: scale(1.16) rotate(3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@keyframes desktopFavoriteReferenceIcon {
+  0% { transform: scale(1); }
+  34% { transform: scale(.68) rotate(-8deg); }
+  68% { transform: scale(1.28) rotate(5deg); }
   100% { transform: scale(1) rotate(0); }
 }
 

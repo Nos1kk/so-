@@ -2439,7 +2439,7 @@
   .product-cart-button {
     min-height: 42px !important;
     border-radius: 999px !important;
-    transform: none !important;
+    transform: none;
     transition: transform .08s ease, background-color .12s ease, box-shadow .12s ease !important;
   }
 
