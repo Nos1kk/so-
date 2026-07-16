@@ -185,20 +185,35 @@ test("marketplace performance and critical commerce regression", async (context)
   assert.ok(fs.statSync(path.join(dataDir, "analytics", "events.ndjson")).size > 0);
 
   const userJar = jar();
-  assert.equal((await request(baseUrl, "/api/auth/request-email", {
+  const requestedCode = await request(baseUrl, "/api/auth/request-email", {
     method: "POST",
     body: { email: "integration-buyer@example.com" }
-  }, userJar)).response.status, 200);
+  }, userJar);
+  assert.equal(requestedCode.response.status, 200);
+  assert.equal(requestedCode.data.passwordAvailable, false);
   const verified = await request(baseUrl, "/api/auth/verify-email", {
     method: "POST",
     body: { email: "integration-buyer@example.com", code: "123456" }
   }, userJar);
-  assert.equal(verified.data.requiresPasswordSetup, true);
-  const setup = await request(baseUrl, "/api/auth/setup-password", {
+  assert.equal(verified.data.requiresPasswordSetup, false);
+  assert.equal(verified.data.account.role, "user");
+  assert.equal(verified.data.account.hasPassword, false);
+  const setup = await request(baseUrl, "/api/auth/password", {
     method: "POST",
-    body: { token: verified.data.setupToken, password: "BuyerTest2026!", passwordConfirm: "BuyerTest2026!" }
+    body: { password: "BuyerTest2026!", passwordConfirm: "BuyerTest2026!" }
   }, userJar);
   assert.equal(setup.data.account.role, "user");
+  assert.equal(setup.data.account.hasPassword, true);
+  assert.equal((await request(baseUrl, "/api/auth/request-email", {
+    method: "POST",
+    body: { email: "integration-buyer@example.com" }
+  }, userJar)).data.passwordAvailable, true);
+  const codeLogin = await request(baseUrl, "/api/auth/verify-email", {
+    method: "POST",
+    body: { email: "integration-buyer@example.com", code: "123456" }
+  }, userJar);
+  assert.equal(codeLogin.response.status, 200);
+  assert.equal(codeLogin.data.account.hasPassword, true);
 
   await request(baseUrl, "/api/store", {
     method: "PATCH",

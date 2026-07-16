@@ -1622,6 +1622,12 @@ body.profile-view .sona-profile-content {
   color: #111820;
   text-align: left;
   box-shadow: 0 8px 24px rgba(20, 45, 70, 0.06);
+  transition: transform 320ms cubic-bezier(.22, 1, .36, 1), box-shadow 320ms ease, border-color 320ms ease;
+}
+
+.sona-profile-dashboard-tile:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 22px 44px rgba(20, 45, 70, 0.14);
 }
 
 .sona-profile-dashboard-tile.is-reviews {
@@ -1630,14 +1636,24 @@ body.profile-view .sona-profile-content {
 }
 
 .sona-profile-dashboard-tile.is-orders::after {
-  content: "▰";
+  content: "";
   position: absolute;
-  right: 12px;
-  bottom: -16px;
-  color: #244d78;
-  font-size: 7rem;
-  transform: rotate(18deg);
-  opacity: 0.2;
+  right: 22px;
+  bottom: 22px;
+  width: 94px;
+  height: 66px;
+  border: 1px solid rgba(99, 135, 174, .16);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(214, 229, 244, .9), rgba(180, 205, 229, .72));
+  box-shadow: 0 14px 28px rgba(36, 77, 120, .13);
+  transform: rotate(13deg);
+  opacity: .82;
+  transition: transform 420ms cubic-bezier(.22, 1.4, .36, 1), opacity 320ms ease;
+}
+
+.sona-profile-dashboard-tile.is-orders:hover::after {
+  transform: rotate(4deg) translateY(-5px) scale(1.05);
+  opacity: 1;
 }
 
 .sona-profile-dashboard-tile__icon {
@@ -1646,6 +1662,23 @@ body.profile-view .sona-profile-content {
   display: grid;
   place-items: center;
   margin-bottom: auto;
+  border: 1px solid rgba(172, 200, 225, .48);
+  border-radius: 12px;
+  background: rgba(245, 250, 255, .78);
+  box-shadow: 0 8px 18px rgba(15, 45, 76, .08);
+  transition: transform 360ms cubic-bezier(.22, 1.4, .36, 1), background 260ms ease, color 260ms ease;
+}
+
+.sona-profile-dashboard-tile:hover .sona-profile-dashboard-tile__icon {
+  transform: rotate(-7deg) scale(1.1);
+  background: #e5f4ff;
+  color: #15598f;
+}
+
+.sona-profile-dashboard-tile.is-reviews .sona-profile-dashboard-tile__icon {
+  border-color: rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .1);
+  color: #fff;
 }
 
 .sona-profile-dashboard-tile strong {
@@ -2101,6 +2134,80 @@ body.profile-view .sona-profile-content {
   background: linear-gradient(135deg, #fff9e8, #fff3cf);
   color: #694600;
   box-shadow: 0 10px 24px rgba(151, 102, 0, 0.1);
+}
+
+@media (min-width: 761px) {
+  .sona-profile-content.is-section-entering > * {
+    animation: sonaProfileSectionIn 360ms cubic-bezier(.22, 1, .36, 1) both;
+  }
+
+  .sona-profile-showcase__rail {
+    grid-auto-columns: minmax(220px, 40%);
+    gap: 14px;
+    padding: 4px 24px 14px;
+    scroll-padding-inline: 24px;
+  }
+
+  .sona-profile-showcase-card {
+    padding: 8px 8px 14px;
+    border: 1px solid transparent;
+    border-radius: 18px;
+    background: #fff;
+    transition: transform 320ms cubic-bezier(.22, 1, .36, 1), border-color 260ms ease, box-shadow 320ms ease;
+  }
+
+  .sona-profile-showcase-card:hover {
+    z-index: 3;
+    border-color: rgba(183, 207, 229, .78);
+    box-shadow: 0 20px 42px rgba(17, 54, 88, .13);
+    transform: translateY(-5px);
+  }
+
+  .sona-profile-showcase-card__media {
+    padding: 5px;
+    border-radius: 16px;
+  }
+
+  .sona-profile-showcase-card__media .sona-profile-thumb {
+    padding: 13px;
+  }
+
+  .sona-profile-showcase-card__actions {
+    top: 13px;
+    right: 13px;
+  }
+
+  .sona-profile-showcase-card__favorite,
+  .sona-profile-showcase-card__cart,
+  .sona-profile-showcase-card__cart.is-in-cart {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    margin: 0;
+    border: 1px solid rgba(200, 216, 231, .9);
+    border-radius: 13px;
+  }
+
+  .sona-profile-showcase-card__favorite:hover,
+  .sona-profile-showcase-card__cart:hover {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 13px 26px rgba(20, 67, 105, .17);
+  }
+
+  .sona-profile-password-form {
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid #c9d7e5;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #f8fbff, #fff);
+  }
+}
+
+@keyframes sonaProfileSectionIn {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 .sona-profile-checkout-notice strong {

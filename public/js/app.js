@@ -5,6 +5,7 @@
   const store = window.SonaStore;
   const mediaUploadCache = new Map();
   const ALL_VALUE = "все";
+  const RECENT_PRODUCTS_KEY = "sona.recent.products";
   const REMOVED_PRODUCT_IDS = new Set([
     "luna-cloud",
     "nord-bay",
@@ -2197,6 +2198,16 @@
     const product = byId(productId);
     if (!product) return;
     trackAnalytics("product_view", { productId: product.id, category: productCategoryLabel(product) });
+    try {
+      const saved = JSON.parse(localStorage.getItem(RECENT_PRODUCTS_KEY) || "[]");
+      const recent = Array.isArray(saved) ? saved : [];
+      localStorage.setItem(RECENT_PRODUCTS_KEY, JSON.stringify([
+        product.id,
+        ...recent.filter((id) => id !== product.id)
+      ].slice(0, 12)));
+    } catch (error) {
+      // The server-backed history below remains available when local storage is blocked.
+    }
     store.update((data) => {
       data.viewedProductIds = [
         product.id,
@@ -3425,8 +3436,7 @@
     window.SonaSupport.renderWidget({
       container: els.supportChatRoot,
       onChange: () => {
-        renderAdminPage();
-        if (state.route === "profile") renderProfilePage();
+        if (state.route === "admin") renderAdminPage();
       }
     });
     window.requestAnimationFrame(() => {
@@ -3474,8 +3484,7 @@
     window.SonaSupport.renderWidget({
       container: els.supportChatRoot,
       onChange: () => {
-        renderAdminPage();
-        if (state.route === "profile") renderProfilePage();
+        if (state.route === "admin") renderAdminPage();
       }
     });
   }
@@ -3576,9 +3585,7 @@
       openSupportChat,
       saveProfile: saveInlineProfile,
       sendTestNotification,
-      getTelegramStatus,
-      connectTelegram,
-      unlinkTelegram,
+      setAccountPassword: updateAccountPassword,
       onAuthChange: () => {
         render();
         showToast("Вход выполнен");
@@ -4545,7 +4552,7 @@
         notifications: {
           site: payload.notifications?.site !== false,
           email: payload.notifications?.email !== false,
-          telegram: payload.notifications?.telegram === true,
+          telegram: false,
           sound: payload.notifications?.sound !== false
         },
         registeredAt: data.profile?.registeredAt || new Date().toISOString()
@@ -4565,23 +4572,58 @@
     store.flushSync?.().catch(() => null);
   }
 
-  function playNotificationSound() {
+  async function updateAccountPassword(payload) {
+    try {
+      const response = await fetch(apiUrl("/api/auth/password"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload || {})
+      });
+      const result = await response.json();
+      if (response.ok && result.account) {
+        store.update((data) => {
+          data.profile = {
+            ...(data.profile || {}),
+            passwordEnabled: true
+          };
+        });
+        showToast("Пароль аккаунта сохранён");
+      }
+      return result;
+    } catch (error) {
+      return { ok: false, message: "Сервер временно недоступен." };
+    }
+  }
+
+  let notificationAudioContext = null;
+  let notificationSnapshot = null;
+
+  function unlockNotificationSound() {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return false;
-    const context = new AudioContextClass();
+    notificationAudioContext ||= new AudioContextClass();
+    if (notificationAudioContext.state === "suspended") {
+      notificationAudioContext.resume().catch(() => null);
+    }
+    return true;
+  }
+
+  function playNotificationSound() {
+    if (!unlockNotificationSound()) return false;
+    const context = notificationAudioContext;
     const gain = context.createGain();
     const oscillator = context.createOscillator();
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(660, context.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(880, context.currentTime + 0.16);
+    oscillator.type = "triangle";
+    oscillator.frequency.setValueAtTime(620, context.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(940, context.currentTime + 0.18);
     gain.gain.setValueAtTime(0.0001, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.16, context.currentTime + 0.025);
-    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.32);
+    gain.gain.exponentialRampToValueAtTime(0.22, context.currentTime + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.38);
     oscillator.connect(gain);
     gain.connect(context.destination);
     oscillator.start();
-    oscillator.stop(context.currentTime + 0.34);
-    oscillator.addEventListener("ended", () => context.close().catch(() => null), { once: true });
+    oscillator.stop(context.currentTime + 0.4);
     return true;
   }
 
@@ -4623,7 +4665,7 @@
     return response.ok ? { message: "Telegram отключён." } : { message: "Не удалось отключить Telegram." };
   }
 
-  async function sendTestNotification({ site, email, telegram, sound }) {
+  async function sendTestNotification({ site, email, sound }) {
     const channels = [];
     if (site) {
       showToast("Тестовое уведомление SONA");
@@ -4633,17 +4675,16 @@
       playNotificationSound();
       channels.push("со звуком");
     }
-    if (email || telegram) {
+    if (email) {
       try {
         const response = await fetch(apiUrl("/api/notifications/test"), {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, telegram })
+          body: JSON.stringify({ email, telegram: false })
         });
         const result = await response.json();
         if (result.sent?.includes("email")) channels.push("на почту");
-        if (result.sent?.includes("telegram")) channels.push("в Telegram");
         if (!response.ok && !channels.length) return { message: "Не удалось отправить тестовое уведомление." };
       } catch (error) {
         return { message: "Сайт и звук работают, но внешние каналы сейчас недоступны." };
@@ -5099,14 +5140,61 @@
     return JSON.stringify(data || {});
   }
 
+  function storeVisualSignature(data = {}) {
+    const { supportMessages: _supportMessages, ...visualState } = data || {};
+    return JSON.stringify(visualState);
+  }
+
+  function storeNotificationState(data = {}) {
+    const email = String(data.profile?.email || "").trim().toLowerCase();
+    const accountKey = email ? `user:${email}` : "";
+    const adminReplies = (data.supportMessages || [])
+      .filter((message) => message.role === "admin" && (!accountKey || message.accountKey === accountKey || String(message.email || "").toLowerCase() === email))
+      .map((message) => String(message.id || `${message.createdAt}:${message.text || ""}`));
+    const orderStatuses = Object.fromEntries((data.orders || []).map((order) => [String(order.id || ""), String(order.status || "")]));
+    return { adminReplies, orderStatuses };
+  }
+
+  function announceStoreNotifications(data) {
+    const next = storeNotificationState(data);
+    if (!notificationSnapshot) {
+      notificationSnapshot = next;
+      return;
+    }
+    const previousReplies = new Set(notificationSnapshot.adminReplies);
+    const newReply = next.adminReplies.some((id) => !previousReplies.has(id));
+    const changedOrder = Object.entries(next.orderStatuses).find(([id, status]) => (
+      notificationSnapshot.orderStatuses[id] && notificationSnapshot.orderStatuses[id] !== status
+    ));
+    notificationSnapshot = next;
+    if (!newReply && !changedOrder) return;
+    const settings = data.profile?.notifications || {};
+    const message = newReply
+      ? "Поддержка SONA ответила в чате"
+      : `Статус заказа ${changedOrder[0]} обновлён`;
+    if (settings.site !== false) showToast(message);
+    if (settings.sound !== false) playNotificationSound();
+  }
+
   function bindPassiveStoreRefresh() {
     let refreshPending = false;
     let signature = storeStateSignature(store.read());
+    let visualSignature = storeVisualSignature(store.read());
 
-    const applyRefreshedState = (data) => {
-      const nextSignature = storeStateSignature(data || store.read());
+    const applyRefreshedState = (data, options = {}) => {
+      const nextData = data || store.read();
+      announceStoreNotifications(nextData);
+      const nextSignature = storeStateSignature(nextData);
       if (nextSignature === signature) return;
+      const nextVisualSignature = storeVisualSignature(nextData);
+      const supportOnly = nextVisualSignature === visualSignature;
       signature = nextSignature;
+      visualSignature = nextVisualSignature;
+      if (supportOnly) {
+        if (state.route === "admin") renderAdminPage();
+        else if (!options.local) renderSupportChat();
+        return;
+      }
       refreshProductsFromAdmin();
       if (state.route === "admin") {
         renderAdminPage();
@@ -5115,6 +5203,8 @@
         render();
       }
     };
+
+    notificationSnapshot = storeNotificationState(store.read());
 
     const refreshWhenActive = async () => {
       if (refreshPending || document.hidden) return;
@@ -5136,12 +5226,14 @@
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) refreshWhenActive();
     }, { passive: true });
-    store.subscribe?.((data) => applyRefreshedState(data));
+    store.subscribe?.((data) => applyRefreshedState(data, { local: true }));
     window.setInterval(refreshWhenActive, 60000);
   }
 
   async function init() {
     try {
+      window.addEventListener("pointerdown", unlockNotificationSound, { once: true, passive: true });
+      window.addEventListener("keydown", unlockNotificationSound, { once: true, passive: true });
       bindEvents();
       initExperience();
       const [storeResult, response] = await Promise.all([

@@ -3,7 +3,7 @@
 
   const loaded = new Map();
   const routes = {
-    profile: ["profile/Profile.js?v=20260714-1"],
+    profile: ["profile/Profile.js?v=20260716-1"],
     admin: [
       "admin/products/productSchemas.js?v=20260714-1",
       "admin/products/ProductCategorySelect.js?v=20260714-1",

@@ -402,6 +402,7 @@
     .favorites-hits-grid .product-cart-button,
     .cart-recommendation-actions .product-cart-button,
     .similar-card-actions .product-cart-button,
+    .sona-profile-showcase-card__favorite,
     .sona-profile-showcase-card__cart
   ) > .product-cart-label {
     display: none !important;
@@ -785,6 +786,7 @@
     .cart-recommendation-actions .product-cart-button,
     .similar-card-actions .favorite-button,
     .similar-card-actions .product-cart-button,
+    .sona-profile-showcase-card__favorite,
     .sona-profile-showcase-card__cart
   ) {
     width: 44px !important;
@@ -838,7 +840,8 @@
     .favorites-grid .favorite-button,
     .favorites-hits-grid .favorite-button,
     .cart-recommendation-actions .favorite-button,
-    .similar-card-actions .favorite-button
+    .similar-card-actions .favorite-button,
+    .sona-profile-showcase-card__favorite
   ) .favorite-icon {
     display: block !important;
     width: 23px !important;

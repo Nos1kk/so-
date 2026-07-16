@@ -43,8 +43,10 @@
   let loginMode = "register";
   let loginStep = "credentials";
   let loginActionToken = "";
+  let loginPasswordAvailable = false;
   const DEVICE_KEY = "sona.device.id";
   const LOCAL_AUTH_KEY = "sona.auth.local";
+  const RECENT_PRODUCTS_KEY = "sona.recent.products";
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -142,6 +144,15 @@
     storageRemove(LOCAL_AUTH_KEY);
   }
 
+  function localRecentProductIds() {
+    try {
+      const parsed = JSON.parse(storageGet(RECENT_PRODUCTS_KEY) || "[]");
+      return Array.isArray(parsed) ? parsed.map(String).filter(Boolean).slice(0, 12) : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
   function restoreLocalAuth(data) {
     return data;
   }
@@ -231,6 +242,10 @@
 
   function setupPassword(token, password, passwordConfirm) {
     return authPost("/api/auth/setup-password", { token, password, passwordConfirm });
+  }
+
+  function setAccountPassword(currentPassword, password, passwordConfirm) {
+    return authPost("/api/auth/password", { currentPassword, password, passwordConfirm });
   }
 
   function requestPasswordReset(email) {
@@ -339,11 +354,13 @@
 
   function setSection(section, context) {
     activeSection = section || "home";
-    preserveNextRender = true;
-    render({
+    const freshContext = buildContext({
       ...context,
       data: window.SonaStore?.read?.() || context.data
     });
+    if (replaceProfileSection(freshContext)) return;
+    preserveNextRender = true;
+    render(freshContext);
   }
 
   function button(className, text, action, icon) {
@@ -479,8 +496,8 @@
     status.hidden = !loginError;
 
     const titles = {
-      login: ["Вход в аккаунт", "Войти в SONA", "Введите почту и пароль или войдите через Telegram-бота."],
-      register: ["Новый аккаунт", "Создать аккаунт", "Подтвердите почту и придумайте пароль или продолжите через Telegram-бота."],
+      login: ["Вход в аккаунт", "Войти в SONA", "Введите почту — мы отправим одноразовый код для безопасного входа."],
+      register: ["Новый аккаунт", "Создать аккаунт", "Укажите почту и подтвердите её кодом. Пароль можно добавить позже в настройках."],
       reset: ["Восстановление", "Вернуть доступ", "Мы отправим одноразовый код на почту, привязанную к аккаунту."]
     };
 
@@ -510,6 +527,7 @@
       loginCodeSent = false;
       loginActionToken = "";
       loginTelegramId = "";
+      loginPasswordAvailable = false;
       loginError = "";
       render(context);
     }
@@ -537,10 +555,6 @@
       const checked = window.SonaSecurity?.validateAuthEmail(raw) || { ok: false, email: "", message: "Введите email" };
       if (!isAdminShortcut && !checked.ok) return { ok: false, message: checked.message };
       const email = isAdminShortcut ? raw : checked.email;
-      const adminEmail = String(window.SonaAdmin?.ADMIN_EMAIL || "kcel046@gmail.com").trim().toLowerCase();
-      if (!isAdminShortcut && email !== adminEmail && /@(gmail\.com|googlemail\.com)$/i.test(email)) {
-        return { ok: false, message: "Gmail-почта для входа недоступна. Используйте другую почту." };
-      }
       return { ok: true, email };
     }
 
@@ -554,8 +568,13 @@
           isActive: true,
           email: accountEmail,
           role,
+          passwordEnabled: Boolean(account?.hasPassword),
           registeredAt: account?.createdAt || data.profile?.registeredAt || new Date().toISOString()
         };
+        data.viewedProductIds = [...new Set([
+          ...localRecentProductIds(),
+          ...(data.viewedProductIds || [])
+        ])].slice(0, 12);
         data.admin = role === "admin"
           ? { ...(data.admin || {}), isAuthenticated: true, email: accountEmail }
           : { ...(data.admin || {}), isAuthenticated: false, email: "" };
@@ -573,6 +592,7 @@
       loginEmail = "";
       loginActionToken = "";
       loginTelegramId = "";
+      loginPasswordAvailable = false;
       loginError = "";
       activeSection = "home";
       context.onAuthChange?.();
@@ -627,13 +647,13 @@
     if (loginChannel === "email") {
       if (loginStep !== "password") {
         emailField = field("Email", "email", loginEmail, "email");
-        emailField.input.disabled = loginStep === "code";
+        emailField.input.disabled = ["code", "password-login"].includes(loginStep);
         emailField.input.addEventListener("input", () => { loginEmail = emailField.input.value; });
         form.append(emailField.label);
       }
     }
 
-    if (loginMode === "login" && loginChannel === "email") {
+    if (loginMode === "login" && loginStep === "password-login") {
       passwordField = field("Пароль", "password", "", "current-password");
       form.append(passwordField.label);
     } else if (loginStep === "code") {
@@ -648,26 +668,30 @@
       form.append(passwordField.label, passwordConfirmField.label, el("p", "sona-login-password-hint", "От 10 символов, минимум одна буква и одна цифра."));
     }
 
-    const submitLabels = loginChannel === "telegram"
-      ? (loginStep === "code" ? "Войти через Telegram" : "Открыть Telegram-бота")
-      : (loginMode === "login"
-        ? "Войти"
-        : (loginStep === "credentials" ? "Получить код" : (loginStep === "code" ? "Подтвердить код" : (loginMode === "reset" ? "Сохранить новый пароль" : "Создать аккаунт"))));
+    const submitLabels = loginStep === "password-login"
+      ? "Войти по паролю"
+      : (loginStep === "credentials"
+        ? "Получить код"
+        : (loginStep === "code" ? "Подтвердить и войти" : "Сохранить новый пароль"));
     const submit = button("sona-profile-primary", submitLabels, () => {});
     submit.type = "submit";
     submit.disabled = loginBusy;
     form.append(submit);
 
-    if (["login", "register"].includes(loginMode) && loginChannel === "email" && loginStep === "credentials") {
-      const telegramAlternative = el("div", "sona-login-telegram-alternative");
-      telegramAlternative.append(
-        el("span", "", "или"),
-        button("sona-login-telegram-button", loginMode === "register" ? "Создать аккаунт через Telegram" : "Войти через Telegram", beginTelegramLogin)
-      );
-      form.append(telegramAlternative);
-    }
-
-    if (loginMode === "login" && loginChannel === "email") {
+    if (loginMode === "login") {
+      if (loginStep === "code" && loginPasswordAvailable) {
+        modeLinks.append(button("sona-login-text-button", "Войти по паролю", () => {
+          loginStep = "password-login";
+          loginError = "Введите пароль этого аккаунта или вернитесь ко входу по коду.";
+          render(context);
+        }));
+      } else if (loginStep === "password-login") {
+        modeLinks.append(button("sona-login-text-button", "Войти по коду из письма", () => {
+          loginStep = "code";
+          loginError = "Введите код, который уже отправлен на почту.";
+          render(context);
+        }));
+      }
       modeLinks.append(
         button("sona-login-text-button", "Забыли пароль?", () => setMode("reset")),
         button("sona-login-text-button", "Создать аккаунт", () => setMode("register"))
@@ -681,11 +705,6 @@
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (loginBusy) return;
-      if (loginChannel === "telegram" && loginStep !== "code") {
-        await beginTelegramLogin();
-        return;
-      }
-
       if (emailField && loginStep !== "code") loginEmail = String(emailField.input.value || "").trim();
       if (loginChannel === "email" && loginStep !== "password") {
         const checked = validEmail(loginEmail);
@@ -700,34 +719,22 @@
       setBusy(submit, true, submitLabels);
       try {
         let result;
-        if (loginMode === "login" && loginChannel === "email") {
+        if (["login", "register"].includes(loginMode) && loginStep === "password-login") {
           result = await loginWithPassword(loginEmail, passwordField.input.value);
           if (!result.ok) throw result;
           await finishAuth(result.account);
           return;
         }
-        if (loginChannel === "telegram") {
-          const code = window.SonaSecurity?.sanitizeAuthCode(codeField.input.value) || codeField.input.value.trim();
-          result = await verifyTelegramCode(loginTelegramId, code);
-          if (!result.ok) throw result;
-          await finishAuth(result.account);
-          return;
-        }
-        if (loginMode === "register" && loginStep === "credentials") {
+        if (["login", "register"].includes(loginMode) && loginStep === "credentials") {
           result = await requestLoginCode(loginEmail, "email");
           if (!result.ok) throw result;
+          loginPasswordAvailable = Boolean(result.passwordAvailable);
           loginStep = "code";
           loginCodeSent = true;
           loginError = "Код отправлен. Введите код из письма.";
-        } else if (loginMode === "register" && loginStep === "code") {
+        } else if (["login", "register"].includes(loginMode) && loginStep === "code") {
           const code = window.SonaSecurity?.sanitizeAuthCode(codeField.input.value) || codeField.input.value.trim();
           result = await verifyEmailCode(loginEmail, code);
-          if (!result.ok || !result.setupToken) throw result;
-          loginActionToken = result.setupToken;
-          loginStep = "password";
-          loginError = "Почта подтверждена. Теперь придумайте пароль.";
-        } else if (loginMode === "register") {
-          result = await setupPassword(loginActionToken, passwordField.input.value, passwordConfirmField.input.value);
           if (!result.ok) throw result;
           await finishAuth(result.account);
           return;
@@ -801,6 +808,7 @@
       ["support", "Поддержка"]
     ].forEach(([id, label]) => {
       const tab = button(activeSection === id ? "is-active" : "", label, () => setSection(id, context));
+      tab.dataset.profileSection = id;
       if (activeSection === id) activeTab = tab;
       tabs.append(tab);
     });
@@ -828,6 +836,7 @@
 
         iconBox.append(iconSvg(item.icon));
         navItem.type = "button";
+        navItem.dataset.profileSection = item.id;
         navItem.classList.toggle("is-active", activeSection === item.id);
         navItem.classList.toggle("is-danger", Boolean(item.danger));
         navItem.append(iconBox, el("strong", "", item.title));
@@ -837,8 +846,7 @@
             context.logout();
             return;
           }
-          activeSection = item.id;
-          render(context);
+          setSection(item.id, context);
         });
         block.append(navItem);
       });
@@ -1025,7 +1033,11 @@
     const dashboard = el("section", "sona-profile-dashboard");
     const quick = el("section", "sona-profile-dashboard-quick");
     const recommendations = recommendationProducts(context);
-    const recent = (context.data.viewedProductIds || []).map(context.byId).filter(Boolean).slice(0, 6);
+    const recentIds = [...new Set([
+      ...localRecentProductIds(),
+      ...(context.data.viewedProductIds || [])
+    ])].slice(0, 12);
+    const recent = recentIds.map(context.byId).filter(Boolean).slice(0, 6);
     const supportThreads = window.SonaSupport?.visibleThreads?.(context.data) || [];
 
     dashboard.append(
@@ -1195,7 +1207,6 @@
     const notificationSettings = {
       site: data.profile?.notifications?.site !== false,
       email: data.profile?.notifications?.email !== false,
-      telegram: data.profile?.notifications?.telegram === true,
       sound: data.profile?.notifications?.sound !== false
     };
     const makeInput = (label, name, value, type = "text") => {
@@ -1218,34 +1229,8 @@
     };
     const siteToggle = makeToggle("Уведомления на сайте", "notifySite", notificationSettings.site);
     const emailToggle = makeToggle("Уведомления на почту", "notifyEmail", notificationSettings.email);
-    const telegramToggle = makeToggle("Уведомления в Telegram", "notifyTelegram", notificationSettings.telegram);
     const soundToggle = makeToggle("Звук уведомлений", "notifySound", notificationSettings.sound);
     const notificationStatus = el("p", "sona-profile-notification-status", "Настройте удобные способы получения уведомлений.");
-    const telegramStatus = el("p", "sona-profile-notification-status", "Проверяем подключение @SonaShop_bot...");
-    const telegramActions = el("div", "sona-profile-telegram-actions");
-    const connectTelegram = button("sona-profile-soft", "Подключить @SonaShop_bot", async () => {
-      const result = await context.connectTelegram?.();
-      telegramStatus.textContent = result?.message || "Откройте Telegram и нажмите Start.";
-    }, "bell");
-    const unlinkTelegram = button("sona-profile-soft sona-profile-danger", "Отключить Telegram", async () => {
-      const result = await context.unlinkTelegram?.();
-      telegramToggle.querySelector("input").checked = false;
-      telegramStatus.textContent = result?.message || "Telegram отключён.";
-      connectTelegram.hidden = false;
-      unlinkTelegram.hidden = true;
-    }, "bell");
-    unlinkTelegram.hidden = true;
-    telegramActions.append(connectTelegram, unlinkTelegram);
-    context.getTelegramStatus?.().then((status) => {
-      const connected = Boolean(status?.connected);
-      telegramStatus.textContent = connected
-        ? `Telegram подключён${status.username ? `: ${status.username}` : "."}`
-        : (status?.configured ? "Telegram пока не подключён." : "Бот Telegram ещё не настроен на сервере.");
-      connectTelegram.hidden = connected;
-      unlinkTelegram.hidden = !connected;
-    }).catch(() => {
-      telegramStatus.textContent = "Не удалось проверить подключение Telegram.";
-    });
 
     fields.append(
       makeInput("Имя", "name", data.profile?.name),
@@ -1257,15 +1242,11 @@
       el("h3", "", "Уведомления"),
       siteToggle,
       emailToggle,
-      telegramToggle,
       soundToggle,
-      telegramActions,
-      telegramStatus,
       button("sona-profile-soft", "Отправить тестовое уведомление", async () => {
         const result = await context.sendTestNotification?.({
           site: siteToggle.querySelector("input").checked,
           email: emailToggle.querySelector("input").checked,
-          telegram: telegramToggle.querySelector("input").checked,
           sound: soundToggle.querySelector("input").checked
         });
         notificationStatus.textContent = result?.message || "Тестовое уведомление отправлено.";
@@ -1273,7 +1254,6 @@
       button("sona-profile-soft sona-profile-danger", "Отключить все уведомления", () => {
         siteToggle.querySelector("input").checked = false;
         emailToggle.querySelector("input").checked = false;
-        telegramToggle.querySelector("input").checked = false;
         soundToggle.querySelector("input").checked = false;
         notificationStatus.textContent = "Все уведомления отключены. Нажмите «Сохранить изменения».";
       }, "bell"),
@@ -1306,7 +1286,6 @@
           notifications: {
             site: form.elements.notifySite.checked,
             email: form.elements.notifyEmail.checked,
-            telegram: form.elements.notifyTelegram.checked,
             sound: form.elements.notifySound.checked
           }
         });
@@ -1316,6 +1295,43 @@
         saveButton.lastChild.textContent = "Сохранить изменения";
         saveStatus.textContent = "Не удалось сохранить изменения. Попробуйте ещё раз.";
       }
+    });
+    const passwordForm = el("form", "sona-profile-password-form");
+    const passwordFields = el("div", "sona-profile-settings-fields");
+    const passwordStatus = el("p", "sona-profile-notification-status", data.profile?.passwordEnabled
+      ? "Пароль включён. Для изменения подтвердите текущий пароль."
+      : "Пароль не обязателен. Добавьте его, если хотите усилить защиту аккаунта.");
+    const currentPasswordField = data.profile?.passwordEnabled
+      ? makeInput("Текущий пароль", "currentPassword", "", "password")
+      : null;
+    const newPasswordField = makeInput("Новый пароль", "newPassword", "", "password");
+    const confirmPasswordField = makeInput("Повторите пароль", "passwordConfirm", "", "password");
+    const passwordButton = button("sona-profile-primary", data.profile?.passwordEnabled ? "Изменить пароль" : "Установить пароль", () => {}, "shield");
+    passwordButton.type = "submit";
+    if (currentPasswordField) passwordFields.append(currentPasswordField);
+    passwordFields.append(newPasswordField, confirmPasswordField);
+    passwordForm.append(passwordFields, passwordButton, passwordStatus);
+    passwordForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      passwordButton.disabled = true;
+      const result = await context.setAccountPassword?.({
+        currentPassword: currentPasswordField?.querySelector("input")?.value || "",
+        password: newPasswordField.querySelector("input").value,
+        passwordConfirm: confirmPasswordField.querySelector("input").value
+      });
+      passwordButton.disabled = false;
+      if (!result?.ok) {
+        const messages = {
+          "Invalid current password": "Текущий пароль введён неверно.",
+          "Passwords do not match": "Новые пароли не совпадают.",
+          "Password must contain 10 to 128 characters": "Пароль должен содержать от 10 до 128 символов.",
+          "Password must contain at least one letter and one number": "Добавьте хотя бы одну букву и одну цифру."
+        };
+        passwordStatus.textContent = messages[result?.error] || result?.message || "Не удалось сохранить пароль.";
+        return;
+      }
+      passwordStatus.textContent = "Пароль установлен. Вход по коду из письма по-прежнему доступен.";
+      passwordForm.reset();
     });
     const sessionList = sessions.length ? sessions : [{
       id: context.currentDeviceId,
@@ -1347,6 +1363,7 @@
       }
     }
     panel.append(form);
+    panel.append(el("h3", "sona-profile-subtitle", "Защита аккаунта"), passwordForm);
     panel.append(el("h3", "sona-profile-subtitle", "Активные сеансы"));
     sessionList.forEach((session) => panel.append(sessionRow(session, context)));
     return panel;
@@ -1546,6 +1563,29 @@
     };
   }
 
+  function activeSectionContent(context) {
+    return activeSection === "home" ? renderHome(context) : renderSimpleSection(context);
+  }
+
+  function replaceProfileSection(context) {
+    const root = context.container?.querySelector(".sona-profile");
+    const main = root?.querySelector(".sona-profile-content");
+    if (!root || !main || !context.data.profile?.isActive) return false;
+    const stableScrollY = window.scrollY;
+    main.replaceChildren(activeSectionContent(context));
+    main.classList.remove("is-section-entering");
+    void main.offsetWidth;
+    main.classList.add("is-section-entering");
+    root.querySelectorAll("[data-profile-section]").forEach((control) => {
+      control.classList.toggle("is-active", control.dataset.profileSection === activeSection);
+    });
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" });
+      main.classList.remove("is-section-entering");
+    });
+    return true;
+  }
+
   function render(options) {
     const restoredData = restoreLocalAuth(options.data);
     const context = buildContext({ ...options, data: restoredData });
@@ -1559,7 +1599,11 @@
       return;
     }
 
-    const content = activeSection === "home" ? renderHome(context) : renderSimpleSection(context);
+    if (container.querySelector(".sona-profile") && replaceProfileSection(context)) {
+      return;
+    }
+
+    const content = activeSectionContent(context);
     container.replaceChildren(renderShell(context, content));
     if (preserveScroll) {
       window.requestAnimationFrame(() => window.scrollTo({ top: stableScrollY, left: 0, behavior: "instant" }));

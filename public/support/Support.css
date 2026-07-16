@@ -203,11 +203,21 @@
   line-height: 1.4;
 }
 
-.sona-support-message.is-admin {
+.sona-support-message.is-user {
   justify-self: end;
-  border-color: rgba(0, 185, 189, 0.28);
+  border-color: rgba(63, 145, 211, 0.32);
   border-radius: 20px 20px 7px 20px;
-  background: linear-gradient(135deg, #e5fbf9, #edf7ff);
+  background: linear-gradient(135deg, #dff3ff, #cceaff);
+  color: #0d3154;
+  box-shadow: 0 14px 30px rgba(38, 113, 174, 0.14);
+}
+
+.sona-support-message.is-admin {
+  justify-self: start;
+  border-color: rgba(207, 220, 235, 0.82);
+  border-radius: 20px 20px 20px 7px;
+  background: #fff;
+  color: #102844;
 }
 
 .sona-support-form {
@@ -425,8 +435,12 @@
     box-shadow: 0 8px 20px rgba(34, 58, 94, 0.07);
   }
 
-  .sona-support-message.is-admin {
+  .sona-support-message.is-user {
     border-radius: 18px 18px 7px 18px;
+  }
+
+  .sona-support-message.is-admin {
+    border-radius: 18px 18px 18px 7px;
   }
 
   .sona-support-form {

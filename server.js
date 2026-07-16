@@ -546,7 +546,8 @@ function publicStoreState(state, account = null) {
       isActive: true,
       id: account.id,
       email: account.email,
-      role: account.role
+      role: account.role,
+      passwordEnabled: Boolean(account.passwordHash)
     } : {},
     orders: ownOrders,
     reviews: [...reviewMap.values()],
@@ -986,6 +987,7 @@ function safeAccount(account) {
     status: account.status || "active",
     createdAt: account.createdAt || "",
     lastLoginAt: account.lastLoginAt || "",
+    hasPassword: Boolean(account.passwordHash),
     telegramConnected: Boolean(account.telegramChatId)
   };
 }
@@ -2302,15 +2304,6 @@ function handleAuthRequest(req, res) {
       sendJson(res, 400, { ok: false, error: "Invalid email" });
       return;
     }
-    if (!isAdminShortcut && isBlockedEmailProvider(email)) {
-      sendJson(res, 400, {
-        ok: false,
-        error: "Email provider is blocked",
-        message: "Gmail-почта для входа недоступна. Используйте другую почту."
-      });
-      return;
-    }
-
     if (blockInfo(req, codeKey)) {
       sendJson(res, 403, {
         ok: false,
@@ -2353,7 +2346,14 @@ function handleAuthRequest(req, res) {
         });
         return;
       }
-      sendJson(res, 200, { ok: true, channel: "email", admin: isAdminShortcut });
+      accountByEmail(email)
+        .then((account) => sendJson(res, 200, {
+          ok: true,
+          channel: "email",
+          admin: isAdminShortcut,
+          passwordAvailable: Boolean(account?.passwordHash)
+        }))
+        .catch(() => sendJson(res, 200, { ok: true, channel: "email", admin: isAdminShortcut, passwordAvailable: false }));
     });
   });
 }
@@ -2376,15 +2376,6 @@ function handleAuthVerify(req, res) {
       sendJson(res, 400, { ok: false, error: "Invalid auth payload" });
       return;
     }
-    if (!isAdminShortcut && isBlockedEmailProvider(email)) {
-      sendJson(res, 400, {
-        ok: false,
-        error: "Email provider is blocked",
-        message: "Gmail-почта для входа недоступна. Используйте другую почту."
-      });
-      return;
-    }
-
     if (blockInfo(req, codeKey)) {
       securityEvent("blocked_login_attempt", req, { emailHash: crypto.createHash("sha256").update(codeKey).digest("hex").slice(0, 12) });
       sendJson(res, 403, {
@@ -2438,20 +2429,10 @@ function handleAuthVerify(req, res) {
         return;
       }
 
-      if (account.passwordHash) {
-        sendJson(res, 409, {
-          ok: false,
-          error: "Account already exists",
-          message: "Аккаунт уже создан. Войдите с помощью почты и пароля."
-        });
-        return;
-      }
-
-      const setupToken = issueAuthActionToken(account.email, "setup-password");
+      createSession(req, res, account);
       sendJson(res, 200, {
         ok: true,
-        requiresPasswordSetup: true,
-        setupToken,
+        requiresPasswordSetup: false,
         account: safeAccount(account)
       });
     });
@@ -2730,6 +2711,52 @@ function handlePasswordSetup(req, res) {
   });
 }
 
+function handleAuthenticatedPasswordSet(req, res) {
+  const sessionAccount = requireAuth(req, res);
+  if (!sessionAccount) return;
+  readJsonBody(req, async (error, body) => {
+    if (error) {
+      sendJson(res, 400, { ok: false, error: "Invalid JSON" });
+      return;
+    }
+    const currentPassword = String(body.currentPassword || "");
+    const password = String(body.password || "");
+    const passwordConfirm = String(body.passwordConfirm || "");
+    if (password !== passwordConfirm) {
+      sendJson(res, 400, { ok: false, error: "Passwords do not match" });
+      return;
+    }
+    const passwordError = passwordValidationError(password);
+    if (passwordError) {
+      sendJson(res, 400, { ok: false, error: passwordError });
+      return;
+    }
+    try {
+      const stored = await accountByEmail(sessionAccount.email);
+      if (!stored || stored.status === "blocked") {
+        sendJson(res, 403, { ok: false, error: "Account blocked" });
+        return;
+      }
+      if (stored.passwordHash && !await verifyPassword(currentPassword, stored.passwordHash)) {
+        sendJson(res, 401, { ok: false, error: "Invalid current password" });
+        return;
+      }
+      const encodedHash = await hashPassword(password);
+      setAccountPassword(stored.email, encodedHash, (accountError, account) => {
+        if (accountError || !account) {
+          sendJson(res, 500, { ok: false, error: "Account store unavailable" });
+          return;
+        }
+        revokeSessionsForEmail(account.email);
+        createSession(req, res, account);
+        sendJson(res, 200, { ok: true, account: safeAccount(account) });
+      });
+    } catch (passwordSetError) {
+      sendJson(res, 500, { ok: false, error: "Password setup failed" });
+    }
+  });
+}
+
 function handlePasswordLogin(req, res) {
   readJsonBody(req, async (error, body) => {
     if (error) {
@@ -2961,6 +2988,11 @@ function createServer() {
 
   if (req.method === "POST" && req.url === "/api/auth/setup-password") {
     handlePasswordSetup(req, res);
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/api/auth/password") {
+    handleAuthenticatedPasswordSet(req, res);
     return;
   }
 
