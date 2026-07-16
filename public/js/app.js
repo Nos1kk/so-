@@ -1672,9 +1672,9 @@
       event.stopPropagation();
       toggleCart(product.id, cart);
     });
-    actions.append(details, cart);
+    actions.append(details);
     copy.append(top, title, price, actions);
-    card.append(media, favorite, copy);
+    card.append(media, favorite, cart, copy);
     return card;
   }
 
@@ -2701,6 +2701,70 @@
     return values.slice(0, 4);
   }
 
+  function productSimilarityKind(product) {
+    const category = displayText(product.category).toLowerCase();
+    const section = displayText(product.marketSection).toLowerCase();
+    const type = displayText(product.productType).toLowerCase();
+
+    if (type === "service" || category === "услуга" || section === "услуги") return "service";
+    if (type === "bed" || category === "кровать") return "bed";
+    if (type === "chair" || category === "кресло") return "chair";
+    if (isSofaProduct(product)) return "sofa";
+    return `${section || "catalog"}:${type || category || "product"}`;
+  }
+
+  function productPriceRatio(source, candidate) {
+    const sourcePrice = Number(source.price) || 0;
+    const candidatePrice = Number(candidate.price) || 0;
+    if (!sourcePrice || !candidatePrice) return 1;
+    return Math.max(sourcePrice, candidatePrice) / Math.max(1, Math.min(sourcePrice, candidatePrice));
+  }
+
+  function productTraitOverlap(source, candidate) {
+    const sourceTraits = new Set([
+      source.mechanism,
+      source.subcategory,
+      ...(source.materials || []),
+      ...(source.tags || [])
+    ].map((value) => displayText(value).trim().toLowerCase()).filter(Boolean));
+    const candidateTraits = new Set([
+      candidate.mechanism,
+      candidate.subcategory,
+      ...(candidate.materials || []),
+      ...(candidate.tags || [])
+    ].map((value) => displayText(value).trim().toLowerCase()).filter(Boolean));
+
+    if (!sourceTraits.size || !candidateTraits.size) return 0;
+    return [...sourceTraits].filter((trait) => candidateTraits.has(trait)).length
+      / Math.max(1, Math.min(sourceTraits.size, candidateTraits.size));
+  }
+
+  function isEligibleSimilarProduct(source, candidate, relaxed = false) {
+    if (!candidate || candidate.id === source.id || candidate.hidden || candidate.available === false) return false;
+    if (productSimilarityKind(source) !== productSimilarityKind(candidate)) return false;
+
+    const kind = productSimilarityKind(source);
+    const ratio = productPriceRatio(source, candidate);
+    const strictRatio = kind === "service" ? 2.25 : 1.8;
+    const relaxedRatio = kind === "service" ? 3 : 2.35;
+    if (ratio > (relaxed ? relaxedRatio : strictRatio)) return false;
+
+    if (kind === "service") return true;
+    if (kind !== "sofa") return true;
+    if (relaxed) return true;
+
+    const sameCategory = displayText(source.category) === displayText(candidate.category);
+    const dimensionMatch = (() => {
+      const sourceDims = productDimensions(source);
+      const candidateDims = productDimensions(candidate);
+      if (!sourceDims.length || !candidateDims.length) return true;
+      const sourceWidth = sourceDims[0];
+      const candidateWidth = candidateDims[0];
+      return Math.max(sourceWidth, candidateWidth) / Math.max(1, Math.min(sourceWidth, candidateWidth)) <= 1.45;
+    })();
+    return sameCategory || dimensionMatch || productTraitOverlap(source, candidate) > 0;
+  }
+
   function similarityScore(source, candidate) {
     const sourcePrice = Number(source.price) || 0;
     const candidatePrice = Number(candidate.price) || 0;
@@ -2725,14 +2789,21 @@
     const sameCategory = source.category === candidate.category || productCategoryLabel(source) === productCategoryLabel(candidate);
     const sameType = source.productType && source.productType === candidate.productType;
     const sameSection = source.marketSection && source.marketSection === candidate.marketSection;
+    const sameSubcategory = source.subcategory && source.subcategory === candidate.subcategory;
+    const sameMechanism = source.mechanism && source.mechanism === candidate.mechanism;
+    const traitScore = productTraitOverlap(source, candidate);
+    const kind = productSimilarityKind(source);
 
     return (
-      priceScore * 42 +
-      dimensionScore * 28 +
-      textScore * 24 +
-      (sameCategory ? 26 : 0) +
-      (sameType ? 18 : 0) +
-      (sameSection ? 8 : 0)
+      priceScore * 48 +
+      dimensionScore * (kind === "service" ? 0 : 30) +
+      textScore * 26 +
+      traitScore * 24 +
+      (sameCategory ? 30 : 0) +
+      (sameType ? 20 : 0) +
+      (sameSection ? 12 : 0) +
+      (sameSubcategory ? 18 : 0) +
+      (sameMechanism ? 16 : 0)
     );
   }
 
@@ -2740,14 +2811,15 @@
     const section = createElement("section", "detail-similar");
     const grid = createElement("div", "similar-grid");
     const similar = state.products
-      .filter((item) => item.id !== product.id && !item.hidden)
+      .filter((item) => isEligibleSimilarProduct(product, item, false))
       .map((item) => ({ item, score: similarityScore(product, item) }))
-      .filter(({ score }) => score > 18)
+      .filter(({ score }) => score > 28)
       .sort((a, b) => b.score - a.score)
       .map(({ item }) => item)
       .slice(0, 6);
     const fallback = state.products
-      .filter((item) => item.id !== product.id && !item.hidden && !similar.some((candidate) => candidate.id === item.id))
+      .filter((item) => isEligibleSimilarProduct(product, item, true))
+      .filter((item) => !similar.some((candidate) => candidate.id === item.id))
       .sort((a, b) => similarityScore(product, b) - similarityScore(product, a))
       .slice(0, 6 - similar.length);
 
@@ -3089,7 +3161,7 @@
       return;
     }
 
-    els.cartItems.replaceChildren(...rows.map(({ product, quantity }) => createCartItem(product, quantity)));
+    els.cartItems.replaceChildren(...rows.map(({ product, quantity }, index) => createCartItem(product, quantity, index)));
     renderCartRecommendations(rows);
   }
 
@@ -3174,7 +3246,7 @@
     return card;
   }
 
-  function createCartItem(product, quantity) {
+  function createCartItem(product, quantity, index = 0) {
     const item = createElement("article", "cart-item");
     const thumb = createProductPlaceholder(product);
     const body = createElement("div", "cart-item-body");
@@ -3190,6 +3262,7 @@
     const price = createElement("span", "cart-item-price", money(product.price * quantity));
 
     item.dataset.cartItemId = product.id;
+    item.style.setProperty("--cart-index", String(index));
     thumb.classList.add("cart-placeholder");
     amount.dataset.cartQuantity = "";
     price.dataset.cartItemPrice = "";
@@ -3205,7 +3278,7 @@
       item.classList.add("is-removing");
       item.setAttribute("aria-busy", "true");
       item.querySelectorAll("button").forEach((button) => { button.disabled = true; });
-      window.setTimeout(() => setQuantity(product.id, 0), 480);
+      window.setTimeout(() => setQuantity(product.id, 0), 560);
     });
 
     minus.type = "button";

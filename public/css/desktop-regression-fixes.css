@@ -766,6 +766,185 @@
   .detail-similar .similar-card-meta {
     display: none !important;
   }
+
+  /* One shared geometry for every icon-only cart/favorite pair. */
+  :is(
+    .lookbook-favorite,
+    .lookbook-cart,
+    #productGrid .favorite-button,
+    #productGrid .product-cart-button,
+    .category-product-grid .favorite-button,
+    .category-product-grid .product-cart-button,
+    .home-picks-group .favorite-button,
+    .home-picks-group .product-cart-button,
+    .favorites-grid .favorite-button,
+    .favorites-grid .product-cart-button,
+    .favorites-hits-grid .favorite-button,
+    .favorites-hits-grid .product-cart-button,
+    .cart-recommendation-actions .favorite-button,
+    .cart-recommendation-actions .product-cart-button,
+    .similar-card-actions .favorite-button,
+    .similar-card-actions .product-cart-button,
+    .sona-profile-showcase-card__cart
+  ) {
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 0 !important;
+    border: 1px solid rgba(200, 216, 231, .9) !important;
+    border-radius: 13px !important;
+    background: rgba(255, 255, 255, .97) !important;
+    color: #102844 !important;
+    box-shadow: 0 9px 20px rgba(20, 45, 78, .13) !important;
+    line-height: 0 !important;
+  }
+
+  :is(
+    .lookbook-cart,
+    #productGrid .product-cart-button,
+    .category-product-grid .product-cart-button,
+    .home-picks-group .product-cart-button,
+    .favorites-grid .product-cart-button,
+    .favorites-hits-grid .product-cart-button,
+    .cart-recommendation-actions .product-cart-button,
+    .similar-card-actions .product-cart-button,
+    .sona-profile-showcase-card__cart
+  ).is-in-cart {
+    border-color: #7d8996 !important;
+    background: linear-gradient(145deg, #89939f, #717d8b) !important;
+    color: #fff !important;
+    box-shadow: 0 10px 22px rgba(61, 75, 91, .2) !important;
+  }
+
+  :is(
+    .lookbook-cart,
+    #productGrid .product-cart-button,
+    .category-product-grid .product-cart-button,
+    .home-picks-group .product-cart-button,
+    .favorites-grid .product-cart-button,
+    .favorites-hits-grid .product-cart-button,
+    .cart-recommendation-actions .product-cart-button,
+    .similar-card-actions .product-cart-button,
+    .sona-profile-showcase-card__cart
+  ) .product-cart-icon,
+  :is(
+    .lookbook-favorite,
+    #productGrid .favorite-button,
+    .category-product-grid .favorite-button,
+    .home-picks-group .favorite-button,
+    .favorites-grid .favorite-button,
+    .favorites-hits-grid .favorite-button,
+    .cart-recommendation-actions .favorite-button,
+    .similar-card-actions .favorite-button
+  ) .favorite-icon {
+    display: block !important;
+    width: 23px !important;
+    height: 23px !important;
+    margin: 0 !important;
+  }
+
+  .lookbook-favorite,
+  .home-picks-group .favorite-button,
+  :is(.favorites-grid, .favorites-hits-grid) .favorite-button,
+  #productGrid .favorite-button,
+  .category-product-grid .favorite-button {
+    right: 12px !important;
+  }
+
+  .lookbook-cart,
+  .home-picks-group .product-cart-button,
+  :is(.favorites-grid, .favorites-hits-grid) .product-cart-button,
+  #productGrid .product-cart-button,
+  .category-product-grid .product-cart-button {
+    right: 64px !important;
+  }
+
+  /* The weekly cart is a direct child, guaranteed to sit left of the heart. */
+  .lookbook-card > .lookbook-cart {
+    position: absolute !important;
+    top: 12px !important;
+    right: 64px !important;
+    z-index: 12 !important;
+  }
+
+  /* One reference animation, based on the Hits/New arrivals cards, everywhere. */
+  :is(
+    .lookbook-card,
+    #productGrid,
+    .category-product-grid,
+    .home-picks-group,
+    .favorites-grid,
+    .favorites-hits-grid,
+    .cart-recommendations,
+    .detail-similar,
+    .detail-actions,
+    .sona-profile-showcase-card
+  ) .product-cart-button.is-added {
+    animation: desktopCartStandardAdd 680ms cubic-bezier(.22, 1.45, .36, 1) both !important;
+  }
+
+  :is(
+    .lookbook-card,
+    #productGrid,
+    .category-product-grid,
+    .home-picks-group,
+    .favorites-grid,
+    .favorites-hits-grid,
+    .cart-recommendations,
+    .detail-similar,
+    .detail-actions,
+    .sona-profile-showcase-card
+  ) .product-cart-button.is-removed {
+    animation: desktopCartStandardRemove 680ms cubic-bezier(.22, 1.25, .36, 1) both !important;
+  }
+
+  :is(
+    .lookbook-card,
+    #productGrid,
+    .category-product-grid,
+    .home-picks-group,
+    .favorites-grid,
+    .favorites-hits-grid,
+    .cart-recommendations,
+    .detail-similar,
+    .sona-profile-showcase-card
+  ) .product-cart-button:is(.is-added, .is-removed) .product-cart-icon {
+    animation: desktopCartStandardIcon 680ms cubic-bezier(.22, 1.5, .36, 1) both !important;
+  }
+
+  /* Full enter/exit choreography for cart rows. */
+  .cart-item {
+    position: relative;
+    overflow: hidden;
+    animation: desktopCartItemEnter 620ms cubic-bezier(.22, 1, .36, 1) both !important;
+    animation-delay: calc(var(--cart-index, 0) * 55ms) !important;
+  }
+
+  .cart-item::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 32%, rgba(255, 255, 255, .76) 48%, transparent 64%);
+    transform: translateX(-130%);
+    animation: desktopCartItemSheen 760ms ease-out calc(var(--cart-index, 0) * 55ms + 90ms) both;
+  }
+
+  .cart-item.is-removing {
+    animation: desktopCartItemRemove 560ms cubic-bezier(.4, 0, .2, 1) forwards !important;
+    animation-delay: 0ms !important;
+  }
+
+  .cart-item.is-removing .cart-placeholder {
+    animation: desktopCartMediaExit 460ms cubic-bezier(.4, 0, .2, 1) forwards;
+  }
+
+  .cart-item.is-removing .cart-item-body {
+    animation: desktopCartBodyExit 420ms cubic-bezier(.4, 0, .2, 1) forwards;
+  }
 }
 
 @keyframes desktopFavoritePop {
@@ -805,4 +984,45 @@
     padding-block: 0;
     border-width: 0;
   }
+}
+
+@keyframes desktopCartStandardAdd {
+  0% { transform: scale(1); }
+  30% { transform: scale(.88); }
+  64% { transform: scale(1.12); box-shadow: 0 0 0 9px rgba(66, 133, 190, .14), 0 14px 28px rgba(16, 40, 68, .2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes desktopCartStandardRemove {
+  0% { transform: scale(1); }
+  34% { transform: scale(.9) rotate(-4deg); }
+  68% { transform: scale(1.08) rotate(2deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@keyframes desktopCartStandardIcon {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  32% { transform: translate3d(4px, -3px, 0) scale(.78) rotate(-8deg); }
+  68% { transform: translate3d(-2px, 1px, 0) scale(1.24) rotate(5deg); }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(0); }
+}
+
+@keyframes desktopCartItemEnter {
+  0% { opacity: 0; transform: translate3d(-36px, 18px, 0) scale(.965); }
+  62% { opacity: 1; transform: translate3d(5px, -2px, 0) scale(1.008); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes desktopCartItemSheen {
+  0% { transform: translateX(-130%); opacity: 0; }
+  28% { opacity: .75; }
+  100% { transform: translateX(130%); opacity: 0; }
+}
+
+@keyframes desktopCartMediaExit {
+  to { opacity: 0; transform: translate3d(32px, -5px, 0) scale(.82) rotate(3deg); }
+}
+
+@keyframes desktopCartBodyExit {
+  to { opacity: 0; transform: translate3d(26px, 0, 0); filter: blur(2px); }
 }
