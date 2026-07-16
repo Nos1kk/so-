@@ -3131,7 +3131,7 @@
   }
 
   .catalog-sale-banner__content strong::after {
-    content: "Выгодные предложения недели";
+    content: "Выгодные предложения";
     color: #fff;
     font-size: 2rem;
     line-height: 1.05;
@@ -3143,7 +3143,7 @@
   }
 
   .catalog-sale-banner__content small::after {
-    content: "Подборки мебели и выгодные предложения недели";
+    content: "Подборки мебели и выгодные предложения";
     font-size: 1rem;
     line-height: 1.35;
   }

@@ -617,6 +617,7 @@
         ...product,
         ...(overrides[product.id] || {})
       }))
+      .filter((product) => isSofaProduct(product))
       .filter((product) => options.includeHidden || !product.hidden);
   }
 
@@ -3076,25 +3077,77 @@
     }, 460);
   }
 
+  function commitCartItemRemoval(productId, item = null) {
+    const id = security.safeProductId(productId);
+    const movingItems = item?.isConnected
+      ? [...els.cartItems.querySelectorAll(".cart-item")].filter((row) => row !== item)
+      : [];
+    const previousPositions = new Map(movingItems.map((row) => [row, row.getBoundingClientRect().top]));
+
+    store.update((data) => {
+      delete data.cart[id];
+    });
+
+    const rows = cartRows();
+    if (item?.isConnected && rows.length) {
+      item.remove();
+      movingItems.forEach((row) => {
+        const previousTop = previousPositions.get(row);
+        const nextTop = row.getBoundingClientRect().top;
+        const offset = previousTop - nextTop;
+        if (Math.abs(offset) < 1 || typeof row.animate !== "function") return;
+        row.animate(
+          [
+            { transform: `translate3d(0, ${offset}px, 0)` },
+            { transform: "translate3d(0, 0, 0)" }
+          ],
+          { duration: 360, easing: "cubic-bezier(.22, 1, .36, 1)" }
+        );
+      });
+      updateCartTotalsView();
+      if (els.cartSummary) els.cartSummary.hidden = false;
+      renderCartRecommendations(rows);
+    } else {
+      preserveElementViewportPosition(els.cartItems, renderCart);
+    }
+
+    refreshProfileAfterMotion();
+    syncCartButtons(id);
+    if (state.route === "favorites") renderFavoritesPage();
+  }
+
+  function beginCartItemRemoval(item, productId) {
+    if (!item || item.classList.contains("is-removing")) return;
+    if (reduceMotion) {
+      commitCartItemRemoval(productId, item);
+      return;
+    }
+
+    item.style.setProperty("--cart-item-height", `${Math.ceil(item.getBoundingClientRect().height)}px`);
+    item.classList.add("is-removing");
+    item.setAttribute("aria-busy", "true");
+    item.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+    window.setTimeout(() => commitCartItemRemoval(productId, item), 660);
+  }
+
   function setQuantity(productId, quantity, triggerButton = null) {
     const id = security.safeProductId(productId);
     const previousQuantity = Number(store.read().cart?.[id]) || 0;
     const nextQuantity = Math.max(0, Math.min(Number(quantity) || 0, 20));
 
-    store.update((data) => {
-      if (nextQuantity === 0) {
-        delete data.cart[id];
-      } else {
-        data.cart[id] = nextQuantity;
-      }
-    });
-
     if (nextQuantity === 0) {
-      renderCart();
-      refreshProfileAfterMotion();
-      if (state.route === "favorites") renderFavoritesPage();
+      const item = els.cartItems?.querySelector(`[data-cart-item-id="${id}"]`);
+      if (item && !item.classList.contains("is-removing")) {
+        beginCartItemRemoval(item, id);
+      } else if (!item) {
+        commitCartItemRemoval(id);
+      }
       return;
     }
+
+    store.update((data) => {
+      data.cart[id] = nextQuantity;
+    });
 
     const item = els.cartItems?.querySelector(`[data-cart-item-id="${id}"]`);
     if (!item) {
@@ -3270,15 +3323,7 @@
     remove.type = "button";
     remove.setAttribute("aria-label", "Удалить товар");
     remove.addEventListener("click", () => {
-      if (item.classList.contains("is-removing")) return;
-      if (reduceMotion) {
-        setQuantity(product.id, 0);
-        return;
-      }
-      item.classList.add("is-removing");
-      item.setAttribute("aria-busy", "true");
-      item.querySelectorAll("button").forEach((button) => { button.disabled = true; });
-      window.setTimeout(() => setQuantity(product.id, 0), 560);
+      beginCartItemRemoval(item, product.id);
     });
 
     minus.type = "button";

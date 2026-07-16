@@ -1152,3 +1152,103 @@
 @keyframes desktopCartBodyExit {
   to { opacity: 0; transform: translate3d(26px, 0, 0); filter: blur(2px); }
 }
+
+/* Final desktop-only polish: stable cart collapse and clean white product media. */
+@media (min-width: 761px) {
+  .cart-item.is-removing {
+    box-sizing: border-box !important;
+    height: var(--cart-item-height, 196px) !important;
+    min-height: 0 !important;
+    max-height: var(--cart-item-height, 196px) !important;
+    overflow: hidden !important;
+    transform-origin: center right !important;
+    animation: desktopCartItemRemoveSmooth 650ms cubic-bezier(.4, 0, .2, 1) forwards !important;
+  }
+
+  :is(
+    .product-card .product-media,
+    .product-card .product-placeholder,
+    .cart-recommendation-card .cart-recommendation-photo,
+    .sofa-collection-card,
+    .sofa-collection-card .sofa-collection-photo,
+    .catalog-hub-card--hero,
+    .catalog-hub-card--hero .catalog-hub-photo,
+    .catalog-hub-card--product-tile,
+    .catalog-hub-card--product-tile .catalog-hub-photo
+  ) {
+    background-color: #fff !important;
+    background-image: none !important;
+  }
+
+  :is(
+    .product-card .product-media,
+    .product-card .product-placeholder,
+    .cart-recommendation-card .cart-recommendation-photo,
+    .sofa-collection-card .sofa-collection-photo,
+    .catalog-hub-card--hero .catalog-hub-photo,
+    .catalog-hub-card--product-tile .catalog-hub-photo
+  )::before,
+  .catalog-hub-card--hero .catalog-hub-photo::before {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+
+  :is(
+    .product-card .product-media img,
+    .product-card .product-placeholder img,
+    .cart-recommendation-card .cart-recommendation-photo img,
+    .sofa-collection-card .sofa-collection-photo img,
+    .catalog-hub-card--hero .catalog-hub-photo img,
+    .catalog-hub-card--product-tile .catalog-hub-photo img
+  ) {
+    background: #fff !important;
+    filter: none !important;
+  }
+
+  .catalog-sale-banner::before,
+  .catalog-sale-banner:hover::before,
+  .catalog-sale-banner:focus-visible::before {
+    inset: 0 !important;
+    z-index: 1 !important;
+    opacity: 1 !important;
+    transform: none !important;
+    background: linear-gradient(90deg, rgba(6, 18, 34, .96) 0%, rgba(6, 18, 34, .82) 36%, rgba(6, 18, 34, .28) 70%, rgba(6, 18, 34, .1) 100%) !important;
+    transition: background 320ms ease, opacity 320ms ease !important;
+  }
+
+  .catalog-sale-banner:hover::before,
+  .catalog-sale-banner:focus-visible::before {
+    background: linear-gradient(90deg, rgba(6, 18, 34, .98) 0%, rgba(6, 18, 34, .88) 40%, rgba(6, 18, 34, .36) 74%, rgba(6, 18, 34, .16) 100%) !important;
+  }
+
+  .catalog-hub-card--service {
+    margin-top: 10px !important;
+  }
+}
+
+@keyframes desktopCartItemRemoveSmooth {
+  0% {
+    height: var(--cart-item-height, 196px);
+    max-height: var(--cart-item-height, 196px);
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  48% {
+    height: var(--cart-item-height, 196px);
+    max-height: var(--cart-item-height, 196px);
+    opacity: .56;
+    transform: translate3d(28px, 0, 0) scale(.975);
+  }
+  100% {
+    height: 0;
+    min-height: 0;
+    max-height: 0;
+    margin-block: 0;
+    padding-block: 0;
+    border-width: 0;
+    opacity: 0;
+    transform: translate3d(54px, -6px, 0) scale(.95);
+  }
+}
