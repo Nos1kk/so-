@@ -188,6 +188,21 @@
       sort: "popular"
     },
     categoryPage: null,
+    categoryFilters: {
+      minPrice: 0,
+      maxPrice: null,
+      size: ALL_VALUE,
+      mechanism: ALL_VALUE,
+      material: ALL_VALUE,
+      minRating: 0,
+      minReviews: 0,
+      deliveryDays: 0,
+      serviceType: ALL_VALUE,
+      workDays: 0,
+      saleOnly: false,
+      sort: "popular"
+    },
+    categoryFilterOpen: false,
     activeQuickKey: "",
     activeProductId: "",
     productReturnPath: ""
@@ -902,6 +917,7 @@
     const icons = {
       heart: ["M12 20.1s-7.4-4.4-8.9-9.2C2 7.4 4.1 4.2 7.6 4.2c2 0 3.4 1 4.4 2.4 1-1.4 2.4-2.4 4.4-2.4 3.5 0 5.6 3.2 4.5 6.7-1.5 4.8-8.9 9.2-8.9 9.2Z"],
       cart: ["M4 5h2l1.7 9.2a2 2 0 0 0 2 1.6h6.9a2 2 0 0 0 2-1.6L20 8H7", "M10 20h.1", "M17 20h.1"],
+      filter: ["M4 6h16", "M7 12h10", "M10 18h4", "M8 4v4", "M15 10v4", "M12 16v4"],
       share: ["M12 15V3", "m7 8 5-5 5 5", "M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"],
       close: ["M6.5 6.5 17.5 17.5", "M17.5 6.5 6.5 17.5"],
       image: ["M5 6.2h14a1.8 1.8 0 0 1 1.8 1.8v8a1.8 1.8 0 0 1-1.8 1.8H5A1.8 1.8 0 0 1 3.2 16V8A1.8 1.8 0 0 1 5 6.2Z", "m6.8 15 3.2-3.2 2.4 2.4 1.7-1.7 3.1 3.1", "M15.8 9.4h.1"]
@@ -3816,12 +3832,142 @@
       });
   }
 
+  function resetCategoryFilters() {
+    state.categoryFilters = {
+      minPrice: 0,
+      maxPrice: null,
+      size: ALL_VALUE,
+      mechanism: ALL_VALUE,
+      material: ALL_VALUE,
+      minRating: 0,
+      minReviews: 0,
+      deliveryDays: 0,
+      serviceType: ALL_VALUE,
+      workDays: 0,
+      saleOnly: false,
+      sort: "popular"
+    };
+  }
+
+  function categoryProductRating(product, data = store.read()) {
+    const summary = reviewSummary(product.id, data);
+    return summary.count ? summary.average : (Number(product.rating) || 0);
+  }
+
+  function categoryProductReviewCount(product, data = store.read()) {
+    const summary = reviewSummary(product.id, data);
+    return summary.count || Number(product.reviews) || 0;
+  }
+
+  function categoryProductSize(product) {
+    const namedSize = String(product.size || "").trim().toUpperCase();
+    if (["S", "M", "L", "XL"].includes(namedSize)) return namedSize;
+    const width = Number(String(product.dimensions || "").match(/\d{3,4}/)?.[0]) || 0;
+    if (!width) return ALL_VALUE;
+    if (width <= 1900) return "S";
+    if (width <= 2400) return "M";
+    if (width <= 3000) return "L";
+    return "XL";
+  }
+
+  function categoryServiceType(product) {
+    const text = searchProductText(product);
+    if (/дизайн|ui|ux|бренд|прототип/.test(text)) return "design";
+    if (/моушен|motion|видео|анимац|render/.test(text)) return "motion";
+    if (/продакш|production|контент|съем/.test(text)) return "production";
+    return "development";
+  }
+
+  function filteredCategoryProducts(products, preset, data = store.read()) {
+    const filters = state.categoryFilters;
+    const serviceMode = preset.section === "Услуги" || preset.category === "услуга" || preset.key === "services";
+    const result = products.filter((product) => {
+      const price = Number(product.price) || 0;
+      const rating = categoryProductRating(product, data);
+      const reviewCount = categoryProductReviewCount(product, data);
+      const materials = (product.materials || []).map((item) => displayText(item).toLowerCase());
+      const mechanism = displayText(product.mechanism || "").toLowerCase();
+      const duration = Number(product.workDays || product.durationDays || product.deliveryDays) || 0;
+      const maxPrice = Number(filters.maxPrice) || Infinity;
+
+      return (
+        (!filters.minPrice || price >= Number(filters.minPrice)) &&
+        (price <= maxPrice || price === 0) &&
+        (!filters.minRating || rating >= Number(filters.minRating)) &&
+        (!filters.minReviews || reviewCount >= Number(filters.minReviews)) &&
+        (!filters.saleOnly || Boolean(product.oldPrice)) &&
+        (serviceMode
+          ? (
+            (filters.serviceType === ALL_VALUE || categoryServiceType(product) === filters.serviceType) &&
+            (!filters.workDays || (duration > 0 && duration <= Number(filters.workDays)))
+          )
+          : (
+            (filters.size === ALL_VALUE || categoryProductSize(product) === filters.size) &&
+            (filters.mechanism === ALL_VALUE || mechanism === filters.mechanism) &&
+            (filters.material === ALL_VALUE || materials.includes(filters.material)) &&
+            (!filters.deliveryDays || (duration > 0 && duration <= Number(filters.deliveryDays)))
+          ))
+      );
+    });
+
+    return result.sort((left, right) => {
+      if (filters.sort === "priceAsc") {
+        const leftPrice = Number(left.price) || Number.MAX_SAFE_INTEGER;
+        const rightPrice = Number(right.price) || Number.MAX_SAFE_INTEGER;
+        return leftPrice - rightPrice;
+      }
+      if (filters.sort === "priceDesc") return (Number(right.price) || 0) - (Number(left.price) || 0);
+      if (filters.sort === "rating") return categoryProductRating(right, data) - categoryProductRating(left, data);
+      if (filters.sort === "reviews") return categoryProductReviewCount(right, data) - categoryProductReviewCount(left, data);
+      if (filters.sort === "delivery") {
+        return (Number(left.workDays || left.durationDays || left.deliveryDays) || Infinity)
+          - (Number(right.workDays || right.durationDays || right.deliveryDays) || Infinity);
+      }
+      return categoryProductReviewCount(right, data) - categoryProductReviewCount(left, data)
+        || categoryProductRating(right, data) - categoryProductRating(left, data);
+    });
+  }
+
+  function createCategoryFilterSelect(labelText, value, options, onChange, filterKey) {
+    const label = createElement("label", "category-filter-field");
+    const title = createElement("span", "", labelText);
+    const select = document.createElement("select");
+    if (filterKey) select.dataset.categoryFilter = filterKey;
+    options.forEach(([optionValue, optionLabel]) => {
+      const option = document.createElement("option");
+      option.value = optionValue;
+      option.textContent = displayText(optionLabel);
+      select.append(option);
+    });
+    select.value = String(value);
+    select.addEventListener("change", () => onChange(select.value));
+    label.append(title, select);
+    return label;
+  }
+
+  function activeCategoryFilterCount(serviceMode) {
+    const filters = state.categoryFilters;
+    return [
+      Number(filters.minPrice) > 0,
+      Number(filters.maxPrice) > 0,
+      Number(filters.minRating) > 0,
+      Number(filters.minReviews) > 0,
+      filters.saleOnly,
+      serviceMode ? filters.serviceType !== ALL_VALUE : filters.size !== ALL_VALUE,
+      serviceMode ? Number(filters.workDays) > 0 : filters.mechanism !== ALL_VALUE,
+      !serviceMode && filters.material !== ALL_VALUE,
+      !serviceMode && Number(filters.deliveryDays) > 0,
+      filters.sort !== "popular"
+    ].filter(Boolean).length;
+  }
+
   function renderCategoryPage() {
     if (!els.categoryPageContent || !state.products.length) return;
 
     const data = store.read();
     const preset = state.categoryPage || CATEGORY_PAGE_PRESETS.all;
     const products = getCategoryPageProducts(preset);
+    const serviceMode = preset.section === "Услуги" || preset.category === "услуга" || preset.key === "services";
     const page = createElement("div", "category-page-inner");
     const head = createElement("section", "category-page-head");
     const copy = createElement("div");
@@ -3875,20 +4021,164 @@
       switcher.append(button);
     });
 
-    if (products.length) {
-      products.forEach((product) => grid.append(createProductCard(product, data)));
-    } else {
-      const empty = createElement("div", "category-page-empty");
-      empty.append(
-        createElement("strong", "", "Товаров пока нет"),
-        createElement("span", "", "Фотографии и товары можно будет добавить позже через каталог или админ-панель.")
+    const renderGrid = (animate = false) => {
+      const filtered = filteredCategoryProducts(products, preset, data);
+      const rows = filtered.map((product) => createProductCard(product, data));
+      if (!rows.length) {
+        const empty = createElement("div", "category-page-empty");
+        empty.append(
+          createElement("strong", "", "По этим параметрам ничего не найдено"),
+          createElement("span", "", "Измените один из фильтров или сбросьте выбранные параметры.")
+        );
+        rows.push(empty);
+      }
+      grid.replaceChildren(...rows);
+      resultCount.textContent = `Показано ${filtered.length} из ${products.length}`;
+      filterCount.textContent = String(activeCategoryFilterCount(serviceMode));
+      filterCount.hidden = activeCategoryFilterCount(serviceMode) === 0;
+      reset.hidden = activeCategoryFilterCount(serviceMode) === 0;
+      if (animate && !reduceMotion) {
+        grid.classList.remove("is-filter-entering");
+        void grid.offsetWidth;
+        grid.classList.add("is-filter-entering");
+      }
+      observeAnimatedElements();
+    };
+
+    const filterShell = createElement("section", "category-filter-shell");
+    const filterToolbar = createElement("div", "category-filter-toolbar");
+    const toggle = createElement("button", "category-filter-toggle");
+    const toggleLabel = createElement("span", "", "Фильтры");
+    const filterCount = createElement("span", "category-filter-count", "0");
+    const resultCount = createElement("span", "category-filter-result", "");
+    const reset = createElement("button", "category-filter-reset", "Сбросить");
+    const panel = createElement("div", "category-filter-panel");
+    const panelInner = createElement("div", "category-filter-panel-inner");
+    const controls = createElement("div", "category-filter-controls");
+
+    toggle.type = "button";
+    toggle.setAttribute("aria-expanded", String(state.categoryFilterOpen));
+    toggle.append(createSvgIcon("filter", "category-filter-icon"), toggleLabel, filterCount);
+    panel.classList.toggle("is-open", state.categoryFilterOpen);
+    panel.setAttribute("aria-hidden", String(!state.categoryFilterOpen));
+    toggle.addEventListener("click", () => {
+      state.categoryFilterOpen = !state.categoryFilterOpen;
+      toggle.classList.toggle("is-active", state.categoryFilterOpen);
+      toggle.setAttribute("aria-expanded", String(state.categoryFilterOpen));
+      panel.classList.toggle("is-open", state.categoryFilterOpen);
+      panel.setAttribute("aria-hidden", String(!state.categoryFilterOpen));
+    });
+    toggle.classList.toggle("is-active", state.categoryFilterOpen);
+
+    const scheduleGridUpdate = () => {
+      grid.classList.add("is-filter-leaving");
+      window.clearTimeout(grid.filterUpdateTimer);
+      grid.filterUpdateTimer = window.setTimeout(() => {
+        grid.classList.remove("is-filter-leaving");
+        renderGrid(true);
+      }, reduceMotion ? 0 : 150);
+    };
+
+    const maximumPrice = Math.max(50000, Math.ceil(Math.max(...products.map((product) => Number(product.price) || 0), 0) / 5000) * 5000);
+    const priceGroup = createElement("div", "category-filter-field category-filter-price");
+    const priceTitle = createElement("span", "", "Цена, ₽");
+    const priceInputs = createElement("div", "category-filter-price-inputs");
+    const minPrice = document.createElement("input");
+    const maxPrice = document.createElement("input");
+    minPrice.type = maxPrice.type = "number";
+    minPrice.min = maxPrice.min = "0";
+    minPrice.step = maxPrice.step = "5000";
+    minPrice.placeholder = "от 0";
+    maxPrice.placeholder = `до ${maximumPrice.toLocaleString("ru-RU")}`;
+    minPrice.value = state.categoryFilters.minPrice ? String(state.categoryFilters.minPrice) : "";
+    maxPrice.value = state.categoryFilters.maxPrice ? String(state.categoryFilters.maxPrice) : "";
+    minPrice.addEventListener("change", () => {
+      state.categoryFilters.minPrice = Math.max(0, Number(minPrice.value) || 0);
+      scheduleGridUpdate();
+    });
+    maxPrice.addEventListener("change", () => {
+      state.categoryFilters.maxPrice = Math.max(0, Number(maxPrice.value) || 0) || null;
+      scheduleGridUpdate();
+    });
+    priceInputs.append(minPrice, maxPrice);
+    priceGroup.append(priceTitle, priceInputs);
+    controls.append(priceGroup);
+
+    const updateFilter = (key, value, numeric = false) => {
+      state.categoryFilters[key] = numeric ? Number(value) || 0 : value;
+      scheduleGridUpdate();
+    };
+
+    if (serviceMode) {
+      controls.append(
+        createCategoryFilterSelect("Вид работ", state.categoryFilters.serviceType, [
+          [ALL_VALUE, "Все направления"], ["development", "Разработка"], ["design", "Дизайн"], ["motion", "Видеомоушен"], ["production", "Продакшен"]
+        ], (value) => updateFilter("serviceType", value), "serviceType"),
+        createCategoryFilterSelect("Срок выполнения", state.categoryFilters.workDays, [
+          ["0", "Любой срок"], ["3", "До 3 дней"], ["7", "До недели"], ["14", "До 2 недель"], ["30", "До месяца"]
+        ], (value) => updateFilter("workDays", value, true), "workDays")
       );
-      grid.append(empty);
+    } else {
+      const mechanisms = [...new Set(products.map((product) => displayText(product.mechanism || "").trim().toLowerCase()).filter(Boolean))]
+        .sort((left, right) => left.localeCompare(right, "ru"));
+      const materials = [...new Set(products.flatMap((product) => (product.materials || []).map((item) => displayText(item).trim().toLowerCase())).filter(Boolean))]
+        .sort((left, right) => left.localeCompare(right, "ru"));
+      controls.append(
+        createCategoryFilterSelect("Размер", state.categoryFilters.size, [
+          [ALL_VALUE, "Любой размер"], ["S", "Компактный — S"], ["M", "Средний — M"], ["L", "Большой — L"], ["XL", "Очень большой — XL"]
+        ], (value) => updateFilter("size", value), "size"),
+        createCategoryFilterSelect("Механизм", state.categoryFilters.mechanism, [
+          [ALL_VALUE, "Любой механизм"], ...mechanisms.map((value) => [value, value])
+        ], (value) => updateFilter("mechanism", value), "mechanism"),
+        createCategoryFilterSelect("Материал", state.categoryFilters.material, [
+          [ALL_VALUE, "Любой материал"], ...materials.map((value) => [value, value])
+        ], (value) => updateFilter("material", value), "material"),
+        createCategoryFilterSelect("Доставка", state.categoryFilters.deliveryDays, [
+          ["0", "Любой срок"], ["3", "До 3 дней"], ["7", "До недели"], ["14", "До 2 недель"]
+        ], (value) => updateFilter("deliveryDays", value, true), "deliveryDays")
+      );
     }
 
-    page.append(head, switcher, grid);
+    controls.append(
+      createCategoryFilterSelect("Рейтинг", state.categoryFilters.minRating, [
+        ["0", "Любой рейтинг"], ["4", "Рейтинг от 4,0"], ["4.5", "Рейтинг от 4,5"], ["4.8", "Рейтинг от 4,8"]
+      ], (value) => updateFilter("minRating", value, true), "minRating"),
+      createCategoryFilterSelect("Количество отзывов", state.categoryFilters.minReviews, [
+        ["0", "Любое количество"], ["1", "Есть отзывы"], ["5", "От 5 отзывов"], ["10", "От 10 отзывов"]
+      ], (value) => updateFilter("minReviews", value, true), "minReviews"),
+      createCategoryFilterSelect("Сортировка", state.categoryFilters.sort, [
+        ["popular", "Сначала популярные"], ["priceAsc", "Сначала дешевле"], ["priceDesc", "Сначала дороже"], ["rating", "По рейтингу"], ["reviews", "По количеству отзывов"], ["delivery", serviceMode ? "По сроку работ" : "По сроку доставки"]
+      ], (value) => updateFilter("sort", value), "sort")
+    );
+
+    const saleField = createElement("label", "category-filter-check");
+    const saleCheck = document.createElement("input");
+    saleCheck.type = "checkbox";
+    saleCheck.checked = state.categoryFilters.saleOnly;
+    saleCheck.addEventListener("change", () => {
+      state.categoryFilters.saleOnly = saleCheck.checked;
+      scheduleGridUpdate();
+    });
+    saleField.append(saleCheck, createElement("span", "", "Только со скидкой"));
+    controls.append(saleField);
+
+    reset.type = "button";
+    reset.addEventListener("click", () => {
+      resetCategoryFilters();
+      state.categoryFilterOpen = true;
+      renderCategoryPage();
+    });
+
+    filterToolbar.append(toggle, resultCount, reset);
+    panelInner.append(controls);
+    panel.append(panelInner);
+    filterShell.append(filterToolbar, panel);
+
+    page.append(head, switcher);
+    if (!mobileViewport.matches) page.append(filterShell);
+    page.append(grid);
     els.categoryPageContent.replaceChildren(page);
-    observeAnimatedElements();
+    renderGrid(false);
   }
 
   function categorySwitchItems(preset = {}) {
@@ -3929,6 +4219,10 @@
       ...categoryPresetByKey(options.key || options.category || "all"),
       ...options
     };
+    if (state.categoryPage?.key !== preset.key) {
+      resetCategoryFilters();
+      state.categoryFilterOpen = false;
+    }
     state.categoryPage = preset;
     navigateTo("category");
   }
@@ -4066,6 +4360,7 @@
     if (els.adminPage) els.adminPage.hidden = !isAdmin;
     document.body.classList.toggle("cart-view", isCart);
     document.body.classList.toggle("account-view", isProfile || isFavorites || isAdmin || isCategory);
+    document.body.classList.toggle("category-view", isCategory);
     document.body.classList.toggle("profile-view", isProfile);
     document.body.classList.toggle("admin-view", isAdmin);
 
